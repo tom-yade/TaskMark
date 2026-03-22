@@ -1,0 +1,70 @@
+@tags
+#Important: #e74c3c
+#MTG: #3498db
+#Dev: #2ecc71
+#Private: #9b59b6
+#Review: #e67e22
+#Ops: #1abc9c
+@end
+
+# 2026-03-16
+- 10:00-11:00 Weekly Sync @repeat(weekly, until:2026-06-30) #MTG
+
+# 2026-03-17
+- 09:30-10:00 Morning Stand-up #MTG
+- 14:00-16:00 Design Review #Review #Dev
+- [x] Setup testing environment #Dev
+
+# 2026-03-18
+- 09:30-10:00 Morning Stand-up #MTG
+- [ ] Update API specs #Dev
+- [x] Submit invoice #Important
+
+> Release Prep
+> - 15:00-16:00 Confirm release steps #Ops
+> - [x] Review checklist #Ops
+> - [ ] Validate production environment #Ops
+
+# 2026-03-19
+- 09:30-10:00 Morning Stand-up #MTG
+- 13:00-14:30 Dev Mob-programming #Dev
+
+> Sprint Retrospective
+> - 16:00-17:00 Retrospective session #MTG
+> - [x] Document action items
+> - [ ] Plan next sprint tickets
+
+# 2026-03-20
+- 09:30-10:00 Morning Stand-up #MTG
+- [ ] Address code review feedback #Review
+- [x] Fix documentation formatting #Dev
+
+# 2026-03-21
+- 10:00-11:30 Client Meeting #Important #MTG
+- 14:00-15:00 1on1 Session #MTG
+- [ ] Draft meeting minutes #Important
+
+> TaskMark Development
+> - [x] Implement Gantt chart #Dev
+> - [x] Code refactoring #Dev
+> - [ ] Add unit tests #Dev
+
+# 2026-03-22
+- 11:00 Lunch with friends #Private
+- [ ] Read industry articles #Private
+
+# 2026-03-25
+- 09:00-10:00 Monthly Report @repeat(monthly, count:6) #Important #MTG
+
+> New Feature Dev
+> - 13:00-17:00 Frontend implementation #Dev
+> - [ ] Backend integration #Dev
+> - [ ] Polish UI components #Dev
+
+# 2026-03-28
+- 18:00 Dinner with friends #Private
+- [ ] Dentist appointment #Private
+
+# 2026-04-01
+- 09:00-09:15 Morning Stretch @repeat(daily, until:2026-04-30) #Private
+- 14:00 Bi-Weekly 1on1 @repeat(every:2weeks, count:8) #MTG

@@ -1,0 +1,32 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "TaskMark",
+  "patterns": [
+    {
+      "include": "source.markdown"
+    },
+    {
+      "begin": "^\\s*@tags\\s*$",
+      "end": "^\\s*@end\\s*$",
+      "name": "meta.tag-definitions.tmd",
+      "patterns": [
+        {
+          "match": "\\#([a-zA-Z0-9_\\u3040-\\u309F\\u30A0-\\u30FF\\u4E00-\\u9FAF]+)\\s*:\\s*(#[0-9a-fA-F]{3,6}|[a-zA-Z]+)",
+          "captures": {
+            "1": { "name": "entity.name.tag.tmd" },
+            "2": { "name": "constant.color.tmd" }
+          }
+        }
+      ]
+    },
+    {
+      "match": "\\#([a-zA-Z0-9_\\u3040-\\u309F\\u30A0-\\u30FF\\u4E00-\\u9FAF]+)",
+      "name": "entity.name.tag.tmd"
+    },
+    {
+      "match": "@repeat\\([^)]+\\)",
+      "name": "keyword.control.repeat.tmd"
+    }
+  ],
+  "scopeName": "source.tmd"
+}

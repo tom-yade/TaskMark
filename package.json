@@ -1,0 +1,76 @@
+{
+  "name": "taskmark",
+  "displayName": "TaskMark",
+  "description": "Schedule and Task Management with Markdown and Calendar/Timeline Views",
+  "version": "1.0.0",
+  "publisher": "tom-yade",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tom-yade/taskmark.git"
+  },
+  "engines": {
+    "vscode": "^1.70.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onLanguage:tmd",
+    "onCommand:taskmark.openView"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "taskmark.openView",
+        "title": "TaskMark: Open View"
+      }
+    ],
+    "languages": [
+      {
+        "id": "tmd",
+        "aliases": [
+          "TaskMark",
+          "tmd"
+        ],
+        "extensions": [
+          ".tmd"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "tmd",
+        "scopeName": "source.tmd",
+        "path": "./syntaxes/tmd.tmLanguage.json"
+      }
+    ],
+    "configuration": {
+      "title": "TaskMark",
+      "properties": {
+        "taskmark.tagColors": {
+          "type": "object",
+          "default": {},
+          "description": "Custom color mapping for tags (e.g. {\"meeting\": \"#ff0000\"})"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/node": "20.x",
+    "@types/vscode": "^1.90.0",
+    "@typescript-eslint/eslint-plugin": "^7.11.0",
+    "@typescript-eslint/parser": "^7.11.0",
+    "eslint": "^8.57.0",
+    "typescript": "^5.4.5"
+  }
+}
