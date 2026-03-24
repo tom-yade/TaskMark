@@ -197,7 +197,10 @@ export function parseTmd(text: string): TaskMarkData {
 // ─── Repeat Expansion ──────────────────────────────────────────
 
 function expandRepeats(data: TaskMarkData): TaskMarkData {
-  const expandedDays = { ...data.days };
+  const expandedDays: Record<string, DayData> = {};
+  for (const [date, day] of Object.entries(data.days)) {
+    expandedDays[date] = { date, items: [...day.items] };
+  }
 
   Object.values(data.days).forEach(day => {
     day.items.forEach(item => {
