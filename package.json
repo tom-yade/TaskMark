@@ -3,20 +3,17 @@
   "displayName": "TaskMark",
   "description": "Schedule and Task Management with Markdown and Calendar/Timeline Views",
   "version": "1.0.0",
-  "publisher": "tom-yade",
+  "icon": "media/icon.png",
+  "publisher": "Yadecode",
   "repository": {
     "type": "git",
     "url": "https://github.com/tom-yade/taskmark.git"
   },
   "engines": {
-    "vscode": "^1.70.0"
+    "vscode": "^1.90.0"
   },
   "categories": [
     "Other"
-  ],
-  "activationEvents": [
-    "onLanguage:tmd",
-    "onCommand:taskmark.openView"
   ],
   "main": "./out/extension.js",
   "contributes": {
