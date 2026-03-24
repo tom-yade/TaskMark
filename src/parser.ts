@@ -199,7 +199,7 @@ export function parseTmd(text: string): TaskMarkData {
 function expandRepeats(data: TaskMarkData): TaskMarkData {
   const expandedDays: Record<string, DayData> = {};
   for (const [date, day] of Object.entries(data.days)) {
-    expandedDays[date] = { date, items: [...day.items] };
+    expandedDays[date] = { date, items: day.items.map(item => ({ ...item, tags: [...item.tags] })) };
   }
 
   Object.values(data.days).forEach(day => {
