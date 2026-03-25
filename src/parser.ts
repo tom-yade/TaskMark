@@ -64,15 +64,14 @@ interface RepeatOptions {
   count: number;
 }
 
-const DEFAULT_REPEAT_COUNT = 12;
-const MAX_OCCURRENCES = 365;
+const MAX_OCCURRENCES = 3650;
 
 function parseRepeatOptions(repeatStr: string): RepeatOptions {
   const parts = repeatStr.split(',').map(s => s.trim());
   let mode: 'days' | 'months' = 'days';
   let interval = 7; // default: weekly
   let until: Date | undefined;
-  let count = DEFAULT_REPEAT_COUNT;
+  let count: number | undefined;
 
   for (const part of parts) {
     if (part.startsWith('every:')) {
@@ -91,16 +90,19 @@ function parseRepeatOptions(repeatStr: string): RepeatOptions {
     } else if (part === 'monthly') {
       mode = 'months'; interval = 1;
     } else if (part.startsWith('until:')) {
-      const p = part.substring(6).split('-');
-      if (p.length === 3) {
-        until = new Date(parseInt(p[0]), parseInt(p[1]) - 1, parseInt(p[2]));
+      const dateStr = part.substring(6);
+      if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        until = new Date(dateStr);
       }
     } else if (part.startsWith('count:')) {
-      count = parseInt(part.substring(6)) || DEFAULT_REPEAT_COUNT;
+      const parsedCount = parseInt(part.substring(6));
+      if (!isNaN(parsedCount)) count = parsedCount;
     }
   }
 
-  return { mode, interval, until, count };
+  const finalCount = count !== undefined ? count : MAX_OCCURRENCES;
+
+  return { mode, interval, until, count: finalCount };
 }
 
 // ─── Main Parser ───────────────────────────────────────────────
