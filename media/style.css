@@ -191,6 +191,7 @@ body {
   transition: var(--tm-transition);
   overflow: hidden;
   position: relative;
+  will-change: transform;
 }
 
 .tm-cal-cell.sat {
