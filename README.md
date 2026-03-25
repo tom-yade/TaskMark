@@ -8,6 +8,8 @@ Write your schedules and tasks in a `.tmd` file using Markdown formatting and vi
 
 ## Features
 
+- **Theme Adaptive** — Seamlessly adapts to your active VS Code Color Theme (Light, Dark, and High Contrast).
+
 ### 📅 Calendar View
 
 Switch between three granularity levels to check your schedule.
@@ -68,7 +70,7 @@ Automatically expand recurring schedules. Tasks (`- [ ]` / `- [x]`) manage indep
 | `until:YYYY-MM-DD` | End date | `@repeat(weekly, until:2026-06-30)` |
 | `count:N` | Occurrences | `@repeat(monthly, count:6)` |
 
-Options can be combined using commas. If not explicitly defined, recurrences default to 12 expansions.
+Options can be combined using commas. If a limit is not explicitly defined, recurrences will continually expand up to a safe maximum of 3650 occurrences (approx. 10 years).
 
 ---
 
