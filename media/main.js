@@ -633,8 +633,10 @@
   function createGanttLabel(text, leftPx, yOffset) {
     const label = document.createElement('span');
     label.className = 'tm-gantt-bar-label';
-    label.style.left = (leftPx + 6) + 'px';
-    label.style.top = (yOffset + 4) + 'px';
+    const GANTT_LABEL_OFFSET_X = 6;
+    const GANTT_LABEL_OFFSET_Y = 4;
+    label.style.left = (leftPx + GANTT_LABEL_OFFSET_X) + 'px';
+    label.style.top = (yOffset + GANTT_LABEL_OFFSET_Y) + 'px';
     label.textContent = text;
     return label;
   }
