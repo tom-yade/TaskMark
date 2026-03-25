@@ -191,7 +191,6 @@ body {
   transition: var(--tm-transition);
   overflow: hidden;
   position: relative;
-  will-change: transform;
 }
 
 .tm-cal-cell.sat {
@@ -204,8 +203,7 @@ body {
 
 .tm-cal-cell:hover {
   border-color: var(--tm-accent);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .tm-cal-cell.other-month {
