@@ -6,8 +6,16 @@
   --tm-card-border: rgba(255, 255, 255, 0.1);
   --tm-accent: var(--vscode-button-background, #0e639c);
   --tm-accent-hover: var(--vscode-button-hoverBackground, #1177bb);
+  --tm-accent-fg: var(--vscode-button-foreground, #fff);
   --tm-group-border: rgba(255, 255, 255, 0.2);
   --tm-group-bg: rgba(255, 255, 255, 0.02);
+  --tm-separator: rgba(255, 255, 255, 0.05);
+  --tm-item-bg: rgba(0, 0, 0, 0.2);
+  --tm-hover-overlay: rgba(255, 255, 255, 0.1);
+  --tm-row-hover: rgba(255, 255, 255, 0.03);
+  --tm-axis-line: rgba(255, 255, 255, 0.1);
+  --tm-row-border: rgba(255, 255, 255, 0.05);
+  --tm-scrollbar: rgba(255, 255, 255, 0.2);
   --tm-radius: 8px;
   --tm-transition: all 0.2s ease-in-out;
   --tm-font: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif);
@@ -15,6 +23,23 @@
   --tm-sun-color: #e74c3c;
   --tm-sat-bg: rgba(52, 152, 219, 0.08);
   --tm-sun-bg: rgba(231, 76, 60, 0.08);
+}
+
+/* ─── Light Theme Overrides ─────────────────────────────────── */
+body.vscode-light {
+  --tm-card-bg: rgba(0, 0, 0, 0.04);
+  --tm-card-border: rgba(0, 0, 0, 0.12);
+  --tm-group-border: rgba(0, 0, 0, 0.2);
+  --tm-group-bg: rgba(0, 0, 0, 0.02);
+  --tm-separator: rgba(0, 0, 0, 0.06);
+  --tm-item-bg: rgba(0, 0, 0, 0.06);
+  --tm-hover-overlay: rgba(0, 0, 0, 0.08);
+  --tm-row-hover: rgba(0, 0, 0, 0.04);
+  --tm-axis-line: rgba(0, 0, 0, 0.12);
+  --tm-row-border: rgba(0, 0, 0, 0.06);
+  --tm-scrollbar: rgba(0, 0, 0, 0.2);
+  --tm-sat-bg: rgba(52, 152, 219, 0.06);
+  --tm-sun-bg: rgba(231, 76, 60, 0.06);
 }
 
 /* ─── Body & Layout ─────────────────────────────────────────── */
@@ -67,12 +92,12 @@ body {
 }
 
 .tm-view-toggle:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--tm-hover-overlay);
 }
 
 .tm-view-toggle.active {
   background: var(--tm-accent);
-  color: #fff;
+  color: var(--tm-accent-fg);
 }
 
 .tm-month-nav {
@@ -178,8 +203,7 @@ body {
 
 .tm-cal-cell:hover {
   border-color: var(--tm-accent);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .tm-cal-cell.other-month {
@@ -197,7 +221,7 @@ body {
 
 .clickable-date:hover .tm-cal-date {
   background: var(--tm-accent);
-  color: #fff;
+  color: var(--tm-accent-fg);
   opacity: 0.8;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
@@ -209,7 +233,7 @@ body {
   box-sizing: border-box;
   padding: 8px;
   margin-bottom: 4px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--tm-separator);
   flex-shrink: 0;
 }
 
@@ -227,7 +251,7 @@ body {
 
 .tm-cal-cell.today .tm-cal-date {
   background: var(--tm-accent);
-  color: #fff;
+  color: var(--tm-accent-fg);
 }
 
 /* ─── Items List & Item Cards ───────────────────────────────── */
@@ -257,11 +281,11 @@ body {
 }
 
 .tm-items-list:hover::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--tm-scrollbar);
 }
 
 .tm-items-list:hover {
-  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  scrollbar-color: var(--tm-scrollbar) transparent;
 }
 
 .tm-calendar-grid.daily .tm-items-list {
@@ -289,7 +313,7 @@ body {
   font-size: 14px;
   padding: 8px 10px;
   border-radius: 4px;
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--tm-item-bg);
   border-left: 3px solid var(--tm-accent);
   display: flex;
   align-items: flex-start;
@@ -394,13 +418,13 @@ body {
   height: 20px;
   font-size: 10px;
   opacity: 0.5;
-  border-top: 1px dashed rgba(255, 255, 255, 0.1);
+  border-top: 1px dashed var(--tm-axis-line);
 }
 
 .tm-gantt-axis-hours > div {
   position: absolute;
   padding-left: 2px;
-  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  border-left: 1px solid var(--tm-axis-line);
   height: 100%;
 }
 
@@ -427,13 +451,13 @@ body {
   position: absolute;
   height: 44px;
   left: 0;
-  border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
+  border-bottom: 1px dashed var(--tm-row-border);
   box-sizing: border-box;
   z-index: 1;
 }
 
 .tm-gantt-row-bg:hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--tm-row-hover);
 }
 
 /* Bars */
@@ -464,12 +488,13 @@ body {
 }
 
 .tm-gantt-bar-label {
-  position: relative;
-  z-index: 2;
+  position: absolute;
+  z-index: 7;
   padding: 0 8px;
   font-size: 13px;
-  color: #fff;
+  line-height: 32px;
+  color: var(--tm-fg);
   font-weight: bold;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
   white-space: nowrap;
+  pointer-events: none;
 }
