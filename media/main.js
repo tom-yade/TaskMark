@@ -580,18 +580,18 @@
       const progress = (entity.tasksDone / entity.tasksTotal) * 100;
       pBar.style.width = progress + '%';
       if (progress > 0 && progress < 100) {
-        pBar.style.borderRight = '2px solid rgba(255,255,255,0.6)';
+        pBar.style.borderRight = '2px solid var(--tm-card-border)';
       }
     } else {
       pBar.style.width = '100%';
     }
     pBar.style.backgroundColor = bgColor;
     bar.appendChild(pBar);
-
-    // Label
-    const progText = entity.tasksTotal > 0 ? ` [${entity.tasksDone}/${entity.tasksTotal}]` : '';
-    bar.appendChild(createGanttLabel(entity.name + progText));
     container.appendChild(bar);
+
+    // Label (outside bar, to the right)
+    const progText = entity.tasksTotal > 0 ? ` [${entity.tasksDone}/${entity.tasksTotal}]` : '';
+    container.appendChild(createGanttLabel(entity.name + progText, left + width, yOffset));
   }
 
   function renderStandaloneBars(container, entity, startDate, pxPerMs, yOffset, bgColor) {
@@ -610,9 +610,10 @@
       }
       pBar.style.backgroundColor = bgColor;
       bar.appendChild(pBar);
-
-      bar.appendChild(createGanttLabel(entity.name));
       container.appendChild(bar);
+
+      // Label (outside bar, to the right)
+      container.appendChild(createGanttLabel(entity.name, left + width, yOffset));
     });
   }
 
@@ -623,15 +624,17 @@
     bar.style.left = left + 'px';
     bar.style.top = (yOffset + 4) + 'px';
     bar.style.width = width + 'px';
-    bar.style.backgroundColor = 'rgba(255, 255, 255, 0.08)';
+    bar.style.backgroundColor = 'var(--tm-card-bg)';
     bar.style.border = `1px solid ${borderColor}`;
     return bar;
   }
 
-  /** Create a label span for a Gantt bar */
-  function createGanttLabel(text) {
+  /** Create a label element positioned outside the bar */
+  function createGanttLabel(text, leftPx, yOffset) {
     const label = document.createElement('span');
     label.className = 'tm-gantt-bar-label';
+    label.style.left = (leftPx + 6) + 'px';
+    label.style.top = (yOffset + 4) + 'px';
     label.textContent = text;
     return label;
   }
