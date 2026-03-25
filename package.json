@@ -2,7 +2,7 @@
   "name": "taskmark",
   "displayName": "TaskMark",
   "description": "Schedule and Task Management with Markdown and Calendar/Timeline Views",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "icon": "media/icon.png",
   "publisher": "Yadecode",
   "repository": {
