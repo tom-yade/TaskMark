@@ -23,7 +23,7 @@ export function getWebviewHtml(scriptUri: vscode.Uri, stylesUri: vscode.Uri): st
                 <button class="tm-view-toggle" id="btn-daily">Daily</button>
              </div>
              <button id="btn-prev-month">&lt;</button>
-             <h2 id="current-month-display">2026-03</h2>
+             <h2 id="current-month-display"></h2>
              <button id="btn-next-month">&gt;</button>
           </div>
         </div>
