@@ -32,6 +32,13 @@ const REPEAT_REGEX = /@repeat\(([^)]+)\)/;
 const TAG_SPLIT_REGEX = /#([^\s#]+)/g;
 const EVERY_REGEX = /^(\d+)(days?|weeks?|months?)$/;
 
+function toLocaleDateStr(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 // ─── Helpers ───────────────────────────────────────────────────
 
 /** Ensure a day entry exists in the days record, returning it */
@@ -223,7 +230,7 @@ function expandRepeats(data: TaskMarkData): TaskMarkData {
 
         if (opts.until && nextDate > opts.until) break;
 
-        const isoDate = nextDate.toISOString().split('T')[0];
+        const isoDate = toLocaleDateStr(nextDate);
         ensureDay(expandedDays, isoDate);
         expandedDays[isoDate].items.push({ ...item, id: `${item.id}-rep${i}` });
       }
