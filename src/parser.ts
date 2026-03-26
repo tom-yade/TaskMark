@@ -168,7 +168,7 @@ export function parseTmd(text: string): TaskMarkData {
     // 4. Item (schedule or task)
     const itemMatch = rawLine.match(ITEM_REGEX);
     if (itemMatch) {
-      currentGroup = processItemMatch(itemMatch, rawLine, i, currentDate, currentGroup, data);
+      currentGroup = processItemMatch(itemMatch, i, currentDate, currentGroup, data);
     }
   }
 
@@ -177,7 +177,6 @@ export function parseTmd(text: string): TaskMarkData {
 
 function processItemMatch(
   itemMatch: RegExpMatchArray,
-  rawLine: string,
   lineIndex: number,
   currentDate: string,
   currentGroup: string,
