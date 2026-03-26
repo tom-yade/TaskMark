@@ -42,7 +42,7 @@ function toLocaleDateStr(d: Date): string {
 // ─── Helpers ───────────────────────────────────────────────────
 
 export function parseLocalDate(dateStr: string): Date {
-  const [year, month, day] = dateStr.split('-').map(Number);
+  const [year, month, day] = dateStr.split('-').map(s => parseInt(s, 10));
   const date = new Date(year, month - 1, day);
   if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
     throw new Error(`Invalid date: ${dateStr}`);
