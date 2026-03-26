@@ -4,6 +4,26 @@
 
 Write your schedules and tasks in a `.tmd` file using Markdown formatting and visualize them instantly in Calendar or Timeline (Gantt chart) views.
 
+## Motivation
+
+TaskMark aims to empower developers by bringing schedule and task management directly into the environment they use most: **VS Code**.
+
+### The Problem
+- **Frequent Context Switching**: Constantly switching between VS Code and external project management tools or browsers disrupts focus and flow.
+- **Unfamiliar UI/UX**: Many task management tools have complex GUIs that don't align with the text-driven workflow developers prefer.
+
+### The Solution
+- **VS Code Integration**: Manage your entire schedule within your editor, eliminating the need to leave your workspace.
+- **Developer-Friendly Syntax**: Write schedules and tasks using Markdown-inspired formatting that is intuitive for any programmer.
+- **Instant Visualization**: Automatically transform your text-based plans into interactive Calendar and Timeline views.
+
+## Built With
+
+- **[TypeScript](https://www.typescriptlang.org/)** — Core extension logic and custom `.tmd` parser.
+- **[VS Code Extension API](https://code.visualstudio.com/api)** — Seamless integration with the VS Code environment.
+- **HTML / Vanilla CSS / JavaScript** — Lightweight, interactive, and theme-adaptive Webview UI.
+- **[Mocha](https://mochajs.org/)** — Reliable testing for both unit and integration tests.
+
 ---
 
 ## Features
@@ -118,6 +138,32 @@ Options can be combined using commas. If a limit is not explicitly defined, recu
 2. Run **`TaskMark: Open View`** from the Command Palette (`Ctrl+Shift+P`).
 3. View the Calendar / Timeline interface in a new panel.
 4. Edit the `.tmd` file side-by-side; the view will reflect changes in real-time.
+
+---
+
+## Extension Settings
+
+You can also define global tag colors in your VS Code `settings.json` to reuse them across multiple `.tmd` files.
+
+- `taskmark.tagColors`: A JSON object mapping tag names (without `#`) to hex color codes.
+
+```json
+{
+  "taskmark.tagColors": {
+    "Important": "#e74c3c",
+    "MTG": "#3498db",
+    "Dev": "#2ecc71"
+  }
+}
+```
+
+*Note: Tags defined within a `.tmd` file via the `@tags` block will take precedence over global settings.*
+
+---
+
+## Feedback & Support
+
+Found a bug or have a feature request? Please feel free to open an issue on our [GitHub Repository](https://github.com/tom-yade/taskmark/issues). Your feedback helps make TaskMark better for everyone!
 
 ---
 
