@@ -219,7 +219,7 @@ function expandRepeats(data: TaskMarkData): TaskMarkData {
       const opts = parseRepeatOptions(item.repeat);
       const maxCount = Math.min(opts.count, MAX_OCCURRENCES);
 
-      for (let i = 1; i <= maxCount; i++) {
+      for (let i = 1; i < maxCount; i++) {
         const nextDate = new Date(origin);
 
         if (opts.mode === 'months') {
