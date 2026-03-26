@@ -49,7 +49,8 @@
 
   /** Get today's date as 'YYYY-MM-DD' */
   function getTodayStr() {
-    return new Date().toISOString().split('T')[0];
+    const d = new Date();
+    return formatDateStr(d.getFullYear(), d.getMonth() + 1, d.getDate());
   }
 
   /** Return CSS class name for day-of-week index (0=Sun, 6=Sat) */
