@@ -95,6 +95,11 @@ export class TaskmarkPanel {
       this._panel.webview.postMessage(message);
     } catch (e) {
       console.error("TaskMark parse error", e);
+      if (e instanceof Error) {
+        vscode.window.showErrorMessage(`TaskMark parse error: ${e.message}`);
+      } else {
+        vscode.window.showErrorMessage('TaskMark parse error: An unknown error occurred.');
+      }
     }
   }
 
