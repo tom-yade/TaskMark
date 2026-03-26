@@ -232,7 +232,7 @@ function expandRepeats(data: TaskMarkData): TaskMarkData {
 
         const isoDate = toLocaleDateStr(nextDate);
         ensureDay(expandedDays, isoDate);
-        expandedDays[isoDate].items.push({ ...item, id: `${item.id}-rep${i}` });
+        expandedDays[isoDate].items.push({ ...item, id: `${item.id}-rep${i}`, tags: [...item.tags] });
       }
     });
   });
