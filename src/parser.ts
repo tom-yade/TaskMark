@@ -41,6 +41,15 @@ function toLocaleDateStr(d: Date): string {
 
 // ─── Helpers ───────────────────────────────────────────────────
 
+export function parseLocalDate(dateStr: string): Date {
+  const [year, month, day] = dateStr.split('-').map(s => parseInt(s, 10));
+  const date = new Date(year, month - 1, day);
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+    throw new Error(`Invalid date: ${dateStr}`);
+  }
+  return date;
+}
+
 /** Ensure a day entry exists in the days record, returning it */
 function ensureDay(days: Record<string, DayData>, dateStr: string): DayData {
   if (!days[dateStr]) {
@@ -99,7 +108,7 @@ function parseRepeatOptions(repeatStr: string): RepeatOptions {
     } else if (part.startsWith('until:')) {
       const dateStr = part.substring(6);
       if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
-        until = new Date(dateStr);
+        until = parseLocalDate(dateStr);
       }
     } else if (part.startsWith('count:')) {
       const parsedCount = parseInt(part.substring(6));
@@ -215,7 +224,7 @@ function expandRepeats(data: TaskMarkData): TaskMarkData {
     day.items.forEach(item => {
       if (!item.repeat || item.type === 'task') return;
 
-      const origin = new Date(day.date);
+      const origin = parseLocalDate(day.date);
       const opts = parseRepeatOptions(item.repeat);
       const maxCount = Math.min(opts.count, MAX_OCCURRENCES);
 
