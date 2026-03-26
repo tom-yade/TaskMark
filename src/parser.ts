@@ -168,28 +168,31 @@ export function parseTmd(text: string): TaskMarkData {
     // 4. Item (schedule or task)
     const itemMatch = rawLine.match(ITEM_REGEX);
     if (itemMatch) {
-      currentGroup = processItemMatch(itemMatch, i, currentDate, currentGroup, data);
+      if (!itemMatch[1]) currentGroup = '';
+      const item = createMarkItem(itemMatch, i, currentDate, currentGroup);
+      if (item) {
+        data.days[currentDate].items.push(item);
+      }
     }
   }
 
   return expandRepeats(data);
 }
 
-function processItemMatch(
+function createMarkItem(
   itemMatch: RegExpMatchArray,
   lineIndex: number,
   currentDate: string,
   currentGroup: string,
-  data: TaskMarkData
-): string {
-  const isQuote = itemMatch[1];
+): MarkItem | null {
+  if (!currentDate) {
+    return null;
+  }
+
   const hasCheckbox = itemMatch[3];
   const checkMark = itemMatch[4];
   const timeString = itemMatch[5];
   let content = itemMatch[8] || '';
-
-  if (!currentDate) return currentGroup;
-  if (!isQuote) currentGroup = '';
 
   const type: ItemType = hasCheckbox ? 'task' : 'schedule';
   const status: TaskStatus | undefined = hasCheckbox
@@ -219,8 +222,7 @@ function processItemMatch(
     rawLine: lineIndex
   };
 
-  data.days[currentDate].items.push(item);
-  return currentGroup;
+  return item;
 }
 
 // ─── Repeat Expansion ──────────────────────────────────────────
