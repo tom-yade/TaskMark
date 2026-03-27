@@ -2,7 +2,16 @@
 
 **Markdown-Based Schedule & Task Management VS Code Extension**
 
+![Visual Studio Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/Yadecode.taskmark)
+![Visual Studio Marketplace Installs](https://img.shields.io/visual-studio-marketplace/i/Yadecode.taskmark)
+![Visual Studio Marketplace Rating](https://img.shields.io/visual-studio-marketplace/r/Yadecode.taskmark)
+![GitHub License](https://img.shields.io/github/license/tom-yade/taskmark)
+
+
 Write your schedules and tasks in a `.tmd` file using Markdown formatting and visualize them instantly in Calendar or Timeline (Gantt chart) views.
+
+![Main View](media/screenshots/main-view.png)
+
 
 ## Motivation
 
@@ -34,6 +43,9 @@ TaskMark aims to empower developers by bringing schedule and task management dir
 
 Switch between three granularity levels to check your schedule.
 
+![View Switch](media/screenshots/view-switch.gif)
+
+
 - **Monthly** — Overview of the entire month
 - **Weekly** — Horizontal view of the week
 - **Daily** — Detailed schedule for a specific day
@@ -47,6 +59,9 @@ Switch between three granularity levels to check your schedule.
 ### 📊 Timeline View (Gantt Chart)
 
 Visualize schedule durations and project spans as a Gantt chart.
+
+![Timeline Demo](media/screenshots/timeline-demo.gif)
+
 
 - **Pan** — Move smoothly in any direction by clicking and dragging
 - **Zoom** — Use `Ctrl + Mouse Wheel` to zoom in/out (from days to hours)
