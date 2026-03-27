@@ -10,7 +10,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   if (vscode.window.registerWebviewPanelSerializer) {
     vscode.window.registerWebviewPanelSerializer(TaskmarkPanel.viewType, {
-      async deserializeWebviewPanel(webviewPanel: vscode.WebviewPanel, state: any) {
+      async deserializeWebviewPanel(webviewPanel: vscode.WebviewPanel, _state: unknown) {
         TaskmarkPanel.revive(webviewPanel, context.extensionUri);
       }
     });

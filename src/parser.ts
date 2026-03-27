@@ -93,7 +93,7 @@ function parseRepeatOptions(repeatStr: string): RepeatOptions {
     if (part.startsWith('every:')) {
       const match = part.substring(6).match(EVERY_REGEX);
       if (match) {
-        const num = parseInt(match[1]);
+        const num = parseInt(match[1], 10);
         const unit = match[2].replace(/s$/, '');
         if (unit === 'day') { mode = 'days'; interval = num; }
         else if (unit === 'week') { mode = 'days'; interval = num * 7; }
@@ -111,7 +111,7 @@ function parseRepeatOptions(repeatStr: string): RepeatOptions {
         until = parseLocalDate(dateStr);
       }
     } else if (part.startsWith('count:')) {
-      const parsedCount = parseInt(part.substring(6));
+      const parsedCount = parseInt(part.substring(6), 10);
       if (!isNaN(parsedCount)) count = parsedCount;
     }
   }
@@ -167,49 +167,65 @@ export function parseTmd(text: string): TaskMarkData {
 
     // 4. Item (schedule or task)
     const itemMatch = rawLine.match(ITEM_REGEX);
-    if (itemMatch) {
-      const isQuote = itemMatch[1];
-      const hasCheckbox = itemMatch[3];
-      const checkMark = itemMatch[4];
-      const timeString = itemMatch[5];
-      let content = itemMatch[8] || '';
-
-      if (!currentDate) continue;
-      if (!isQuote) currentGroup = '';
-
-      const type: ItemType = hasCheckbox ? 'task' : 'schedule';
-      const status: TaskStatus | undefined = hasCheckbox
-        ? (checkMark.trim().toLowerCase() === 'x' ? 'done' : 'todo')
-        : undefined;
-
-      // Extract repeat
-      let repeatStr: string | undefined;
-      const rMatch = content.match(REPEAT_REGEX);
-      if (rMatch) {
-        repeatStr = rMatch[1];
-        content = content.replace(REPEAT_REGEX, '');
+    if (itemMatch && itemMatch[2]) {
+      const result = createMarkItem(itemMatch, i, currentDate, currentGroup);
+      if (result) {
+        data.days[currentDate].items.push(result.item);
+        currentGroup = result.newGroup;
       }
-
-      // Extract tags
-      const { tags, cleaned } = extractTags(content);
-
-      const item: MarkItem = {
-        id: `item-${i}-${currentDate}`,
-        type,
-        text: cleaned,
-        time: timeString,
-        tags,
-        status,
-        repeat: repeatStr,
-        group: currentGroup || undefined,
-        rawLine: i
-      };
-
-      data.days[currentDate].items.push(item);
     }
   }
 
   return expandRepeats(data);
+}
+
+function createMarkItem(
+  itemMatch: RegExpMatchArray,
+  lineIndex: number,
+  currentDate: string,
+  currentGroup: string,
+): { item: MarkItem; newGroup: string } | null {
+  if (!currentDate) {
+    return null;
+  }
+
+  const isQuote = !!itemMatch[1];
+  const newGroup = isQuote ? currentGroup : '';
+
+  const hasCheckbox = itemMatch[3];
+  const checkMark = itemMatch[4];
+  const timeString = itemMatch[5];
+  let content = itemMatch[8] || '';
+
+  const type: ItemType = hasCheckbox ? 'task' : 'schedule';
+  const status: TaskStatus | undefined = hasCheckbox
+    ? (checkMark.trim().toLowerCase() === 'x' ? 'done' : 'todo')
+    : undefined;
+
+  // Extract repeat
+  let repeatStr: string | undefined;
+  const rMatch = content.match(REPEAT_REGEX);
+  if (rMatch) {
+    repeatStr = rMatch[1];
+    content = content.replace(REPEAT_REGEX, '');
+  }
+
+  // Extract tags
+  const { tags, cleaned } = extractTags(content);
+
+  const item: MarkItem = {
+    id: `item-${lineIndex}-${currentDate}`,
+    type,
+    text: cleaned,
+    time: timeString,
+    tags,
+    status,
+    repeat: repeatStr,
+    group: newGroup || undefined,
+    rawLine: lineIndex
+  };
+
+  return { item, newGroup };
 }
 
 // ─── Repeat Expansion ──────────────────────────────────────────
@@ -224,27 +240,33 @@ function expandRepeats(data: TaskMarkData): TaskMarkData {
     day.items.forEach(item => {
       if (!item.repeat || item.type === 'task') return;
 
-      const origin = parseLocalDate(day.date);
-      const opts = parseRepeatOptions(item.repeat);
-      const maxCount = Math.min(opts.count, MAX_OCCURRENCES);
-
-      for (let i = 1; i < maxCount; i++) {
-        const nextDate = new Date(origin);
-
-        if (opts.mode === 'months') {
-          nextDate.setMonth(origin.getMonth() + opts.interval * i);
-        } else {
-          nextDate.setDate(origin.getDate() + opts.interval * i);
-        }
-
-        if (opts.until && nextDate > opts.until) break;
-
-        const isoDate = toLocaleDateStr(nextDate);
-        ensureDay(expandedDays, isoDate);
-        expandedDays[isoDate].items.push({ ...item, id: `${item.id}-rep${i}`, tags: [...item.tags] });
-      }
+      generateRepeatedItems(item, day.date, expandedDays);
     });
   });
 
   return { ...data, days: expandedDays };
+}
+
+function generateRepeatedItems(item: MarkItem, originDateStr: string, expandedDays: Record<string, DayData>) {
+  const origin = parseLocalDate(originDateStr);
+  const opts = parseRepeatOptions(item.repeat!);
+  for (let i = 1; i < opts.count; i++) {
+    const nextDate = new Date(origin);
+
+    if (opts.mode === 'months') {
+      const targetMonth = origin.getMonth() + opts.interval * i;
+      nextDate.setMonth(targetMonth);
+      if (nextDate.getMonth() !== targetMonth % 12) {
+        nextDate.setDate(0); // clamp to last day of intended month
+      }
+    } else {
+      nextDate.setDate(origin.getDate() + opts.interval * i);
+    }
+
+    if (opts.until && nextDate > opts.until) break;
+
+    const isoDate = toLocaleDateStr(nextDate);
+    ensureDay(expandedDays, isoDate);
+    expandedDays[isoDate].items.push({ ...item, id: `${item.id}-rep${i}`, tags: [...item.tags] });
+  }
 }

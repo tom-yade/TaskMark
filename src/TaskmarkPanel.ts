@@ -1,5 +1,11 @@
 import * as vscode from 'vscode';
-import { parseTmd } from './parser';
+import { parseTmd, TaskMarkData } from './parser';
+import { getWebviewHtml } from './template';
+
+export interface TaskMarkUpdateMessage {
+  type: 'update';
+  data: TaskMarkData;
+}
 
 export class TaskmarkPanel {
   public static currentPanel: TaskmarkPanel | undefined;
@@ -16,7 +22,6 @@ export class TaskmarkPanel {
 
     if (TaskmarkPanel.currentPanel) {
       TaskmarkPanel.currentPanel._panel.reveal(column);
-      // Manually trigger an update if it already exists
       TaskmarkPanel.currentPanel.updateFromActiveEditor();
       return;
     }
@@ -28,7 +33,7 @@ export class TaskmarkPanel {
       {
         enableScripts: true,
         localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'media')],
-        retainContextWhenHidden: true // Keep Webview state when switching tabs
+        retainContextWhenHidden: true
       }
     );
 
@@ -44,7 +49,7 @@ export class TaskmarkPanel {
     this._extensionUri = extensionUri;
 
     this._update();
-    this.updateFromActiveEditor(); // Initial load
+    this.updateFromActiveEditor();
 
     this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
 
@@ -82,12 +87,18 @@ export class TaskmarkPanel {
     try {
       const text = document.getText();
       const parsedData = parseTmd(text);
-      this._panel.webview.postMessage({
+      const message: TaskMarkUpdateMessage = {
         type: 'update',
         data: parsedData
-      });
+      };
+      this._panel.webview.postMessage(message);
     } catch (e) {
       console.error("TaskMark parse error", e);
+      if (e instanceof Error) {
+        vscode.window.showErrorMessage(`TaskMark parse error: ${e.message}`);
+      } else {
+        vscode.window.showErrorMessage('TaskMark parse error: An unknown error occurred.');
+      }
     }
   }
 
@@ -95,54 +106,14 @@ export class TaskmarkPanel {
     TaskmarkPanel.currentPanel = undefined;
     this._panel.dispose();
     while (this._disposables.length) {
-      const x = this._disposables.pop();
-      if (x) {
-        x.dispose();
-      }
+      this._disposables.pop()!.dispose();
     }
   }
 
   private _update() {
     const webview = this._panel.webview;
-    this._panel.webview.html = this._getHtmlForWebview(webview);
-  }
-
-  private _getHtmlForWebview(webview: vscode.Webview) {
     const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'main.js'));
     const stylesUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'style.css'));
-
-    return `<!DOCTYPE html>
-      <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>TaskMark</title>
-        <link href="${stylesUri}" rel="stylesheet">
-      </head>
-      <body>
-        <div class="tm-header">
-          <div class="tm-toggle-container">
-            <button class="tm-view-toggle active" id="btn-calendar">Calendar</button>
-            <button class="tm-view-toggle" id="btn-timeline">Timeline</button>
-          </div>
-          <div class="tm-month-nav">
-             <button class="tm-view-toggle" id="btn-today">Today</button>
-             <div class="tm-toggle-container" id="calendar-granularity-toggles">
-                <button class="tm-view-toggle active" id="btn-monthly">Monthly</button>
-                <button class="tm-view-toggle" id="btn-weekly">Weekly</button>
-                <button class="tm-view-toggle" id="btn-daily">Daily</button>
-             </div>
-             <button id="btn-prev-month">&lt;</button>
-             <h2 id="current-month-display">2026-03</h2>
-             <button id="btn-next-month">&gt;</button>
-          </div>
-        </div>
-        <div class="tm-content" id="tm-content-area">
-          <div class="tm-calendar-grid" id="tm-calendar"></div>
-          <div class="tm-timeline-view hidden" id="tm-timeline"></div>
-        </div>
-        <script src="${scriptUri}"></script>
-      </body>
-      </html>`;
+    webview.html = getWebviewHtml(scriptUri, stylesUri);
   }
 }

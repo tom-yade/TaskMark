@@ -199,6 +199,24 @@ TaskMark/
 └── package.json
 ```
 
+## Development
+
+### Running Tests
+
+This project uses Mocha for testing. There are two ways to run the tests depending on your needs:
+
+#### 1. Unit Tests (Recommended / Fast)
+Runs pure logic tests (e.g., the `.tmd` parser) without requiring the VS Code Extension host.
+```bash
+npm run test:unit
+```
+
+#### 2. Integration Tests
+Downloads a VS Code instance and runs tests inside the extension host environment.
+```bash
+npm test
+```
+
 ---
 
 ## License
