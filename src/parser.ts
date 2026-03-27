@@ -254,7 +254,11 @@ function generateRepeatedItems(item: MarkItem, originDateStr: string, expandedDa
     const nextDate = new Date(origin);
 
     if (opts.mode === 'months') {
-      nextDate.setMonth(origin.getMonth() + opts.interval * i);
+      const targetMonth = origin.getMonth() + opts.interval * i;
+      nextDate.setMonth(targetMonth);
+      if (nextDate.getMonth() !== targetMonth % 12) {
+        nextDate.setDate(0); // clamp to last day of intended month
+      }
     } else {
       nextDate.setDate(origin.getDate() + opts.interval * i);
     }
