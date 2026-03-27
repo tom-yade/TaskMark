@@ -74,6 +74,16 @@ export class TaskmarkPanel {
       null,
       this._disposables
     );
+
+    vscode.workspace.onDidChangeConfiguration(
+      e => {
+        if (e.affectsConfiguration('taskmark.tagColors')) {
+          this.updateFromActiveEditor();
+        }
+      },
+      null,
+      this._disposables
+    );
   }
 
   private updateFromActiveEditor() {
@@ -87,6 +97,8 @@ export class TaskmarkPanel {
     try {
       const text = document.getText();
       const parsedData = parseTmd(text);
+      const configColors = vscode.workspace.getConfiguration('taskmark').get<Record<string, string>>('tagColors', {});
+      parsedData.tagColors = { ...configColors, ...parsedData.tagColors };
       const message: TaskMarkUpdateMessage = {
         type: 'update',
         data: parsedData
@@ -97,7 +109,7 @@ export class TaskmarkPanel {
       if (e instanceof Error) {
         vscode.window.showErrorMessage(`TaskMark parse error: ${e.message}`);
       } else {
-        vscode.window.showErrorMessage('TaskMark parse error: An unknown error occurred.');
+        vscode.window.showErrorMessage(`TaskMark parse error: ${String(e)}`);
       }
     }
   }
@@ -105,9 +117,8 @@ export class TaskmarkPanel {
   public dispose() {
     TaskmarkPanel.currentPanel = undefined;
     this._panel.dispose();
-    while (this._disposables.length) {
-      this._disposables.pop()!.dispose();
-    }
+    vscode.Disposable.from(...this._disposables).dispose();
+    this._disposables = [];
   }
 
   private _update() {

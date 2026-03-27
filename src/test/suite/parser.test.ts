@@ -22,6 +22,48 @@ suite('Parser Test Suite', () => {
     assert.strictEqual(items[1].text, 'Schedule item');
   });
 
+  test('parseTmd parses @tags block', () => {
+    const text = `
+@tags
+#meeting : #ff0000
+#work : #0088ff
+@end
+
+# 2026-03-26
+- Meeting
+`;
+    const data = parseTmd(text);
+    assert.strictEqual(data.tagColors['meeting'], '#ff0000');
+    assert.strictEqual(data.tagColors['work'], '#0088ff');
+  });
+
+  test('parseTmd @tags block does not bleed into day parsing', () => {
+    const text = `
+@tags
+#meeting : #ff0000
+@end
+
+# 2026-03-26
+- Task item
+`;
+    const data = parseTmd(text);
+    assert.ok(data.days['2026-03-26'], 'Day should exist');
+    assert.strictEqual(data.days['2026-03-26'].items.length, 1);
+    assert.strictEqual(data.days['2026-03-26'].items[0].text, 'Task item');
+  });
+
+  test('parseTmd empty @tags block produces empty tagColors', () => {
+    const text = `
+@tags
+@end
+
+# 2026-03-26
+- Task
+`;
+    const data = parseTmd(text);
+    assert.deepStrictEqual(data.tagColors, {});
+  });
+
   test('parseTmd basic repetition handling', () => {
     const text = `
 # 2026-03-26
