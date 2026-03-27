@@ -117,9 +117,8 @@ export class TaskmarkPanel {
   public dispose() {
     TaskmarkPanel.currentPanel = undefined;
     this._panel.dispose();
-    while (this._disposables.length) {
-      this._disposables.pop()!.dispose();
-    }
+    vscode.Disposable.from(...this._disposables).dispose();
+    this._disposables = [];
   }
 
   private _update() {
