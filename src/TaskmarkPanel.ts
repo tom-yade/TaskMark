@@ -74,6 +74,16 @@ export class TaskmarkPanel {
       null,
       this._disposables
     );
+
+    vscode.workspace.onDidChangeConfiguration(
+      e => {
+        if (e.affectsConfiguration('taskmark.tagColors')) {
+          this.updateFromActiveEditor();
+        }
+      },
+      null,
+      this._disposables
+    );
   }
 
   private updateFromActiveEditor() {
@@ -87,6 +97,8 @@ export class TaskmarkPanel {
     try {
       const text = document.getText();
       const parsedData = parseTmd(text);
+      const configColors = vscode.workspace.getConfiguration('taskmark').get<Record<string, string>>('tagColors', {});
+      parsedData.tagColors = { ...configColors, ...parsedData.tagColors };
       const message: TaskMarkUpdateMessage = {
         type: 'update',
         data: parsedData
