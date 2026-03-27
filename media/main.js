@@ -7,6 +7,8 @@
   const GANTT_ROW_HEIGHT = 40;
   const GANTT_HEADER_HEIGHT = 50;
   const GANTT_MIN_BAR_WIDTH = 12;
+  const GANTT_LABEL_OFFSET_X = 6;
+  const GANTT_LABEL_OFFSET_Y = 4;
 
   // ─── State ───────────────────────────────────────────────────
   let baseView = 'calendar'; // 'calendar' | 'timeline'
@@ -69,16 +71,17 @@
     for (let i = 0; i < tagName.length; i++) {
       hash = tagName.charCodeAt(i) + ((hash << 5) - hash);
     }
-    const h = Math.abs(hash) % 360;
-    const s = 60 + (Math.abs(hash) % 20);
-    const l = 45 + (Math.abs(hash) % 15);
+    const absHash = Math.abs(hash);
+    const h = absHash % 360;
+    const s = 60 + (absHash % 20);
+    const l = 45 + (absHash % 15);
     return `hsl(${h}, ${s}%, ${l}%)`;
   }
 
   /** Get border color from the first tag, falling back to accent */
-  function getItemBorderColor(item, tagColorsMap) {
-    if (item.tags && item.tags.length > 0) {
-      return getTagColor(item.tags[0], tagColorsMap);
+  function getItemBorderColor(tags, tagColorsMap) {
+    if (tags && tags.length > 0) {
+      return getTagColor(tags[0], tagColorsMap);
     }
     return 'var(--tm-accent)';
   }
@@ -262,7 +265,7 @@
       const cbHtml = item.type === 'task' ? '<span class="tm-checkbox"></span>' : '';
       const timeHtml = item.time ? `<span class="tm-time">${item.time}</span>` : '';
       const classNames = `tm-item ${item.type} ${item.status || ''}`;
-      const borderColor = getItemBorderColor(item, tagColorsMap);
+      const borderColor = getItemBorderColor(item.tags, tagColorsMap);
 
       return `<div class="${classNames}" style="border-left-color: ${borderColor}">
         ${cbHtml}
@@ -559,7 +562,7 @@
     rowBg.style.width = totalWidth + 'px';
     container.appendChild(rowBg);
 
-    const bgColor = getItemBorderColor({ tags: entity.tags }, currentTaskMarkData.tagColors);
+    const bgColor = getItemBorderColor(entity.tags, currentTaskMarkData.tagColors);
 
     if (entity.isGroup) {
       renderGroupBar(container, entity, startDate, pxPerMs, yOffset, bgColor);
@@ -634,8 +637,6 @@
   function createGanttLabel(text, leftPx, yOffset) {
     const label = document.createElement('span');
     label.className = 'tm-gantt-bar-label';
-    const GANTT_LABEL_OFFSET_X = 6;
-    const GANTT_LABEL_OFFSET_Y = 4;
     label.style.left = (leftPx + GANTT_LABEL_OFFSET_X) + 'px';
     label.style.top = (yOffset + GANTT_LABEL_OFFSET_Y) + 'px';
     label.textContent = text;

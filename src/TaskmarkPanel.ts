@@ -22,7 +22,6 @@ export class TaskmarkPanel {
 
     if (TaskmarkPanel.currentPanel) {
       TaskmarkPanel.currentPanel._panel.reveal(column);
-      // Manually trigger an update if it already exists
       TaskmarkPanel.currentPanel.updateFromActiveEditor();
       return;
     }
@@ -34,7 +33,7 @@ export class TaskmarkPanel {
       {
         enableScripts: true,
         localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'media')],
-        retainContextWhenHidden: true // Keep Webview state when switching tabs
+        retainContextWhenHidden: true
       }
     );
 
@@ -50,7 +49,7 @@ export class TaskmarkPanel {
     this._extensionUri = extensionUri;
 
     this._update();
-    this.updateFromActiveEditor(); // Initial load
+    this.updateFromActiveEditor();
 
     this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
 
@@ -107,10 +106,7 @@ export class TaskmarkPanel {
     TaskmarkPanel.currentPanel = undefined;
     this._panel.dispose();
     while (this._disposables.length) {
-      const x = this._disposables.pop();
-      if (x) {
-        x.dispose();
-      }
+      this._disposables.pop()!.dispose();
     }
   }
 
@@ -118,6 +114,6 @@ export class TaskmarkPanel {
     const webview = this._panel.webview;
     const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'main.js'));
     const stylesUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'style.css'));
-    this._panel.webview.html = getWebviewHtml(scriptUri, stylesUri);
+    webview.html = getWebviewHtml(scriptUri, stylesUri);
   }
 }

@@ -93,7 +93,7 @@ function parseRepeatOptions(repeatStr: string): RepeatOptions {
     if (part.startsWith('every:')) {
       const match = part.substring(6).match(EVERY_REGEX);
       if (match) {
-        const num = parseInt(match[1]);
+        const num = parseInt(match[1], 10);
         const unit = match[2].replace(/s$/, '');
         if (unit === 'day') { mode = 'days'; interval = num; }
         else if (unit === 'week') { mode = 'days'; interval = num * 7; }
@@ -111,7 +111,7 @@ function parseRepeatOptions(repeatStr: string): RepeatOptions {
         until = parseLocalDate(dateStr);
       }
     } else if (part.startsWith('count:')) {
-      const parsedCount = parseInt(part.substring(6));
+      const parsedCount = parseInt(part.substring(6), 10);
       if (!isNaN(parsedCount)) count = parsedCount;
     }
   }
@@ -167,11 +167,11 @@ export function parseTmd(text: string): TaskMarkData {
 
     // 4. Item (schedule or task)
     const itemMatch = rawLine.match(ITEM_REGEX);
-    if (itemMatch) {
-      if (!itemMatch[1]) currentGroup = '';
-      const item = createMarkItem(itemMatch, i, currentDate, currentGroup);
-      if (item) {
-        data.days[currentDate].items.push(item);
+    if (itemMatch && itemMatch[2]) {
+      const result = createMarkItem(itemMatch, i, currentDate, currentGroup);
+      if (result) {
+        data.days[currentDate].items.push(result.item);
+        currentGroup = result.newGroup;
       }
     }
   }
@@ -184,10 +184,13 @@ function createMarkItem(
   lineIndex: number,
   currentDate: string,
   currentGroup: string,
-): MarkItem | null {
+): { item: MarkItem; newGroup: string } | null {
   if (!currentDate) {
     return null;
   }
+
+  const isQuote = !!itemMatch[1];
+  const newGroup = isQuote ? currentGroup : '';
 
   const hasCheckbox = itemMatch[3];
   const checkMark = itemMatch[4];
@@ -218,11 +221,11 @@ function createMarkItem(
     tags,
     status,
     repeat: repeatStr,
-    group: currentGroup || undefined,
+    group: newGroup || undefined,
     rawLine: lineIndex
   };
 
-  return item;
+  return { item, newGroup };
 }
 
 // ─── Repeat Expansion ──────────────────────────────────────────
@@ -247,9 +250,7 @@ function expandRepeats(data: TaskMarkData): TaskMarkData {
 function generateRepeatedItems(item: MarkItem, originDateStr: string, expandedDays: Record<string, DayData>) {
   const origin = parseLocalDate(originDateStr);
   const opts = parseRepeatOptions(item.repeat!);
-  const maxCount = Math.min(opts.count, MAX_OCCURRENCES);
-
-  for (let i = 1; i < maxCount; i++) {
+  for (let i = 1; i < opts.count; i++) {
     const nextDate = new Date(origin);
 
     if (opts.mode === 'months') {
