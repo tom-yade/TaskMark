@@ -256,7 +256,9 @@ function expandRepeats(data: TaskMarkData): TaskMarkData {
 function generateRepeatedItems(item: MarkItem, originDateStr: string, expandedDays: Record<string, DayData>) {
   const origin = parseLocalDate(originDateStr);
   const opts = parseRepeatOptions(item.repeat!);
-  for (let i = 1; i < opts.count; i++) {
+  let generated = 0;
+  let i = 1;
+  while (generated < opts.count - 1) {
     const nextDate = new Date(origin);
 
     if (opts.mode === 'months') {
@@ -269,12 +271,15 @@ function generateRepeatedItems(item: MarkItem, originDateStr: string, expandedDa
       nextDate.setDate(origin.getDate() + opts.interval * i);
     }
 
+    i++;
+
     if (opts.until && nextDate > opts.until) break;
 
     const isoDate = toLocaleDateStr(nextDate);
     if (opts.exceptDates.has(isoDate)) { continue; }
 
     ensureDay(expandedDays, isoDate);
-    expandedDays[isoDate].items.push({ ...item, id: `${item.id}-rep${i}`, tags: [...item.tags] });
+    expandedDays[isoDate].items.push({ ...item, id: `${item.id}-rep${generated + 1}`, tags: [...item.tags] });
+    generated++;
   }
 }
