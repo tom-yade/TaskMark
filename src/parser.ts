@@ -26,7 +26,7 @@ export interface MarkItem {
 
 // ─── Regex Patterns ────────────────────────────────────────────
 const TAG_COLOR_REGEX = /^#([^\s:]+)\s*:\s*(.+)$/;
-const DATE_REGEX = /^#\s+(\d{4}-\d{2}-\d{2})(?:\s*:\s*(\d{4}-\d{2}-\d{2}))?/;
+const DATE_REGEX = /^#\s+(\d{4}-\d{1,2}-\d{1,2})(?:\s*:\s*(\d{4}-\d{1,2}-\d{1,2}))?/;
 const GROUP_REGEX = /^>\s*([^-\s].+)$/;
 const ITEM_REGEX = /^(>\s*)?(-)?\s*(\[\s*([xX\s])\s*\])?\s*((\d{1,2}:\d{2})(?:-(\d{1,2}:\d{2}))?)?\s*(.*)$/;
 const REPEAT_REGEX = /@repeat\(([^)]+)\)/;
@@ -160,12 +160,18 @@ export function parseTmd(text: string): TaskMarkData {
     // 2. Date header
     const dateMatch = line.match(DATE_REGEX);
     if (dateMatch) {
-      currentDate = dateMatch[1];
+      try {
+        currentDate = toLocaleDateStr(parseLocalDate(dateMatch[1]));
+      } catch {
+        currentDate = '';
+        continue;
+      }
       currentEndDate = '';
       if (dateMatch[2]) {
         try {
-          parseLocalDate(dateMatch[2]);
-          if (dateMatch[2] >= currentDate) { currentEndDate = dateMatch[2]; }
+          const parsedEnd = parseLocalDate(dateMatch[2]);
+          const normalizedEnd = toLocaleDateStr(parsedEnd);
+          if (normalizedEnd >= currentDate) { currentEndDate = normalizedEnd; }
         } catch { /* ignore invalid end date */ }
       }
       ensureDay(data.days, currentDate);

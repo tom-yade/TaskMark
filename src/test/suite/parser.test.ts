@@ -178,4 +178,34 @@ suite('Parser Test Suite', () => {
     assert.ok(data.days['2026-03-01'], 'Start day should exist');
     assert.ok(!data.days['2026-03-02'], 'Repeat should not expand when endDate is set');
   });
+
+  test('parseTmd date header without zero-padding is normalized and parsed', () => {
+    const text = `
+# 2026-3-1
+- Meeting
+`;
+    const data = parseTmd(text);
+    assert.ok(data.days['2026-03-01'], 'Day should be stored with zero-padded key');
+    assert.strictEqual(data.days['2026-03-01'].items.length, 1);
+    assert.strictEqual(data.days['2026-03-01'].items[0].text, 'Meeting');
+  });
+
+  test('parseTmd date range end date without zero-padding is normalized', () => {
+    const text = `
+# 2026-3-1 : 2026-3-10
+- Conference
+`;
+    const data = parseTmd(text);
+    assert.ok(data.days['2026-03-01'], 'Start day should be zero-padded');
+    assert.strictEqual(data.days['2026-03-01'].items[0].endDate, '2026-03-10');
+  });
+
+  test('parseTmd date header with invalid month is ignored', () => {
+    const text = `
+# 2026-13-1
+- Meeting
+`;
+    const data = parseTmd(text);
+    assert.strictEqual(Object.keys(data.days).length, 0, 'Invalid date header should be ignored');
+  });
 });
