@@ -62,6 +62,15 @@ function normalizeTimeStr(timeStr: string): string {
   return timeStr.split('-').map(normalizeTimePart).join('-');
 }
 
+/** Parse and normalize a date string to 'YYYY-MM-DD'. Returns null if invalid. */
+function tryNormalizeDate(dateStr: string): string | null {
+  try {
+    return toLocaleDateStr(parseLocalDate(dateStr));
+  } catch {
+    return null;
+  }
+}
+
 /** Ensure a day entry exists in the days record, returning it */
 function ensureDay(days: Record<string, DayData>, dateStr: string): DayData {
   if (!days[dateStr]) {
@@ -129,7 +138,8 @@ function parseRepeatOptions(repeatStr: string): RepeatOptions {
       if (!isNaN(parsedCount)) count = parsedCount;
     } else if (part.startsWith('except:')) {
       for (const d of part.substring(7).trim().split(/\s+/).filter(Boolean)) {
-        try { exceptDates.add(toLocaleDateStr(parseLocalDate(d))); } catch { /* ignore invalid dates */ }
+        const normalized = tryNormalizeDate(d);
+        if (normalized) { exceptDates.add(normalized); }
       }
     }
   }
@@ -171,19 +181,13 @@ export function parseTmd(text: string): TaskMarkData {
     // 2. Date header
     const dateMatch = line.match(DATE_REGEX);
     if (dateMatch) {
-      try {
-        currentDate = toLocaleDateStr(parseLocalDate(dateMatch[1]));
-      } catch {
-        currentDate = '';
-        continue;
-      }
+      const normalizedStart = tryNormalizeDate(dateMatch[1]);
+      if (!normalizedStart) { currentDate = ''; continue; }
+      currentDate = normalizedStart;
       currentEndDate = '';
       if (dateMatch[2]) {
-        try {
-          const parsedEnd = parseLocalDate(dateMatch[2]);
-          const normalizedEnd = toLocaleDateStr(parsedEnd);
-          if (normalizedEnd >= currentDate) { currentEndDate = normalizedEnd; }
-        } catch { /* ignore invalid end date */ }
+        const normalizedEnd = tryNormalizeDate(dateMatch[2]);
+        if (normalizedEnd && normalizedEnd >= currentDate) { currentEndDate = normalizedEnd; }
       }
       ensureDay(data.days, currentDate);
       currentGroup = '';
