@@ -78,6 +78,7 @@ interface RepeatOptions {
   interval: number; // days when mode='days', months when mode='months'
   until?: Date;
   count: number;
+  exceptDates: Set<string>;
 }
 
 const MAX_OCCURRENCES = 3650;
@@ -88,6 +89,7 @@ function parseRepeatOptions(repeatStr: string): RepeatOptions {
   let interval = 7; // default: weekly
   let until: Date | undefined;
   let count: number | undefined;
+  const exceptDates = new Set<string>();
 
   for (const part of parts) {
     if (part.startsWith('every:')) {
@@ -113,12 +115,16 @@ function parseRepeatOptions(repeatStr: string): RepeatOptions {
     } else if (part.startsWith('count:')) {
       const parsedCount = parseInt(part.substring(6), 10);
       if (!isNaN(parsedCount)) count = parsedCount;
+    } else if (part.startsWith('except:')) {
+      for (const d of part.substring(7).trim().split(/\s+/).filter(Boolean)) {
+        try { parseLocalDate(d); exceptDates.add(d); } catch { /* ignore invalid dates */ }
+      }
     }
   }
 
   const finalCount = count !== undefined ? count : MAX_OCCURRENCES;
 
-  return { mode, interval, until, count: finalCount };
+  return { mode, interval, until, count: finalCount, exceptDates };
 }
 
 // ─── Main Parser ───────────────────────────────────────────────
@@ -266,6 +272,8 @@ function generateRepeatedItems(item: MarkItem, originDateStr: string, expandedDa
     if (opts.until && nextDate > opts.until) break;
 
     const isoDate = toLocaleDateStr(nextDate);
+    if (opts.exceptDates.has(isoDate)) { continue; }
+
     ensureDay(expandedDays, isoDate);
     expandedDays[isoDate].items.push({ ...item, id: `${item.id}-rep${i}`, tags: [...item.tags] });
   }
