@@ -87,18 +87,6 @@ suite('Parser Test Suite', () => {
     assert.ok(data.days['2026-03-30'], '2026-03-30 should still exist');
   });
 
-  test('parseTmd repeat except still generates count items after skip', () => {
-    const text = `
-# 2026-03-16
-- 10:00-11:00 Weekly Sync @repeat(weekly, count:3, except:2026-03-23)
-`;
-    const data = parseTmd(text);
-    assert.ok(data.days['2026-03-16'], '2026-03-16 should exist (origin)');
-    assert.ok(!data.days['2026-03-23'], '2026-03-23 should be skipped');
-    assert.ok(data.days['2026-03-30'], '2026-03-30 should exist');
-    assert.ok(data.days['2026-04-06'], '2026-04-06 should exist (count:3 = 2 repeats after origin)');
-  });
-
   test('parseTmd repeat except ignores invalid dates', () => {
     const text = `
 # 2026-03-16

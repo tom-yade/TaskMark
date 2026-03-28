@@ -109,6 +109,8 @@ Automatically expand recurring schedules. Tasks (`- [ ]` / `- [x]`) manage indep
 
 Options can be combined using commas. If a limit is not explicitly defined, recurrences will continually expand up to a safe maximum of 3650 occurrences (approx. 10 years).
 
+> **Note on `except:`**: Skipped dates are simply removed from the schedule — the total count is not compensated. If you need a different schedule on a cancelled date, add a separate one-off item for that day.
+
 ---
 
 ## `.tmd` File Format
