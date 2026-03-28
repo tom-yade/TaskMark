@@ -92,6 +92,7 @@ Automatically expand recurring schedules. Tasks (`- [ ]` / `- [x]`) manage indep
 - 09:00-10:00 Monthly Report @repeat(monthly, count:6) #Important
 - 09:00 Morning Stretch @repeat(daily, until:2026-06-30)
 - 14:00 Bi-Weekly 1on1 @repeat(every:2weeks, count:8) #MTG
+- 10:00-11:00 Weekly Sync @repeat(weekly, except:2026-03-23) #MTG
 ```
 
 | Modifier | Description | Example |
@@ -104,6 +105,7 @@ Automatically expand recurring schedules. Tasks (`- [ ]` / `- [x]`) manage indep
 | `every:Nmonths` | Every N months | `@repeat(every:3months)` |
 | `until:YYYY-MM-DD` | End date | `@repeat(weekly, until:2026-06-30)` |
 | `count:N` | Occurrences | `@repeat(monthly, count:6)` |
+| `except:YYYY-MM-DD` | Skip specific dates (space-separated for multiple) | `@repeat(weekly, except:2026-03-23 2026-04-06)` |
 
 Options can be combined using commas. If a limit is not explicitly defined, recurrences will continually expand up to a safe maximum of 3650 occurrences (approx. 10 years).
 
@@ -120,6 +122,7 @@ Options can be combined using commas. If a limit is not explicitly defined, recu
 - HH:mm-HH:mm Schedule item #Tag
 - HH:mm Schedule item with start time only
 - Schedule item @repeat(weekly, until:2026-12-31)
+- Schedule item @repeat(weekly, except:2026-03-23)
 - [ ] Uncompleted task #Tag
 - [x] Completed task
 

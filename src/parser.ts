@@ -19,7 +19,6 @@ export interface MarkItem {
   tags: string[];
   status?: TaskStatus;
   repeat?: string;
-  cancelDates?: string[];
   group?: string;
   rawLine: number;
 }
@@ -32,7 +31,6 @@ const ITEM_REGEX = /^(>\s*)?(-)?\s*(\[\s*([xX\s])\s*\])?\s*((\d{1,2}:\d{2})(?:-(
 const REPEAT_REGEX = /@repeat\(([^)]+)\)/;
 const TAG_SPLIT_REGEX = /#([^\s#]+)/g;
 const EVERY_REGEX = /^(\d+)(days?|weeks?|months?)$/;
-const CANCEL_REGEX = /^\\\s+(\d{4}-\d{2}-\d{2})$/;
 
 function toLocaleDateStr(d: Date): string {
   const y = d.getFullYear();
@@ -80,6 +78,7 @@ interface RepeatOptions {
   interval: number; // days when mode='days', months when mode='months'
   until?: Date;
   count: number;
+  exceptDates: string[];
 }
 
 const MAX_OCCURRENCES = 3650;
@@ -90,6 +89,7 @@ function parseRepeatOptions(repeatStr: string): RepeatOptions {
   let interval = 7; // default: weekly
   let until: Date | undefined;
   let count: number | undefined;
+  const exceptDates: string[] = [];
 
   for (const part of parts) {
     if (part.startsWith('every:')) {
@@ -115,12 +115,17 @@ function parseRepeatOptions(repeatStr: string): RepeatOptions {
     } else if (part.startsWith('count:')) {
       const parsedCount = parseInt(part.substring(6), 10);
       if (!isNaN(parsedCount)) count = parsedCount;
+    } else if (part.startsWith('except:')) {
+      const dates = part.substring(7).split(' ');
+      for (const d of dates) {
+        if (d.match(/^\d{4}-\d{2}-\d{2}$/)) { exceptDates.push(d); }
+      }
     }
   }
 
   const finalCount = count !== undefined ? count : MAX_OCCURRENCES;
 
-  return { mode, interval, until, count: finalCount };
+  return { mode, interval, until, count: finalCount, exceptDates };
 }
 
 // ─── Main Parser ───────────────────────────────────────────────
@@ -132,7 +137,6 @@ export function parseTmd(text: string): TaskMarkData {
   let inTagsBlock = false;
   let currentDate = '';
   let currentGroup = '';
-  let lastRepeatItem: MarkItem | null = null;
 
   for (let i = 0; i < lines.length; i++) {
     const rawLine = lines[i];
@@ -152,39 +156,29 @@ export function parseTmd(text: string): TaskMarkData {
       continue;
     }
 
-    // 2. Cancel date for the last repeat item
-    const cancelMatch = line.match(CANCEL_REGEX);
-    if (cancelMatch && lastRepeatItem) {
-      if (!lastRepeatItem.cancelDates) { lastRepeatItem.cancelDates = []; }
-      lastRepeatItem.cancelDates.push(cancelMatch[1]);
-      continue;
-    }
-
-    // 3. Date header
+    // 2. Date header
     const dateMatch = line.match(DATE_REGEX);
     if (dateMatch) {
       currentDate = dateMatch[1];
       ensureDay(data.days, currentDate);
       currentGroup = '';
-      lastRepeatItem = null;
       continue;
     }
 
-    // 4. Group header
+    // 3. Group header
     const groupMatch = line.match(GROUP_REGEX);
     if (groupMatch) {
       currentGroup = groupMatch[1].trim();
       continue;
     }
 
-    // 5. Item (schedule or task)
+    // 4. Item (schedule or task)
     const itemMatch = rawLine.match(ITEM_REGEX);
     if (itemMatch && itemMatch[2]) {
       const result = createMarkItem(itemMatch, i, currentDate, currentGroup);
       if (result) {
         data.days[currentDate].items.push(result.item);
         currentGroup = result.newGroup;
-        lastRepeatItem = result.item.repeat ? result.item : null;
       }
     }
   }
@@ -279,7 +273,7 @@ function generateRepeatedItems(item: MarkItem, originDateStr: string, expandedDa
     if (opts.until && nextDate > opts.until) break;
 
     const isoDate = toLocaleDateStr(nextDate);
-    if (item.cancelDates?.includes(isoDate)) { continue; }
+    if (opts.exceptDates.includes(isoDate)) { continue; }
 
     ensureDay(expandedDays, isoDate);
     expandedDays[isoDate].items.push({ ...item, id: `${item.id}-rep${i}`, tags: [...item.tags] });
