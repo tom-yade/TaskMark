@@ -59,10 +59,7 @@ function normalizeTimePart(t: string): string {
 
 /** Normalize a time string like "9:0-17:0" to "9:00-17:00" */
 function normalizeTimeStr(timeStr: string): string {
-  const parts = timeStr.split('-');
-  return parts.length === 2
-    ? `${normalizeTimePart(parts[0])}-${normalizeTimePart(parts[1])}`
-    : normalizeTimePart(parts[0]);
+  return timeStr.split('-').map(normalizeTimePart).join('-');
 }
 
 /** Ensure a day entry exists in the days record, returning it */
