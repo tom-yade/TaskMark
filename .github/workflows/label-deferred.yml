@@ -1,0 +1,22 @@
+name: Label Deferred Dependabot PRs
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  label-deferred:
+    if: github.actor == 'dependabot[bot]' && github.event.pull_request.merged == false
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: ['deferred']
+            });
