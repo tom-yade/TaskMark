@@ -118,7 +118,9 @@ function parseRepeatOptions(repeatStr: string): RepeatOptions {
     } else if (part.startsWith('except:')) {
       part.substring(7).split(' ')
         .filter(d => d.match(/^\d{4}-\d{2}-\d{2}$/))
-        .forEach(d => exceptDates.add(d));
+        .forEach(d => {
+          try { parseLocalDate(d); exceptDates.add(d); } catch { /* ignore invalid dates */ }
+        });
     }
   }
 
