@@ -263,7 +263,7 @@
         : '';
 
       const cbHtml = item.type === 'task' ? '<span class="tm-checkbox"></span>' : '';
-      const timeHtml = item.time ? `<span class="tm-time">${item.time}</span>` : '';
+      const timeHtml = (item.time && !item.endDate) ? `<span class="tm-time">${item.time}</span>` : '';
       const classNames = `tm-item ${item.type} ${item.status || ''}`;
       const borderColor = getItemBorderColor(item.tags, tagColorsMap);
 
@@ -348,9 +348,20 @@
     return el;
   }
 
-  /** Get day data from the current dataset, with fallback */
+  /** Get day data from the current dataset, including range items that span into dStr */
   function getDayData(dStr) {
-    return currentTaskMarkData.days[dStr] || { items: [] };
+    const dayData = currentTaskMarkData.days[dStr] || { items: [] };
+    const rangeItems = [];
+    Object.entries(currentTaskMarkData.days).forEach(([date, data]) => {
+      if (date >= dStr) return;
+      data.items.forEach(item => {
+        if (item.endDate && item.endDate >= dStr) {
+          rangeItems.push(item);
+        }
+      });
+    });
+    if (rangeItems.length === 0) return dayData;
+    return { ...dayData, items: [...dayData.items, ...rangeItems] };
   }
 
   // ─── Calendar Views ──────────────────────────────────────────
@@ -453,9 +464,11 @@
 
       dayData.items.forEach(item => {
         let startMs = dayStartMs;
-        let endMs = dayStartMs + MS_PER_DAY - 1;
+        let endMs = item.endDate
+          ? parseLocalDate(item.endDate).getTime() + MS_PER_DAY - 1
+          : dayStartMs + MS_PER_DAY - 1;
 
-        if (item.time) {
+        if (item.time && !item.endDate) {
           const parts = item.time.split('-');
           const sTime = parts[0].trim().split(':');
           if (sTime.length >= 2) {
@@ -655,10 +668,16 @@
       return;
     }
 
-    // Calculate padded date range (align to week boundaries)
+    // Calculate padded date range (align to week boundaries), accounting for endDate ranges
     const startDate = parseLocalDate(sortedDates[0]);
     startDate.setDate(startDate.getDate() - startDate.getDay());
-    const endDate = parseLocalDate(sortedDates[sortedDates.length - 1]);
+    let lastDateStr = sortedDates[sortedDates.length - 1];
+    sortedDates.forEach(dStr => {
+      currentTaskMarkData.days[dStr].items.forEach(item => {
+        if (item.endDate && item.endDate > lastDateStr) lastDateStr = item.endDate;
+      });
+    });
+    const endDate = parseLocalDate(lastDateStr);
     endDate.setDate(endDate.getDate() + (6 - endDate.getDay()) + 1);
 
     // Clamp zoom

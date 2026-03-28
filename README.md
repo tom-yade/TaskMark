@@ -92,6 +92,7 @@ Automatically expand recurring schedules. Tasks (`- [ ]` / `- [x]`) manage indep
 - 09:00-10:00 Monthly Report @repeat(monthly, count:6) #Important
 - 09:00 Morning Stretch @repeat(daily, until:2026-06-30)
 - 14:00 Bi-Weekly 1on1 @repeat(every:2weeks, count:8) #MTG
+- 10:00-11:00 Weekly Sync @repeat(weekly, except:2026-03-23) #MTG
 ```
 
 | Modifier | Description | Example |
@@ -104,8 +105,11 @@ Automatically expand recurring schedules. Tasks (`- [ ]` / `- [x]`) manage indep
 | `every:Nmonths` | Every N months | `@repeat(every:3months)` |
 | `until:YYYY-MM-DD` | End date | `@repeat(weekly, until:2026-06-30)` |
 | `count:N` | Occurrences | `@repeat(monthly, count:6)` |
+| `except:YYYY-MM-DD` | Skip specific dates (space-separated for multiple) | `@repeat(weekly, except:2026-03-23 2026-04-06)` |
 
 Options can be combined using commas. If a limit is not explicitly defined, recurrences will continually expand up to a safe maximum of 3650 occurrences (approx. 10 years).
+
+> **Note on `except:`**: Skipped dates are simply removed from the schedule — the total count is not compensated. If you need a different schedule on a cancelled date, add a separate one-off item for that day.
 
 ---
 
@@ -120,8 +124,13 @@ Options can be combined using commas. If a limit is not explicitly defined, recu
 - HH:mm-HH:mm Schedule item #Tag
 - HH:mm Schedule item with start time only
 - Schedule item @repeat(weekly, until:2026-12-31)
+- Schedule item @repeat(weekly, except:2026-03-23)
 - [ ] Uncompleted task #Tag
 - [x] Completed task
+
+# YYYY-MM-DD : YYYY-MM-DD
+- Multi-day event spanning date range #Tag
+- [ ] Multi-day task spanning date range
 
 > Group Name
 > - 13:00-15:00 Schedule inside group #Tag
@@ -135,6 +144,7 @@ Options can be combined using commas. If a limit is not explicitly defined, recu
 |------|------|------|
 | `@tags` ... `@end` | Tag color definition block | — |
 | `# YYYY-MM-DD` | Date header | — |
+| `# YYYY-MM-DD : YYYY-MM-DD` | Date range header (start : end) | — |
 | `- Text` | Schedule (Event) | — |
 | `- [ ] Text` | Uncompleted task | — |
 | `- [x] Text` | Completed task | — |
@@ -144,6 +154,22 @@ Options can be combined using commas. If a limit is not explicitly defined, recu
 | `@repeat(...)` | Recurring items | Schedules only |
 | `> Group Name` | Group header | — |
 | `> - Item` | Items inside group | Both |
+
+### 📅 Date Range Header
+
+Use `# YYYY-MM-DD : YYYY-MM-DD` to define events or tasks that span multiple days as a **single entry**. Unlike `@repeat`, this does not create separate items for each day — the Timeline renders it as one continuous bar, and all Calendar views show it on every day within the range.
+
+```tmd
+# 2026-03-01 : 2026-03-10
+- Conference Trip #Important
+- [ ] Prepare conference materials #Dev
+```
+
+> **Note:** If the end date is invalid or earlier than the start date, the range is silently ignored and the header is treated as a single date.
+>
+> **Note:** Date range items are always treated as all-day — any time specification (`HH:mm`) is ignored in the Timeline view.
+>
+> **Note:** `@repeat` is ignored when used under a date range header. `endDate` takes priority.
 
 ---
 
