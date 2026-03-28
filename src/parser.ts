@@ -255,7 +255,7 @@ function expandRepeats(data: TaskMarkData): TaskMarkData {
 
   Object.values(data.days).forEach(day => {
     day.items.forEach(item => {
-      if (!item.repeat || item.type === 'task') return;
+      if (!item.repeat || item.type === 'task' || item.endDate) return;
 
       generateRepeatedItems(item, day.date, expandedDays);
     });

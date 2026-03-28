@@ -167,4 +167,15 @@ suite('Parser Test Suite', () => {
     assert.strictEqual(items.length, 1);
     assert.strictEqual(items[0].endDate, undefined);
   });
+
+  test('parseTmd endDate takes priority over @repeat: repeat is not expanded', () => {
+    const text = `
+# 2026-03-01 : 2026-03-10
+- Daily standup @repeat(daily, count:5)
+`;
+    const data = parseTmd(text);
+    assert.strictEqual(Object.keys(data.days).length, 1, 'Only start day should exist');
+    assert.ok(data.days['2026-03-01'], 'Start day should exist');
+    assert.ok(!data.days['2026-03-02'], 'Repeat should not expand when endDate is set');
+  });
 });

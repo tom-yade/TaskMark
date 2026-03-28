@@ -166,6 +166,10 @@ Use `# YYYY-MM-DD : YYYY-MM-DD` to define events or tasks that span multiple day
 ```
 
 > **Note:** If the end date is invalid or earlier than the start date, the range is silently ignored and the header is treated as a single date.
+>
+> **Note:** Date range items are always treated as all-day — any time specification (`HH:mm`) is ignored in the Timeline view.
+>
+> **Note:** `@repeat` is ignored when used under a date range header. `endDate` takes priority.
 
 ---
 

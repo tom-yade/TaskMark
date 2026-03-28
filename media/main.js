@@ -468,7 +468,7 @@
           ? parseLocalDate(item.endDate).getTime() + MS_PER_DAY - 1
           : dayStartMs + MS_PER_DAY - 1;
 
-        if (item.time) {
+        if (item.time && !item.endDate) {
           const parts = item.time.split('-');
           const sTime = parts[0].trim().split(':');
           if (sTime.length >= 2) {
@@ -479,7 +479,7 @@
             if (eTime.length >= 2) {
               endMs = dayStartMs + parseInt(eTime[0]) * MS_PER_HOUR + parseInt(eTime[1]) * MS_PER_MINUTE;
             }
-          } else if (!item.endDate) {
+          } else {
             endMs = startMs + MS_PER_HOUR;
           }
         }
