@@ -3,6 +3,36 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 
+interface CommandContribution {
+  command: string;
+  title: string;
+  icon?: string;
+}
+
+interface KeybindingContribution {
+  command: string;
+  key: string;
+  mac?: string;
+  when: string;
+}
+
+interface MenuContribution {
+  command: string;
+  when: string;
+  group: string;
+}
+
+interface PackageJsonContributes {
+  commands: CommandContribution[];
+  keybindings: KeybindingContribution[];
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  menus: { 'editor/title': MenuContribution[] };
+}
+
+interface PackageJson {
+  contributes: PackageJsonContributes;
+}
+
 suite('Extension Test Suite', () => {
   vscode.window.showInformationMessage('Start all tests.');
 
@@ -17,35 +47,28 @@ suite('Extension Test Suite', () => {
   });
 
   suite('package.json contributes', () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let packageJson: any;
+    let packageJson: PackageJson;
 
     suiteSetup(() => {
       const packageJsonPath = path.join(__dirname, '..', '..', '..', 'package.json');
-      packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
+      packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8')) as PackageJson;
     });
 
     test('taskmark.openView command has an icon', () => {
-      const commands: Array<{ command: string; title: string; icon?: string }> =
-        packageJson.contributes.commands;
-      const openViewCmd = commands.find((c) => c.command === 'taskmark.openView');
+      const openViewCmd = packageJson.contributes.commands.find((c) => c.command === 'taskmark.openView');
       assert.ok(openViewCmd, 'taskmark.openView command should be defined');
       assert.ok(openViewCmd.icon, 'taskmark.openView command should have an icon for the title bar button');
     });
 
     test('has keybinding for tmd files', () => {
-      assert.ok(packageJson.contributes.keybindings, 'package.json should have keybindings');
-      const keybindings: Array<{ command: string; when: string }> = packageJson.contributes.keybindings;
-      const openViewBinding = keybindings.find((kb) => kb.command === 'taskmark.openView');
+      const openViewBinding = packageJson.contributes.keybindings.find((kb) => kb.command === 'taskmark.openView');
       assert.ok(openViewBinding, 'taskmark.openView should have a keybinding');
       assert.strictEqual(openViewBinding.when, 'editorLangId == tmd', 'keybinding should be scoped to tmd files');
     });
 
     test('has editor/title menu entry for tmd files', () => {
-      assert.ok(packageJson.contributes.menus, 'package.json should have menus');
-      assert.ok(packageJson.contributes.menus['editor/title'], 'package.json should have editor/title menu');
-      const editorTitleMenus: Array<{ command: string; when: string; group: string }> =
-        packageJson.contributes.menus['editor/title'];
+      const editorTitleMenus = packageJson.contributes.menus['editor/title'];
+      assert.ok(editorTitleMenus, 'package.json should have editor/title menu');
       const openViewMenu = editorTitleMenus.find((m) => m.command === 'taskmark.openView');
       assert.ok(openViewMenu, 'taskmark.openView should appear in editor/title menu');
       assert.strictEqual(openViewMenu.when, 'editorLangId == tmd', 'editor/title menu entry should be scoped to tmd files');
