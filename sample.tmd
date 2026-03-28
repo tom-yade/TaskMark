@@ -69,3 +69,7 @@
 # 2026-04-01
 - 09:00-09:15 Morning Stretch @repeat(daily, until:2026-04-30) #Private
 - 14:00 Bi-Weekly 1on1 @repeat(every:2weeks, count:8) #MTG
+
+# 2026-04-07 : 2026-04-11
+- Spring Conference #Important
+- [ ] Prepare conference slides #Dev
