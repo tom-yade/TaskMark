@@ -165,6 +165,8 @@ Use `# YYYY-MM-DD : YYYY-MM-DD` to define events or tasks that span multiple day
 - [ ] Prepare conference materials #Dev
 ```
 
+> **Note:** If the end date is invalid or earlier than the start date, the range is silently ignored and the header is treated as a single date.
+
 ---
 
 ## Usage
