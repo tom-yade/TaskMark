@@ -108,4 +108,52 @@ suite('Parser Test Suite', () => {
     assert.ok(!data.days['2026-03-30'], '2026-03-30 should be skipped');
     assert.ok(data.days['2026-04-06'], '2026-04-06 should still exist');
   });
+
+  test('parseTmd date range header sets endDate on items', () => {
+    const text = `
+# 2026-03-01 : 2026-03-10
+- Conference #Work
+`;
+    const data = parseTmd(text);
+    assert.ok(data.days['2026-03-01'], 'Start day should exist');
+    assert.ok(!data.days['2026-03-10'], 'End day should NOT be a separate entry');
+
+    const items = data.days['2026-03-01'].items;
+    assert.strictEqual(items.length, 1);
+    assert.strictEqual(items[0].endDate, '2026-03-10');
+  });
+
+  test('parseTmd single date header does not set endDate', () => {
+    const text = `
+# 2026-03-01
+- Regular item
+`;
+    const data = parseTmd(text);
+    const items = data.days['2026-03-01'].items;
+    assert.strictEqual(items.length, 1);
+    assert.strictEqual(items[0].endDate, undefined);
+  });
+
+  test('parseTmd date range with task sets endDate', () => {
+    const text = `
+# 2026-03-01 : 2026-03-05
+- [ ] Multi-day task
+`;
+    const data = parseTmd(text);
+    const items = data.days['2026-03-01'].items;
+    assert.strictEqual(items.length, 1);
+    assert.strictEqual(items[0].type, 'task');
+    assert.strictEqual(items[0].endDate, '2026-03-05');
+  });
+
+  test('parseTmd date range with invalid end date falls back to single date', () => {
+    const text = `
+# 2026-03-01 : 2026-02-30
+- Conference
+`;
+    const data = parseTmd(text);
+    const items = data.days['2026-03-01'].items;
+    assert.strictEqual(items.length, 1);
+    assert.strictEqual(items[0].endDate, undefined);
+  });
 });
