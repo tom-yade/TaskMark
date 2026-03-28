@@ -116,11 +116,9 @@ function parseRepeatOptions(repeatStr: string): RepeatOptions {
       const parsedCount = parseInt(part.substring(6), 10);
       if (!isNaN(parsedCount)) count = parsedCount;
     } else if (part.startsWith('except:')) {
-      part.substring(7).split(' ')
-        .filter(d => d.match(/^\d{4}-\d{2}-\d{2}$/))
-        .forEach(d => {
-          try { parseLocalDate(d); exceptDates.add(d); } catch { /* ignore invalid dates */ }
-        });
+      for (const d of part.substring(7).split(' ')) {
+        try { parseLocalDate(d); exceptDates.add(d); } catch { /* ignore invalid dates */ }
+      }
     }
   }
 
