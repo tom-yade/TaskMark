@@ -86,6 +86,15 @@
     return 'var(--tm-accent)';
   }
 
+  /** Escape special HTML characters to prevent XSS when embedding user content */
+  function escapeHtml(str) {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
   /** Convert 'H:MM' time string to total minutes for numeric comparison */
   function timeToMinutes(timeStr) {
     const [h, m] = timeStr.split(':');
@@ -275,7 +284,7 @@
       const tagsHtml = (item.tags && item.tags.length > 0)
         ? item.tags.map(t => {
           const color = getTagColor(t, tagColorsMap);
-          return `<span class="tm-tag" style="background-color: ${color}">${t}</span>`;
+          return `<span class="tm-tag" style="background-color: ${color}">${escapeHtml(t)}</span>`;
         }).join('')
         : '';
 
@@ -286,7 +295,7 @@
 
       return `<div class="${classNames}" style="border-left-color: ${borderColor}">
         ${cbHtml}
-        <div>${timeHtml} ${item.text} ${tagsHtml}</div>
+        <div>${timeHtml} ${escapeHtml(item.text)} ${tagsHtml}</div>
       </div>`;
     };
 
@@ -320,7 +329,7 @@
         ? renderTaskSummary(grouped[gName], 'Tasks')
         : grouped[gName].map(renderItem).join('');
       html += `<div class="tm-group-box">
-        <div class="tm-group-title">${gName}</div>
+        <div class="tm-group-title">${escapeHtml(gName)}</div>
         ${groupContent}
       </div>`;
     });
