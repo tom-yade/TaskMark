@@ -28,7 +28,7 @@ export interface MarkItem {
 const TAG_COLOR_REGEX = /^#([^\s:]+)\s*:\s*(.+)$/;
 const DATE_REGEX = /^#\s+(\d{4}-\d{1,2}-\d{1,2})(?:\s*:\s*(\d{4}-\d{1,2}-\d{1,2}))?/;
 const GROUP_REGEX = /^>\s*([^-\s].+)$/;
-const ITEM_REGEX = /^(>\s*)?(-)?\s*(\[\s*([xX\s])\s*\])?\s*((\d{1,2}:\d{2})(?:-(\d{1,2}:\d{2}))?)?\s*(.*)$/;
+const ITEM_REGEX = /^(>\s*)?(-)?\s*(\[\s*([xX\s])\s*\])?\s*((\d{1,2}:\d{1,2})(?:-(\d{1,2}:\d{1,2}))?)?\s*(.*)$/;
 const REPEAT_REGEX = /@repeat\(([^)]+)\)/;
 const TAG_SPLIT_REGEX = /#([^\s#]+)/g;
 const EVERY_REGEX = /^(\d+)(days?|weeks?|months?)$/;
@@ -49,6 +49,20 @@ export function parseLocalDate(dateStr: string): Date {
     throw new Error(`Invalid date: ${dateStr}`);
   }
   return date;
+}
+
+/** Normalize a time part like "9:0" to "9:00" */
+function normalizeTimePart(t: string): string {
+  const [h, m] = t.split(':');
+  return `${h}:${m.padStart(2, '0')}`;
+}
+
+/** Normalize a time string like "9:0-17:0" to "9:00-17:00" */
+function normalizeTimeStr(timeStr: string): string {
+  const parts = timeStr.split('-');
+  return parts.length === 2
+    ? `${normalizeTimePart(parts[0])}-${normalizeTimePart(parts[1])}`
+    : normalizeTimePart(parts[0]);
 }
 
 /** Ensure a day entry exists in the days record, returning it */
@@ -216,7 +230,7 @@ function createMarkItem(
 
   const hasCheckbox = itemMatch[3];
   const checkMark = itemMatch[4];
-  const timeString = itemMatch[5];
+  const timeString = itemMatch[5] ? normalizeTimeStr(itemMatch[5]) : undefined;
   let content = itemMatch[8] || '';
 
   const type: ItemType = hasCheckbox ? 'task' : 'schedule';

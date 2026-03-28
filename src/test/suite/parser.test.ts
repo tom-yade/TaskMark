@@ -208,4 +208,26 @@ suite('Parser Test Suite', () => {
     const data = parseTmd(text);
     assert.strictEqual(Object.keys(data.days).length, 0, 'Invalid date header should be ignored');
   });
+
+  test('parseTmd time with unpadded minutes is normalized', () => {
+    const text = `
+# 2026-03-01
+- 9:0-17:0 Conference
+`;
+    const data = parseTmd(text);
+    const items = data.days['2026-03-01'].items;
+    assert.strictEqual(items.length, 1);
+    assert.strictEqual(items[0].time, '9:00-17:00');
+  });
+
+  test('parseTmd start time only with unpadded minutes is normalized', () => {
+    const text = `
+# 2026-03-01
+- 9:0 Meeting
+`;
+    const data = parseTmd(text);
+    const items = data.days['2026-03-01'].items;
+    assert.strictEqual(items.length, 1);
+    assert.strictEqual(items[0].time, '9:00');
+  });
 });
