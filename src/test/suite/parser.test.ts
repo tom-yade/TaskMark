@@ -156,4 +156,15 @@ suite('Parser Test Suite', () => {
     assert.strictEqual(items.length, 1);
     assert.strictEqual(items[0].endDate, undefined);
   });
+
+  test('parseTmd date range where end date is before start date is ignored', () => {
+    const text = `
+# 2026-03-10 : 2026-03-01
+- Conference
+`;
+    const data = parseTmd(text);
+    const items = data.days['2026-03-10'].items;
+    assert.strictEqual(items.length, 1);
+    assert.strictEqual(items[0].endDate, undefined);
+  });
 });

@@ -165,7 +165,7 @@ export function parseTmd(text: string): TaskMarkData {
       if (dateMatch[2]) {
         try {
           parseLocalDate(dateMatch[2]);
-          currentEndDate = dateMatch[2];
+          if (dateMatch[2] >= currentDate) { currentEndDate = dateMatch[2]; }
         } catch { /* ignore invalid end date */ }
       }
       ensureDay(data.days, currentDate);
