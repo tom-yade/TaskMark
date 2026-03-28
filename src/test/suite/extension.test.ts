@@ -56,12 +56,14 @@ suite('Extension Test Suite', () => {
     test('taskmark.openView command has an icon', () => {
       const openViewCmd = packageJson.contributes.commands.find((c) => c.command === 'taskmark.openView');
       assert.ok(openViewCmd, 'taskmark.openView command should be defined');
-      assert.ok(openViewCmd.icon, 'taskmark.openView command should have an icon for the title bar button');
+      assert.strictEqual(openViewCmd.icon, '$(open-preview)', 'taskmark.openView command icon should be $(open-preview)');
     });
 
     test('has keybinding for tmd files', () => {
       const openViewBinding = packageJson.contributes.keybindings.find((kb) => kb.command === 'taskmark.openView');
       assert.ok(openViewBinding, 'taskmark.openView should have a keybinding');
+      assert.strictEqual(openViewBinding.key, 'ctrl+shift+v', 'keybinding key should be ctrl+shift+v');
+      assert.strictEqual(openViewBinding.mac, 'cmd+shift+v', 'keybinding mac should be cmd+shift+v');
       assert.strictEqual(openViewBinding.when, 'editorLangId == tmd', 'keybinding should be scoped to tmd files');
     });
 
@@ -71,6 +73,7 @@ suite('Extension Test Suite', () => {
       const openViewMenu = editorTitleMenus.find((m) => m.command === 'taskmark.openView');
       assert.ok(openViewMenu, 'taskmark.openView should appear in editor/title menu');
       assert.strictEqual(openViewMenu.when, 'editorLangId == tmd', 'editor/title menu entry should be scoped to tmd files');
+      assert.strictEqual(openViewMenu.group, 'navigation', 'editor/title menu entry should be in the navigation group');
     });
   });
 });
