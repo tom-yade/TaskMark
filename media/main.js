@@ -263,7 +263,7 @@
         : '';
 
       const cbHtml = item.type === 'task' ? '<span class="tm-checkbox"></span>' : '';
-      const timeHtml = item.time ? `<span class="tm-time">${item.time}</span>` : '';
+      const timeHtml = (item.time && !item.endDate) ? `<span class="tm-time">${item.time}</span>` : '';
       const classNames = `tm-item ${item.type} ${item.status || ''}`;
       const borderColor = getItemBorderColor(item.tags, tagColorsMap);
 
