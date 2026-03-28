@@ -3,7 +3,7 @@
   "name": "TaskMark",
   "patterns": [
     {
-      "match": "^#\\s+(\\d{4}-\\d{2}-\\d{2})(?:\\s*:\\s*(\\d{4}-\\d{2}-\\d{2}))?",
+      "match": "^#\\s+(\\d{4}-\\d{1,2}-\\d{1,2})(?:\\s*:\\s*(\\d{4}-\\d{1,2}-\\d{1,2}))?",
       "captures": {
         "1": { "name": "constant.numeric.date.tmd" },
         "2": { "name": "constant.numeric.date.tmd" }
