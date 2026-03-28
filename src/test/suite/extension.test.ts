@@ -1,7 +1,5 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import * as path from 'path';
-import * as fs from 'fs';
 
 interface CommandContribution {
   command: string;
@@ -50,8 +48,9 @@ suite('Extension Test Suite', () => {
     let packageJson: PackageJson;
 
     suiteSetup(() => {
-      const packageJsonPath = path.join(__dirname, '..', '..', '..', 'package.json');
-      packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8')) as PackageJson;
+      const extension = vscode.extensions.getExtension('Yadecode.taskmark');
+      assert.ok(extension, 'Extension Yadecode.taskmark should be installed');
+      packageJson = extension.packageJSON as PackageJson;
     });
 
     test('taskmark.openView command has an icon', () => {
