@@ -150,7 +150,10 @@ Options can be combined using commas. If a limit is not explicitly defined, recu
 ## Usage
 
 1. Open a `.tmd` extension file.
-2. Run **`TaskMark: Open View`** from the Command Palette (`Ctrl+Shift+P`).
+2. Open the TaskMark view using any of the following methods:
+   - Click the **preview icon** in the editor title bar
+   - Press `Ctrl+Shift+V` (macOS: `Cmd+Shift+V`)
+   - Run **`TaskMark: Open View`** from the Command Palette (`Ctrl+Shift+P`)
 3. View the Calendar / Timeline interface in a new panel.
 4. Edit the `.tmd` file side-by-side; the view will reflect changes in real-time.
 
