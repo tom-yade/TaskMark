@@ -75,4 +75,42 @@ suite('Parser Test Suite', () => {
     assert.ok(data.days['2026-03-28']);
     assert.strictEqual(Object.keys(data.days).length, 3, 'Should create 3 days of repeatable task');
   });
+
+  test('parseTmd repeat cancel skips specified date', () => {
+    const text = `
+# 2026-03-16
+- 10:00-11:00 Weekly Sync @repeat(weekly, count:3)
+\\ 2026-03-23
+`;
+    const data = parseTmd(text);
+    assert.ok(data.days['2026-03-16'], '2026-03-16 should exist');
+    assert.ok(!data.days['2026-03-23'], '2026-03-23 should be cancelled');
+    assert.ok(data.days['2026-03-30'], '2026-03-30 should still exist');
+  });
+
+  test('parseTmd repeat cancel skips multiple specified dates', () => {
+    const text = `
+# 2026-03-16
+- 10:00-11:00 Weekly Sync @repeat(weekly, count:4)
+\\ 2026-03-23
+\\ 2026-03-30
+`;
+    const data = parseTmd(text);
+    assert.ok(data.days['2026-03-16'], '2026-03-16 should exist');
+    assert.ok(!data.days['2026-03-23'], '2026-03-23 should be cancelled');
+    assert.ok(!data.days['2026-03-30'], '2026-03-30 should be cancelled');
+    assert.ok(data.days['2026-04-06'], '2026-04-06 should still exist');
+  });
+
+  test('parseTmd repeat cancel does not affect non-repeat items', () => {
+    const text = `
+# 2026-03-16
+- 10:00-11:00 Weekly Sync @repeat(weekly, count:3)
+\\ 2026-03-23
+- One-off event
+`;
+    const data = parseTmd(text);
+    const items = data.days['2026-03-16'].items;
+    assert.strictEqual(items.length, 2, 'Both items should exist on origin date');
+  });
 });
