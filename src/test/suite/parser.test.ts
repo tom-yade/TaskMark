@@ -230,4 +230,15 @@ suite('Parser Test Suite', () => {
     assert.strictEqual(items.length, 1);
     assert.strictEqual(items[0].time, '9:00');
   });
+
+  test('parseTmd repeat except with unpadded date skips the correct day', () => {
+    const text = `
+# 2026-03-16
+- Weekly Sync @repeat(weekly, count:3, except:2026-3-23)
+`;
+    const data = parseTmd(text);
+    assert.ok(data.days['2026-03-16'], '2026-03-16 should exist');
+    assert.ok(!data.days['2026-03-23'], '2026-03-23 should be skipped');
+    assert.ok(data.days['2026-03-30'], '2026-03-30 should still exist');
+  });
 });

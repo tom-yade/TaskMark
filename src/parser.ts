@@ -132,7 +132,7 @@ function parseRepeatOptions(repeatStr: string): RepeatOptions {
       if (!isNaN(parsedCount)) count = parsedCount;
     } else if (part.startsWith('except:')) {
       for (const d of part.substring(7).trim().split(/\s+/).filter(Boolean)) {
-        try { parseLocalDate(d); exceptDates.add(d); } catch { /* ignore invalid dates */ }
+        try { exceptDates.add(toLocaleDateStr(parseLocalDate(d))); } catch { /* ignore invalid dates */ }
       }
     }
   }
