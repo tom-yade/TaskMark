@@ -106,9 +106,12 @@
     return !!(item.time && !item.endDate);
   }
 
-  /** End-of-day timestamp for a 'YYYY-MM-DD' string (inclusive) */
+  /** End-of-day timestamp for a 'YYYY-MM-DD' string (inclusive).
+   *  Uses setDate(+1) instead of adding MS_PER_DAY to handle DST correctly. */
   function getEndOfDayMs(dateStr) {
-    return parseLocalDate(dateStr).getTime() + MS_PER_DAY - 1;
+    const d = parseLocalDate(dateStr);
+    d.setDate(d.getDate() + 1);
+    return d.getTime() - 1;
   }
 
   // ─── Message Handling ────────────────────────────────────────
@@ -496,7 +499,7 @@
         let startMs = dayStartMs;
         let endMs = item.endDate
           ? getEndOfDayMs(item.endDate)
-          : dayStartMs + MS_PER_DAY - 1;
+          : getEndOfDayMs(dStr);
 
         if (itemHasTime(item)) {
           const parts = item.time.split('-');
