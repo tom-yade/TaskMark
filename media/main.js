@@ -86,6 +86,12 @@
     return 'var(--tm-accent)';
   }
 
+  /** Convert 'H:MM' time string to total minutes for numeric comparison */
+  function timeToMinutes(timeStr) {
+    const [h, m] = timeStr.split(':');
+    return parseInt(h, 10) * 60 + parseInt(m, 10);
+  }
+
   /** Items with a date range (endDate) don't use a time field */
   function itemHasTime(item) {
     return !!(item.time && !item.endDate);
@@ -245,7 +251,8 @@
       const timeB = (b.type === 'schedule' && b.time) ? b.time.split('-')[0].trim() : null;
 
       if (timeA && timeB) {
-        return timeA === timeB ? a.rawLine - b.rawLine : timeA.localeCompare(timeB);
+        const diff = timeToMinutes(timeA) - timeToMinutes(timeB);
+        return diff !== 0 ? diff : a.rawLine - b.rawLine;
       }
       if (timeA && !timeB) return -1;
       if (!timeA && timeB) return 1;
