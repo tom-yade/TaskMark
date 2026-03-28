@@ -8,7 +8,8 @@
 @end
 
 # 2026-03-16
-- 10:00-11:00 Weekly Sync @repeat(weekly, until:2026-06-30) #MTG
+- 10:00-11:00 Weekly Sync @repeat(weekly, until:2026-06-30, except:2026-03-30 2026-05-04) #MTG
+- 08:00-08:30 3-Day Standup @repeat(every:3days, count:10) #MTG
 
 # 2026-03-17
 - 09:30-10:00 Morning Stand-up #MTG
