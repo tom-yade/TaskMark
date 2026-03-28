@@ -86,6 +86,35 @@
     return 'var(--tm-accent)';
   }
 
+  /** Escape special HTML characters to prevent XSS when embedding user content */
+  function escapeHtml(str) {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  /** Convert 'H:MM' time string to total minutes for numeric comparison */
+  function timeToMinutes(timeStr) {
+    const [h, m] = timeStr.split(':');
+    return parseInt(h, 10) * 60 + parseInt(m, 10);
+  }
+
+  /** Items with a date range (endDate) don't use a time field */
+  function itemHasTime(item) {
+    return !!(item.time && !item.endDate);
+  }
+
+  /** End-of-day timestamp for a 'YYYY-MM-DD' string (inclusive).
+   *  Uses setDate(+1) instead of adding MS_PER_DAY to handle DST correctly. */
+  function getEndOfDayMs(dateStr) {
+    const d = parseLocalDate(dateStr);
+    d.setDate(d.getDate() + 1);
+    return d.getTime() - 1;
+  }
+
   // ─── Message Handling ────────────────────────────────────────
 
   window.addEventListener('message', event => {
@@ -235,7 +264,8 @@
       const timeB = (b.type === 'schedule' && b.time) ? b.time.split('-')[0].trim() : null;
 
       if (timeA && timeB) {
-        return timeA === timeB ? a.rawLine - b.rawLine : timeA.localeCompare(timeB);
+        const diff = timeToMinutes(timeA) - timeToMinutes(timeB);
+        return diff !== 0 ? diff : a.rawLine - b.rawLine;
       }
       if (timeA && !timeB) return -1;
       if (!timeA && timeB) return 1;
@@ -258,18 +288,18 @@
       const tagsHtml = (item.tags && item.tags.length > 0)
         ? item.tags.map(t => {
           const color = getTagColor(t, tagColorsMap);
-          return `<span class="tm-tag" style="background-color: ${color}">${t}</span>`;
+          return `<span class="tm-tag" style="background-color: ${color}">${escapeHtml(t)}</span>`;
         }).join('')
         : '';
 
       const cbHtml = item.type === 'task' ? '<span class="tm-checkbox"></span>' : '';
-      const timeHtml = (item.time && !item.endDate) ? `<span class="tm-time">${item.time}</span>` : '';
+      const timeHtml = itemHasTime(item) ? `<span class="tm-time">${item.time}</span>` : '';
       const classNames = `tm-item ${item.type} ${item.status || ''}`;
       const borderColor = getItemBorderColor(item.tags, tagColorsMap);
 
       return `<div class="${classNames}" style="border-left-color: ${borderColor}">
         ${cbHtml}
-        <div>${timeHtml} ${item.text} ${tagsHtml}</div>
+        <div>${timeHtml} ${escapeHtml(item.text)} ${tagsHtml}</div>
       </div>`;
     };
 
@@ -303,7 +333,7 @@
         ? renderTaskSummary(grouped[gName], 'Tasks')
         : grouped[gName].map(renderItem).join('');
       html += `<div class="tm-group-box">
-        <div class="tm-group-title">${gName}</div>
+        <div class="tm-group-title">${escapeHtml(gName)}</div>
         ${groupContent}
       </div>`;
     });
@@ -454,21 +484,25 @@
 
   // ─── Gantt / Timeline View ───────────────────────────────────
 
-  /** Collect entities (groups and standalone items) from sorted dates */
+  /** Collect entities (groups and standalone items) from sorted dates.
+   *  Also returns lastDateStr accounting for endDate ranges to avoid a separate scan. */
   function collectGanttEntities(sortedDates) {
     const entities = {};
+    let lastDateStr = sortedDates[sortedDates.length - 1];
 
     sortedDates.forEach(dStr => {
       const dayData = currentTaskMarkData.days[dStr];
       const dayStartMs = parseLocalDate(dStr).getTime();
 
       dayData.items.forEach(item => {
+        if (item.endDate && item.endDate > lastDateStr) lastDateStr = item.endDate;
+
         let startMs = dayStartMs;
         let endMs = item.endDate
-          ? parseLocalDate(item.endDate).getTime() + MS_PER_DAY - 1
-          : dayStartMs + MS_PER_DAY - 1;
+          ? getEndOfDayMs(item.endDate)
+          : getEndOfDayMs(dStr);
 
-        if (item.time && !item.endDate) {
+        if (itemHasTime(item)) {
           const parts = item.time.split('-');
           const sTime = parts[0].trim().split(':');
           if (sTime.length >= 2) {
@@ -515,9 +549,12 @@
       });
     });
 
-    return Object.values(entities).sort(
-      (a, b) => a.minTime - b.minTime || a.name.localeCompare(b.name)
-    );
+    return {
+      entities: Object.values(entities).sort(
+        (a, b) => a.minTime - b.minTime || a.name.localeCompare(b.name)
+      ),
+      lastDateStr
+    };
   }
 
   /** Render the date axis row and weekend column backgrounds */
@@ -668,29 +705,23 @@
       return;
     }
 
-    // Calculate padded date range (align to week boundaries), accounting for endDate ranges
+    // Calculate start date (align to week boundary)
     const startDate = parseLocalDate(sortedDates[0]);
     startDate.setDate(startDate.getDate() - startDate.getDay());
-    let lastDateStr = sortedDates[sortedDates.length - 1];
-    sortedDates.forEach(dStr => {
-      currentTaskMarkData.days[dStr].items.forEach(item => {
-        if (item.endDate && item.endDate > lastDateStr) lastDateStr = item.endDate;
-      });
-    });
-    const endDate = parseLocalDate(lastDateStr);
-    endDate.setDate(endDate.getDate() + (6 - endDate.getDay()) + 1);
 
     // Clamp zoom
     ganttZoom = Math.max(0.1, Math.min(48, ganttZoom));
+
+    // Collect entities; lastDateStr accounts for endDate ranges (avoids a separate scan)
+    const { entities: entityArray, lastDateStr } = collectGanttEntities(sortedDates);
+    const endDate = parseLocalDate(lastDateStr);
+    endDate.setDate(endDate.getDate() + (6 - endDate.getDay()) + 1);
 
     const totalMs = endDate.getTime() - startDate.getTime();
     const pxPerDay = 100 * ganttZoom;
     const pxPerMs = pxPerDay / MS_PER_DAY;
     const totalWidth = totalMs * pxPerMs;
     const totalRenderDays = Math.ceil(totalMs / MS_PER_DAY);
-
-    // Collect entities
-    const entityArray = collectGanttEntities(sortedDates);
 
     // Build container
     const ganttContainer = document.createElement('div');
