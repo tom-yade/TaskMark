@@ -78,7 +78,7 @@ interface RepeatOptions {
   interval: number; // days when mode='days', months when mode='months'
   until?: Date;
   count: number;
-  exceptDates: string[];
+  exceptDates: Set<string>;
 }
 
 const MAX_OCCURRENCES = 3650;
@@ -89,7 +89,7 @@ function parseRepeatOptions(repeatStr: string): RepeatOptions {
   let interval = 7; // default: weekly
   let until: Date | undefined;
   let count: number | undefined;
-  const exceptDates: string[] = [];
+  const exceptDates = new Set<string>();
 
   for (const part of parts) {
     if (part.startsWith('every:')) {
@@ -116,10 +116,9 @@ function parseRepeatOptions(repeatStr: string): RepeatOptions {
       const parsedCount = parseInt(part.substring(6), 10);
       if (!isNaN(parsedCount)) count = parsedCount;
     } else if (part.startsWith('except:')) {
-      const dates = part.substring(7).split(' ');
-      for (const d of dates) {
-        if (d.match(/^\d{4}-\d{2}-\d{2}$/)) { exceptDates.push(d); }
-      }
+      part.substring(7).split(' ')
+        .filter(d => d.match(/^\d{4}-\d{2}-\d{2}$/))
+        .forEach(d => exceptDates.add(d));
     }
   }
 
@@ -273,7 +272,7 @@ function generateRepeatedItems(item: MarkItem, originDateStr: string, expandedDa
     if (opts.until && nextDate > opts.until) break;
 
     const isoDate = toLocaleDateStr(nextDate);
-    if (opts.exceptDates.includes(isoDate)) { continue; }
+    if (opts.exceptDates.has(isoDate)) { continue; }
 
     ensureDay(expandedDays, isoDate);
     expandedDays[isoDate].items.push({ ...item, id: `${item.id}-rep${i}`, tags: [...item.tags] });
