@@ -128,6 +128,10 @@ Options can be combined using commas. If a limit is not explicitly defined, recu
 - [ ] Uncompleted task #Tag
 - [x] Completed task
 
+# YYYY-MM-DD : YYYY-MM-DD
+- Multi-day event spanning date range #Tag
+- [ ] Multi-day task spanning date range
+
 > Group Name
 > - 13:00-15:00 Schedule inside group #Tag
 > - [x] Completed task inside group
@@ -140,6 +144,7 @@ Options can be combined using commas. If a limit is not explicitly defined, recu
 |------|------|------|
 | `@tags` ... `@end` | Tag color definition block | — |
 | `# YYYY-MM-DD` | Date header | — |
+| `# YYYY-MM-DD : YYYY-MM-DD` | Date range header (start : end) | — |
 | `- Text` | Schedule (Event) | — |
 | `- [ ] Text` | Uncompleted task | — |
 | `- [x] Text` | Completed task | — |
@@ -149,6 +154,22 @@ Options can be combined using commas. If a limit is not explicitly defined, recu
 | `@repeat(...)` | Recurring items | Schedules only |
 | `> Group Name` | Group header | — |
 | `> - Item` | Items inside group | Both |
+
+### 📅 Date Range Header
+
+Use `# YYYY-MM-DD : YYYY-MM-DD` to define events or tasks that span multiple days as a **single entry**. Unlike `@repeat`, this does not create separate items for each day — the Timeline renders it as one continuous bar, and all Calendar views show it on every day within the range.
+
+```tmd
+# 2026-03-01 : 2026-03-10
+- Conference Trip #Important
+- [ ] Prepare conference materials #Dev
+```
+
+> **Note:** If the end date is invalid or earlier than the start date, the range is silently ignored and the header is treated as a single date.
+>
+> **Note:** Date range items are always treated as all-day — any time specification (`HH:mm`) is ignored in the Timeline view.
+>
+> **Note:** `@repeat` is ignored when used under a date range header. `endDate` takes priority.
 
 ---
 

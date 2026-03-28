@@ -21,11 +21,12 @@ export interface MarkItem {
   repeat?: string;
   group?: string;
   rawLine: number;
+  endDate?: string;
 }
 
 // ─── Regex Patterns ────────────────────────────────────────────
 const TAG_COLOR_REGEX = /^#([^\s:]+)\s*:\s*(.+)$/;
-const DATE_REGEX = /^#\s+(\d{4}-\d{2}-\d{2})/;
+const DATE_REGEX = /^#\s+(\d{4}-\d{2}-\d{2})(?:\s*:\s*(\d{4}-\d{2}-\d{2}))?/;
 const GROUP_REGEX = /^>\s*([^-\s].+)$/;
 const ITEM_REGEX = /^(>\s*)?(-)?\s*(\[\s*([xX\s])\s*\])?\s*((\d{1,2}:\d{2})(?:-(\d{1,2}:\d{2}))?)?\s*(.*)$/;
 const REPEAT_REGEX = /@repeat\(([^)]+)\)/;
@@ -135,6 +136,7 @@ export function parseTmd(text: string): TaskMarkData {
 
   let inTagsBlock = false;
   let currentDate = '';
+  let currentEndDate = '';
   let currentGroup = '';
 
   for (let i = 0; i < lines.length; i++) {
@@ -159,6 +161,13 @@ export function parseTmd(text: string): TaskMarkData {
     const dateMatch = line.match(DATE_REGEX);
     if (dateMatch) {
       currentDate = dateMatch[1];
+      currentEndDate = '';
+      if (dateMatch[2]) {
+        try {
+          parseLocalDate(dateMatch[2]);
+          if (dateMatch[2] >= currentDate) { currentEndDate = dateMatch[2]; }
+        } catch { /* ignore invalid end date */ }
+      }
       ensureDay(data.days, currentDate);
       currentGroup = '';
       continue;
@@ -174,7 +183,7 @@ export function parseTmd(text: string): TaskMarkData {
     // 4. Item (schedule or task)
     const itemMatch = rawLine.match(ITEM_REGEX);
     if (itemMatch && itemMatch[2]) {
-      const result = createMarkItem(itemMatch, i, currentDate, currentGroup);
+      const result = createMarkItem(itemMatch, i, currentDate, currentGroup, currentEndDate);
       if (result) {
         data.days[currentDate].items.push(result.item);
         currentGroup = result.newGroup;
@@ -190,6 +199,7 @@ function createMarkItem(
   lineIndex: number,
   currentDate: string,
   currentGroup: string,
+  endDate = '',
 ): { item: MarkItem; newGroup: string } | null {
   if (!currentDate) {
     return null;
@@ -228,7 +238,8 @@ function createMarkItem(
     status,
     repeat: repeatStr,
     group: newGroup || undefined,
-    rawLine: lineIndex
+    rawLine: lineIndex,
+    endDate: endDate || undefined,
   };
 
   return { item, newGroup };
@@ -244,7 +255,7 @@ function expandRepeats(data: TaskMarkData): TaskMarkData {
 
   Object.values(data.days).forEach(day => {
     day.items.forEach(item => {
-      if (!item.repeat || item.type === 'task') return;
+      if (!item.repeat || item.type === 'task' || item.endDate) return;
 
       generateRepeatedItems(item, day.date, expandedDays);
     });
