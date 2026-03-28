@@ -2,9 +2,9 @@
 
 **Markdown-Based Schedule & Task Management VS Code Extension**
 
+![CI](https://github.com/tom-yade/taskmark/actions/workflows/ci.yml/badge.svg?branch=main)
 ![Visual Studio Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/Yadecode.taskmark)
-![Visual Studio Marketplace Installs](https://img.shields.io/visual-studio-marketplace/i/Yadecode.taskmark)
-![Visual Studio Marketplace Rating](https://img.shields.io/visual-studio-marketplace/r/Yadecode.taskmark)
+[![Visual Studio Marketplace](https://img.shields.io/badge/VS%20Marketplace-TaskMark-blue?logo=visual-studio-code)](https://marketplace.visualstudio.com/items?itemName=Yadecode.taskmark)
 ![GitHub License](https://img.shields.io/github/license/tom-yade/taskmark)
 
 
@@ -189,7 +189,13 @@ TaskMark/
 ├── src/
 │   ├── extension.ts       # Extension entry point
 │   ├── TaskmarkPanel.ts   # Webview panel management
-│   └── parser.ts          # .tmd file parser
+│   ├── parser.ts          # .tmd file parser
+│   └── test/
+│       ├── runTest.ts     # Integration test runner
+│       └── suite/
+│           ├── index.ts             # Test suite entry point
+│           ├── parser.test.ts       # Unit tests for the parser
+│           └── extension.test.ts    # Integration tests for the extension
 ├── media/
 │   ├── main.js            # Webview frontend logic
 │   └── style.css          # Webview frontend styling
@@ -216,6 +222,21 @@ Downloads a VS Code instance and runs tests inside the extension host environmen
 ```bash
 npm test
 ```
+
+> Both test types are automatically run on every push and pull request via GitHub Actions CI.
+
+---
+
+## Contributing
+
+Contributions are welcome! Here's how to get started:
+
+1. Fork the repository
+2. Create a feature branch from `develop` (`git checkout -b feat/your-feature`)
+3. Make your changes and run the tests (`npm run test:unit`)
+4. Open a Pull Request targeting the `develop` branch
+
+Please open an issue first for significant changes so we can discuss the approach.
 
 ---
 
