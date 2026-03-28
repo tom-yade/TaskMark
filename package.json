@@ -20,9 +20,27 @@
     "commands": [
       {
         "command": "taskmark.openView",
-        "title": "TaskMark: Open View"
+        "title": "TaskMark: Open View",
+        "icon": "$(open-preview)"
       }
     ],
+    "keybindings": [
+      {
+        "command": "taskmark.openView",
+        "key": "ctrl+shift+v",
+        "mac": "cmd+shift+v",
+        "when": "editorLangId == tmd"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "taskmark.openView",
+          "when": "editorLangId == tmd",
+          "group": "navigation"
+        }
+      ]
+    },
     "languages": [
       {
         "id": "tmd",
