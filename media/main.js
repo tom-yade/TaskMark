@@ -480,7 +480,7 @@
         let startMs = dayStartMs;
         let endMs = item.endDate
           ? getEndOfDayMs(item.endDate)
-          : getEndOfDayMs(dStr);
+          : dayStartMs + MS_PER_DAY - 1;
 
         if (itemHasTime(item)) {
           const parts = item.time.split('-');
