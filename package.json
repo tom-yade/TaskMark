@@ -10,7 +10,7 @@
     "url": "https://github.com/tom-yade/taskmark.git"
   },
   "engines": {
-    "vscode": "^1.90.0"
+    "vscode": "^1.115.0"
   },
   "categories": [
     "Other"
