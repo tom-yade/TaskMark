@@ -180,7 +180,7 @@
     if (!isPanning) return;
     isPanning = false;
     document.body.style.userSelect = '';
-    if (viewTimeline) viewTimeline.style.cursor = 'grab';
+    viewTimeline.style.cursor = 'grab';
   }
 
   // Gantt panning
