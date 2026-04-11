@@ -205,6 +205,7 @@
     viewTimeline.scrollTop = initialScrollT - (e.clientY - startPanY);
   });
   window.addEventListener('mouseup', stopPanning);
+  window.addEventListener('blur', stopPanning);
 
   // Gantt zoom
   viewTimeline?.addEventListener('wheel', (e) => {
