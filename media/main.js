@@ -184,6 +184,7 @@
 
   // Gantt panning
   viewTimeline?.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return;
     isPanning = true;
     startPanX = e.clientX;
     startPanY = e.clientY;
