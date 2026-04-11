@@ -176,24 +176,38 @@
     }
   });
 
+  function stopPanning() {
+    if (!isPanning) return;
+    isPanning = false;
+    document.body.style.userSelect = '';
+    viewTimeline.style.cursor = 'grab';
+  }
+
   // Gantt panning
   viewTimeline?.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return;
     isPanning = true;
     startPanX = e.clientX;
     startPanY = e.clientY;
     initialScrollL = viewTimeline.scrollLeft;
     initialScrollT = viewTimeline.scrollTop;
     viewTimeline.style.cursor = 'grabbing';
+    document.body.style.userSelect = 'none'; // suppress text selection during drag only
   });
   window.addEventListener('mousemove', (e) => {
     if (!isPanning) return;
+    // Button released outside the window: end panning on the next in-window mousemove
+    if (!(e.buttons & 1)) {
+      stopPanning();
+      return;
+    }
     viewTimeline.scrollLeft = initialScrollL - (e.clientX - startPanX);
     viewTimeline.scrollTop = initialScrollT - (e.clientY - startPanY);
   });
-  window.addEventListener('mouseup', () => {
-    isPanning = false;
-    if (viewTimeline) viewTimeline.style.cursor = 'grab';
+  window.addEventListener('mouseup', (e) => {
+    if (e.button === 0) stopPanning();
   });
+  window.addEventListener('blur', stopPanning);
 
   // Gantt zoom
   viewTimeline?.addEventListener('wheel', (e) => {
