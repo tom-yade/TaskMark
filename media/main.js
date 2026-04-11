@@ -194,12 +194,15 @@
   });
   window.addEventListener('mousemove', (e) => {
     if (!isPanning) return;
+    // Button released outside the window: end panning on the next in-window mousemove
+    if (e.buttons === 0) {
+      stopPanning();
+      return;
+    }
     viewTimeline.scrollLeft = initialScrollL - (e.clientX - startPanX);
     viewTimeline.scrollTop = initialScrollT - (e.clientY - startPanY);
   });
   window.addEventListener('mouseup', stopPanning);
-  // End panning when cursor leaves the browser window to avoid stuck grab state
-  document.addEventListener('mouseleave', stopPanning);
 
   // Gantt zoom
   viewTimeline?.addEventListener('wheel', (e) => {
