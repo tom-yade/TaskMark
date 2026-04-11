@@ -197,7 +197,7 @@
   window.addEventListener('mousemove', (e) => {
     if (!isPanning) return;
     // Button released outside the window: end panning on the next in-window mousemove
-    if (e.buttons === 0) {
+    if (!(e.buttons & 1)) {
       stopPanning();
       return;
     }
