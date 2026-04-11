@@ -176,30 +176,30 @@
     }
   });
 
+  function stopPanning() {
+    isPanning = false;
+    document.body.style.userSelect = '';
+    if (viewTimeline) viewTimeline.style.cursor = 'grab';
+  }
+
   // Gantt panning
   viewTimeline?.addEventListener('mousedown', (e) => {
-    e.preventDefault(); // prevent text selection during drag
     isPanning = true;
     startPanX = e.clientX;
     startPanY = e.clientY;
     initialScrollL = viewTimeline.scrollLeft;
     initialScrollT = viewTimeline.scrollTop;
     viewTimeline.style.cursor = 'grabbing';
+    document.body.style.userSelect = 'none'; // suppress text selection during drag only
   });
   window.addEventListener('mousemove', (e) => {
     if (!isPanning) return;
     viewTimeline.scrollLeft = initialScrollL - (e.clientX - startPanX);
     viewTimeline.scrollTop = initialScrollT - (e.clientY - startPanY);
   });
-  window.addEventListener('mouseup', () => {
-    isPanning = false;
-    if (viewTimeline) viewTimeline.style.cursor = 'grab';
-  });
+  window.addEventListener('mouseup', stopPanning);
   // End panning when cursor leaves the browser window to avoid stuck grab state
-  document.addEventListener('mouseleave', () => {
-    isPanning = false;
-    if (viewTimeline) viewTimeline.style.cursor = 'grab';
-  });
+  document.addEventListener('mouseleave', stopPanning);
 
   // Gantt zoom
   viewTimeline?.addEventListener('wheel', (e) => {
