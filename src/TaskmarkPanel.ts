@@ -1,10 +1,17 @@
 import * as vscode from 'vscode';
 import { parseTmd, TaskMarkData } from './parser';
+import { buildGanttEntities, GanttEntity } from './gantt';
 import { getWebviewHtml } from './template';
+
+export interface GanttData {
+  entities: GanttEntity[];
+  lastDateStr: string;
+}
 
 export interface TaskMarkUpdateMessage {
   type: 'update';
   data: TaskMarkData;
+  ganttData: GanttData;
 }
 
 export class TaskmarkPanel {
@@ -101,7 +108,8 @@ export class TaskmarkPanel {
       parsedData.tagColors = { ...configColors, ...parsedData.tagColors };
       const message: TaskMarkUpdateMessage = {
         type: 'update',
-        data: parsedData
+        data: parsedData,
+        ganttData: buildGanttEntities(parsedData)
       };
       this._panel.webview.postMessage(message);
     } catch (e) {

@@ -15,6 +15,7 @@
   let activeView = 'monthly'; // 'monthly' | 'weekly' | 'daily'
   let currentDate = new Date();
   let currentTaskMarkData = null;
+  let currentGanttData = null;
   let ganttZoom = 1; // 1 = 100px per day
   let isPanning = false;
   let startPanX = 0;
@@ -121,6 +122,7 @@
     const message = event.data;
     if (message.type === 'update') {
       currentTaskMarkData = message.data;
+      currentGanttData = message.ganttData;
       render();
     }
   });
@@ -498,81 +500,6 @@
 
   // ─── Gantt / Timeline View ───────────────────────────────────
 
-  /** Collect entities (groups and standalone items) from sorted dates.
-   *  Also returns lastDateStr accounting for endDate ranges to avoid a separate scan. */
-  function collectGanttEntities(sortedDates) {
-    const entities = {};
-    let lastDateStr = sortedDates[sortedDates.length - 1];
-
-    sortedDates.forEach(dStr => {
-      const dayData = currentTaskMarkData.days[dStr];
-      const dayStartMs = parseLocalDate(dStr).getTime();
-
-      dayData.items.forEach(item => {
-        if (item.endDate && item.endDate > lastDateStr) lastDateStr = item.endDate;
-
-        let startMs = dayStartMs;
-        let endMs = item.endDate
-          ? getEndOfDayMs(item.endDate)
-          : getEndOfDayMs(dStr);
-
-        if (itemHasTime(item)) {
-          const parts = item.time.split('-');
-          const sTime = parts[0].trim().split(':');
-          if (sTime.length >= 2) {
-            startMs = dayStartMs + parseInt(sTime[0]) * MS_PER_HOUR + parseInt(sTime[1]) * MS_PER_MINUTE;
-          }
-          if (parts[1]) {
-            const eTime = parts[1].trim().split(':');
-            if (eTime.length >= 2) {
-              endMs = dayStartMs + parseInt(eTime[0]) * MS_PER_HOUR + parseInt(eTime[1]) * MS_PER_MINUTE;
-            }
-          } else {
-            endMs = startMs + MS_PER_HOUR;
-          }
-        }
-
-        const eName = item.group ? `[Group] ${item.group}` : item.text;
-        if (!entities[eName]) {
-          entities[eName] = {
-            name: item.group || item.text,
-            isGroup: !!item.group,
-            minTime: startMs,
-            maxTime: endMs,
-            tags: item.tags || [],
-            tasksTotal: 0,
-            tasksDone: 0,
-            children: []
-          };
-        } else {
-          if (startMs < entities[eName].minTime) entities[eName].minTime = startMs;
-          if (endMs > entities[eName].maxTime) entities[eName].maxTime = endMs;
-        }
-
-        entities[eName].children.push({
-          text: item.text,
-          tags: item.tags || [],
-          startMs,
-          endMs,
-          isTask: item.type === 'task',
-          isDone: item.status === 'done'
-        });
-
-        if (item.type === 'task') {
-          entities[eName].tasksTotal++;
-          if (item.status === 'done') entities[eName].tasksDone++;
-        }
-      });
-    });
-
-    return {
-      entities: Object.values(entities).sort(
-        (a, b) => a.minTime - b.minTime || a.name.localeCompare(b.name)
-      ),
-      lastDateStr
-    };
-  }
-
   /** Render the date axis row and weekend column backgrounds */
   function renderGanttAxis(container, startDate, totalRenderDays, pxPerMs) {
     const axisRow = document.createElement('div');
@@ -763,8 +690,9 @@
     // Clamp zoom
     ganttZoom = Math.max(0.1, Math.min(48, ganttZoom));
 
-    // Collect entities; lastDateStr accounts for endDate ranges (avoids a separate scan)
-    const { entities: entityArray, lastDateStr } = collectGanttEntities(sortedDates);
+    // Use pre-computed entities from the extension (built via buildGanttEntities in gantt.ts)
+    const entityArray = currentGanttData.entities;
+    const lastDateStr = currentGanttData.lastDateStr;
     const endDate = parseLocalDate(lastDateStr);
     endDate.setDate(endDate.getDate() + (6 - endDate.getDay()) + 1);
 
