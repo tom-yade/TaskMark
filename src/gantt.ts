@@ -25,7 +25,7 @@ export interface GanttEntity {
 
 function parseLocalDate(dateStr: string): Date {
   const p = dateStr.split('-');
-  return new Date(parseInt(p[0]), parseInt(p[1]) - 1, parseInt(p[2]));
+  return new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
 }
 
 function getEndOfDayMs(dateStr: string): number {
@@ -66,12 +66,12 @@ export function buildGanttEntities(
         const parts = item.time!.split('-');
         const sTime = parts[0].trim().split(':');
         if (sTime.length >= 2) {
-          startMs = dayStartMs + parseInt(sTime[0]) * MS_PER_HOUR + parseInt(sTime[1]) * MS_PER_MINUTE;
+          startMs = dayStartMs + parseInt(sTime[0], 10) * MS_PER_HOUR + parseInt(sTime[1], 10) * MS_PER_MINUTE;
         }
         if (parts[1]) {
           const eTime = parts[1].trim().split(':');
           if (eTime.length >= 2) {
-            endMs = dayStartMs + parseInt(eTime[0]) * MS_PER_HOUR + parseInt(eTime[1]) * MS_PER_MINUTE;
+            endMs = dayStartMs + parseInt(eTime[0], 10) * MS_PER_HOUR + parseInt(eTime[1], 10) * MS_PER_MINUTE;
           }
         } else {
           endMs = startMs + MS_PER_HOUR;

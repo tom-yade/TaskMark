@@ -47,7 +47,7 @@
   /** Parse 'YYYY-MM-DD' string into a local midnight Date */
   function parseLocalDate(dateStr) {
     const p = dateStr.split('-');
-    return new Date(parseInt(p[0]), parseInt(p[1]) - 1, parseInt(p[2]));
+    return new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
   }
 
   /** Get today's date as 'YYYY-MM-DD' */
