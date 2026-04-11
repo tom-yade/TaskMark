@@ -542,14 +542,16 @@
             tags: item.tags || [],
             tasksTotal: 0,
             tasksDone: 0,
-            items: []
+            children: []
           };
         } else {
           if (startMs < entities[eName].minTime) entities[eName].minTime = startMs;
           if (endMs > entities[eName].maxTime) entities[eName].maxTime = endMs;
         }
 
-        entities[eName].items.push({
+        entities[eName].children.push({
+          text: item.text,
+          tags: item.tags || [],
           startMs,
           endMs,
           isTask: item.type === 'task',
@@ -663,16 +665,16 @@
   }
 
   function renderStandaloneBars(container, entity, startDate, pxPerMs, yOffset, bgColor) {
-    entity.items.forEach(itemObj => {
-      const left = (itemObj.startMs - startDate.getTime()) * pxPerMs;
-      const width = Math.max((itemObj.endMs - itemObj.startMs) * pxPerMs, GANTT_MIN_BAR_WIDTH);
+    entity.children.forEach(child => {
+      const left = (child.startMs - startDate.getTime()) * pxPerMs;
+      const width = Math.max((child.endMs - child.startMs) * pxPerMs, GANTT_MIN_BAR_WIDTH);
 
       const bar = createGanttBar(left, yOffset, width, bgColor);
 
       const pBar = document.createElement('div');
       pBar.className = 'tm-gantt-progress';
-      if (itemObj.isTask) {
-        pBar.style.width = itemObj.isDone ? '100%' : '0%';
+      if (child.isTask) {
+        pBar.style.width = child.isDone ? '100%' : '0%';
       } else {
         pBar.style.width = '100%';
       }
@@ -682,6 +684,41 @@
 
       // Label (outside bar, to the right)
       container.appendChild(createGanttLabel(entity.name, left + width, yOffset));
+    });
+  }
+
+  /** Render child task rows below the group bar */
+  function renderGroupChildren(container, entity, startDate, pxPerMs, groupYOffset, totalWidth) {
+    entity.children.forEach((child, i) => {
+      const childYOffset = groupYOffset + GANTT_ROW_HEIGHT * (i + 1);
+
+      // Child row background
+      const rowBg = document.createElement('div');
+      rowBg.className = 'tm-gantt-row-bg tm-gantt-child-row-bg';
+      rowBg.style.top = childYOffset + 'px';
+      rowBg.style.width = totalWidth + 'px';
+      container.appendChild(rowBg);
+
+      const childColor = getItemBorderColor(child.tags, currentTaskMarkData.tagColors);
+      const left = (child.startMs - startDate.getTime()) * pxPerMs;
+      const width = Math.max((child.endMs - child.startMs) * pxPerMs, GANTT_MIN_BAR_WIDTH);
+
+      const bar = createGanttBar(left, childYOffset, width, childColor);
+      bar.classList.add('tm-gantt-child-bar');
+
+      const pBar = document.createElement('div');
+      pBar.className = 'tm-gantt-progress';
+      if (child.isTask) {
+        pBar.style.width = child.isDone ? '100%' : '0%';
+      } else {
+        pBar.style.width = '100%';
+      }
+      pBar.style.backgroundColor = childColor;
+      bar.appendChild(pBar);
+      container.appendChild(bar);
+
+      // Label (outside bar, to the right)
+      container.appendChild(createGanttLabel(child.text, left + width, childYOffset));
     });
   }
 
@@ -741,7 +778,10 @@
     const ganttContainer = document.createElement('div');
     ganttContainer.className = 'tm-gantt-container';
     ganttContainer.style.width = totalWidth + 'px';
-    ganttContainer.style.height = (entityArray.length * (GANTT_ROW_HEIGHT + 4) + GANTT_HEADER_HEIGHT + 10) + 'px';
+    const totalRowCount = entityArray.reduce((sum, e) => {
+      return sum + 1 + (e.isGroup ? e.children.length : 0);
+    }, 0);
+    ganttContainer.style.height = (totalRowCount * (GANTT_ROW_HEIGHT + 4) + GANTT_HEADER_HEIGHT + 10) + 'px';
 
     // Render axis and column backgrounds
     renderGanttAxis(ganttContainer, startDate, totalRenderDays, pxPerMs);
@@ -751,6 +791,10 @@
     entityArray.forEach(entity => {
       renderGanttEntityBar(ganttContainer, entity, startDate, pxPerMs, yOffset, totalWidth);
       yOffset += GANTT_ROW_HEIGHT;
+      if (entity.isGroup) {
+        renderGroupChildren(ganttContainer, entity, startDate, pxPerMs, yOffset - GANTT_ROW_HEIGHT, totalWidth);
+        yOffset += GANTT_ROW_HEIGHT * entity.children.length;
+      }
     });
 
     viewTimeline.appendChild(ganttContainer);
