@@ -178,6 +178,7 @@
 
   // Gantt panning
   viewTimeline?.addEventListener('mousedown', (e) => {
+    e.preventDefault(); // prevent text selection during drag
     isPanning = true;
     startPanX = e.clientX;
     startPanY = e.clientY;
@@ -191,6 +192,11 @@
     viewTimeline.scrollTop = initialScrollT - (e.clientY - startPanY);
   });
   window.addEventListener('mouseup', () => {
+    isPanning = false;
+    if (viewTimeline) viewTimeline.style.cursor = 'grab';
+  });
+  // End panning when cursor leaves the browser window to avoid stuck grab state
+  document.addEventListener('mouseleave', () => {
     isPanning = false;
     if (viewTimeline) viewTimeline.style.cursor = 'grab';
   });
