@@ -25,6 +25,7 @@
   let initialScrollT = 0;
 
   // ─── DOM References ──────────────────────────────────────────
+  const errorBanner = document.getElementById('tm-parse-error-banner');
   const btnCalendar = document.getElementById('btn-calendar');
   const btnTimeline = document.getElementById('btn-timeline');
   const btnMonthly = document.getElementById('btn-monthly');
@@ -124,7 +125,16 @@
     if (message.type === 'update') {
       currentTaskMarkData = message.data;
       currentGanttData = message.ganttData;
+      if (errorBanner) {
+        errorBanner.textContent = '';
+        errorBanner.classList.add('hidden');
+      }
       render();
+    } else if (message.type === 'parseError') {
+      if (errorBanner) {
+        errorBanner.textContent = `Parse error: ${message.message}`;
+        errorBanner.classList.remove('hidden');
+      }
     }
   });
 

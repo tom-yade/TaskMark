@@ -10,6 +10,7 @@ export function getWebviewHtml(scriptUri: vscode.Uri, stylesUri: vscode.Uri): st
         <link href="${stylesUri}" rel="stylesheet">
       </head>
       <body>
+        <div id="tm-parse-error-banner" class="tm-error-banner hidden"></div>
         <div class="tm-header">
           <div class="tm-toggle-container">
             <button class="tm-view-toggle active" id="btn-calendar">Calendar</button>

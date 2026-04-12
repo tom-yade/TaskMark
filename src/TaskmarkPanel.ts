@@ -10,6 +10,11 @@ export interface TaskMarkUpdateMessage {
   ganttData: GanttData;
 }
 
+export interface TaskMarkErrorMessage {
+  type: 'parseError';
+  message: string;
+}
+
 export class TaskmarkPanel {
   public static currentPanel: TaskmarkPanel | undefined;
   public static readonly viewType = 'taskmark';
@@ -115,12 +120,11 @@ export class TaskmarkPanel {
       };
       this._panel.webview.postMessage(message);
     } catch (e) {
+      const errorText = e instanceof Error ? e.message : String(e);
       console.error("TaskMark parse error", e);
-      if (e instanceof Error) {
-        vscode.window.showErrorMessage(`TaskMark parse error: ${e.message}`);
-      } else {
-        vscode.window.showErrorMessage(`TaskMark parse error: ${String(e)}`);
-      }
+      vscode.window.showErrorMessage(`TaskMark parse error: ${errorText}`);
+      const errorMessage: TaskMarkErrorMessage = { type: 'parseError', message: errorText };
+      this._panel.webview.postMessage(errorMessage);
     }
   }
 
