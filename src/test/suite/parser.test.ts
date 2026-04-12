@@ -1,23 +1,34 @@
 import * as assert from 'assert';
-import { parseTmd } from '../../parser';
+import { parseTmd, ParseResult } from '../../parser';
 
 suite('Parser Test Suite', () => {
+  test('parseTmd returns ParseResult with data and warnings', () => {
+    const text = `
+# 2026-03-26
+- Meeting
+`;
+    const result = parseTmd(text);
+    assert.ok('data' in result, 'Result should have data field');
+    assert.ok('warnings' in result, 'Result should have warnings field');
+    assert.ok(Array.isArray(result.warnings), 'warnings should be an array');
+  });
+
   test('parseTmd basically works for tasks and schedules', () => {
     const text = `
 # 2026-03-26
 - [ ] 09:00-10:00 Meeting
 - Schedule item
 `;
-    const data = parseTmd(text);
+    const { data } = parseTmd(text);
     assert.ok(data.days['2026-03-26'], 'Day entry should be created');
-    
+
     const items = data.days['2026-03-26'].items;
     assert.strictEqual(items.length, 2, 'Should parse 2 items');
-    
+
     assert.strictEqual(items[0].type, 'task');
     assert.strictEqual(items[0].status, 'todo');
     assert.strictEqual(items[0].text, 'Meeting');
-    
+
     assert.strictEqual(items[1].type, 'schedule');
     assert.strictEqual(items[1].text, 'Schedule item');
   });
@@ -32,7 +43,7 @@ suite('Parser Test Suite', () => {
 # 2026-03-26
 - Meeting
 `;
-    const data = parseTmd(text);
+    const { data } = parseTmd(text);
     assert.strictEqual(data.tagColors['meeting'], '#ff0000');
     assert.strictEqual(data.tagColors['work'], '#0088ff');
   });
@@ -46,7 +57,7 @@ suite('Parser Test Suite', () => {
 # 2026-03-26
 - Task item
 `;
-    const data = parseTmd(text);
+    const { data } = parseTmd(text);
     assert.ok(data.days['2026-03-26'], 'Day should exist');
     assert.strictEqual(data.days['2026-03-26'].items.length, 1);
     assert.strictEqual(data.days['2026-03-26'].items[0].text, 'Task item');
@@ -60,7 +71,7 @@ suite('Parser Test Suite', () => {
 # 2026-03-26
 - Task
 `;
-    const data = parseTmd(text);
+    const { data } = parseTmd(text);
     assert.deepStrictEqual(data.tagColors, {});
   });
 
@@ -69,7 +80,7 @@ suite('Parser Test Suite', () => {
 # 2026-03-26
 - Daily habit @repeat(daily, count:3)
 `;
-    const data = parseTmd(text);
+    const { data } = parseTmd(text);
     assert.ok(data.days['2026-03-26']);
     assert.ok(data.days['2026-03-27']);
     assert.ok(data.days['2026-03-28']);
@@ -81,7 +92,7 @@ suite('Parser Test Suite', () => {
 # 2026-03-16
 - 10:00-11:00 Weekly Sync @repeat(weekly, count:3, except:2026-03-23)
 `;
-    const data = parseTmd(text);
+    const { data } = parseTmd(text);
     assert.ok(data.days['2026-03-16'], '2026-03-16 should exist');
     assert.ok(!data.days['2026-03-23'], '2026-03-23 should be skipped');
     assert.ok(data.days['2026-03-30'], '2026-03-30 should still exist');
@@ -92,7 +103,7 @@ suite('Parser Test Suite', () => {
 # 2026-03-16
 - 10:00-11:00 Weekly Sync @repeat(weekly, count:3, except:2026-02-30)
 `;
-    const data = parseTmd(text);
+    const { data } = parseTmd(text);
     assert.ok(data.days['2026-03-23'], '2026-03-23 should exist because except date was invalid');
     assert.ok(data.days['2026-03-30'], '2026-03-30 should exist');
   });
@@ -102,7 +113,7 @@ suite('Parser Test Suite', () => {
 # 2026-03-16
 - 10:00-11:00 Weekly Sync @repeat(weekly, count:4, except:2026-03-23 2026-03-30)
 `;
-    const data = parseTmd(text);
+    const { data } = parseTmd(text);
     assert.ok(data.days['2026-03-16'], '2026-03-16 should exist');
     assert.ok(!data.days['2026-03-23'], '2026-03-23 should be skipped');
     assert.ok(!data.days['2026-03-30'], '2026-03-30 should be skipped');
@@ -114,7 +125,7 @@ suite('Parser Test Suite', () => {
 # 2026-03-01 : 2026-03-10
 - Conference #Work
 `;
-    const data = parseTmd(text);
+    const { data } = parseTmd(text);
     assert.ok(data.days['2026-03-01'], 'Start day should exist');
     assert.ok(!data.days['2026-03-10'], 'End day should NOT be a separate entry');
 
@@ -128,7 +139,7 @@ suite('Parser Test Suite', () => {
 # 2026-03-01
 - Regular item
 `;
-    const data = parseTmd(text);
+    const { data } = parseTmd(text);
     const items = data.days['2026-03-01'].items;
     assert.strictEqual(items.length, 1);
     assert.strictEqual(items[0].endDate, undefined);
@@ -139,7 +150,7 @@ suite('Parser Test Suite', () => {
 # 2026-03-01 : 2026-03-05
 - [ ] Multi-day task
 `;
-    const data = parseTmd(text);
+    const { data } = parseTmd(text);
     const items = data.days['2026-03-01'].items;
     assert.strictEqual(items.length, 1);
     assert.strictEqual(items[0].type, 'task');
@@ -151,7 +162,7 @@ suite('Parser Test Suite', () => {
 # 2026-03-01 : 2026-02-30
 - Conference
 `;
-    const data = parseTmd(text);
+    const { data } = parseTmd(text);
     const items = data.days['2026-03-01'].items;
     assert.strictEqual(items.length, 1);
     assert.strictEqual(items[0].endDate, undefined);
@@ -162,7 +173,7 @@ suite('Parser Test Suite', () => {
 # 2026-03-10 : 2026-03-01
 - Conference
 `;
-    const data = parseTmd(text);
+    const { data } = parseTmd(text);
     const items = data.days['2026-03-10'].items;
     assert.strictEqual(items.length, 1);
     assert.strictEqual(items[0].endDate, undefined);
@@ -173,7 +184,7 @@ suite('Parser Test Suite', () => {
 # 2026-03-01 : 2026-03-10
 - Daily standup @repeat(daily, count:5)
 `;
-    const data = parseTmd(text);
+    const { data } = parseTmd(text);
     assert.strictEqual(Object.keys(data.days).length, 1, 'Only start day should exist');
     assert.ok(data.days['2026-03-01'], 'Start day should exist');
     assert.ok(!data.days['2026-03-02'], 'Repeat should not expand when endDate is set');
@@ -184,7 +195,7 @@ suite('Parser Test Suite', () => {
 # 2026-3-1
 - Meeting
 `;
-    const data = parseTmd(text);
+    const { data } = parseTmd(text);
     assert.ok(data.days['2026-03-01'], 'Day should be stored with zero-padded key');
     assert.strictEqual(data.days['2026-03-01'].items.length, 1);
     assert.strictEqual(data.days['2026-03-01'].items[0].text, 'Meeting');
@@ -195,7 +206,7 @@ suite('Parser Test Suite', () => {
 # 2026-3-1 : 2026-3-10
 - Conference
 `;
-    const data = parseTmd(text);
+    const { data } = parseTmd(text);
     assert.ok(data.days['2026-03-01'], 'Start day should be zero-padded');
     assert.strictEqual(data.days['2026-03-01'].items[0].endDate, '2026-03-10');
   });
@@ -205,7 +216,7 @@ suite('Parser Test Suite', () => {
 # 2026-13-1
 - Meeting
 `;
-    const data = parseTmd(text);
+    const { data } = parseTmd(text);
     assert.strictEqual(Object.keys(data.days).length, 0, 'Invalid date header should be ignored');
   });
 
@@ -214,7 +225,7 @@ suite('Parser Test Suite', () => {
 # 2026-03-01
 - 9:0-17:0 Conference
 `;
-    const data = parseTmd(text);
+    const { data } = parseTmd(text);
     const items = data.days['2026-03-01'].items;
     assert.strictEqual(items.length, 1);
     assert.strictEqual(items[0].time, '9:00-17:00');
@@ -225,7 +236,7 @@ suite('Parser Test Suite', () => {
 # 2026-03-01
 - 9:0 Meeting
 `;
-    const data = parseTmd(text);
+    const { data } = parseTmd(text);
     const items = data.days['2026-03-01'].items;
     assert.strictEqual(items.length, 1);
     assert.strictEqual(items[0].time, '9:00');
@@ -236,9 +247,93 @@ suite('Parser Test Suite', () => {
 # 2026-03-16
 - Weekly Sync @repeat(weekly, count:3, except:2026-3-23)
 `;
-    const data = parseTmd(text);
+    const { data } = parseTmd(text);
     assert.ok(data.days['2026-03-16'], '2026-03-16 should exist');
     assert.ok(!data.days['2026-03-23'], '2026-03-23 should be skipped');
     assert.ok(data.days['2026-03-30'], '2026-03-30 should still exist');
+  });
+
+  // ─── Warning Collection Tests ────────────────────────────────
+
+  test('parseTmd returns no warnings for valid input', () => {
+    const text = `
+# 2026-03-26
+- Meeting
+- [ ] Task
+`;
+    const { warnings } = parseTmd(text);
+    assert.strictEqual(warnings.length, 0, 'Should have no warnings for valid input');
+  });
+
+  test('parseTmd warns on invalid date header', () => {
+    const text = `
+# 2026-99-99
+- Meeting
+`;
+    const { warnings } = parseTmd(text);
+    assert.strictEqual(warnings.length, 1, 'Should have one warning');
+    assert.ok(warnings[0].includes('Line 2'), 'Warning should reference line number');
+    assert.ok(warnings[0].includes('2026-99-99'), 'Warning should include the invalid date');
+  });
+
+  test('parseTmd warns on invalid end date in range header', () => {
+    const text = `
+# 2026-03-01 : 2026-02-30
+- Conference
+`;
+    const { warnings } = parseTmd(text);
+    assert.strictEqual(warnings.length, 1, 'Should have one warning');
+    assert.ok(warnings[0].includes('2026-02-30'), 'Warning should include the invalid end date');
+  });
+
+  test('parseTmd warns when end date is before start date', () => {
+    const text = `
+# 2026-03-10 : 2026-03-01
+- Conference
+`;
+    const { warnings } = parseTmd(text);
+    assert.strictEqual(warnings.length, 1, 'Should have one warning');
+    assert.ok(warnings[0].includes('2026-03-01'), 'Warning should include the end date');
+  });
+
+  test('parseTmd warns on invalid until date in @repeat and does not throw', () => {
+    const text = `
+# 2026-03-16
+- 10:00-11:00 Weekly Sync @repeat(weekly, until:2026-02-30)
+`;
+    const { data, warnings } = parseTmd(text);
+    assert.strictEqual(warnings.length, 1, 'Should have one warning');
+    assert.ok(warnings[0].includes('2026-02-30'), 'Warning should include the invalid until date');
+    assert.ok(data.days['2026-03-16'], 'Origin item should still exist');
+  });
+
+  test('parseTmd collects multiple warnings', () => {
+    const text = `
+# 2026-99-99
+- Item under invalid date
+# 2026-03-01
+- Valid item
+# 2026-13-01
+- Another item under invalid date
+`;
+    const { data, warnings } = parseTmd(text);
+    assert.strictEqual(warnings.length, 2, 'Should have two warnings');
+    assert.ok(data.days['2026-03-01'], 'Valid date should still parse');
+  });
+
+  test('parseTmd valid input has empty warnings array', () => {
+    const text = `
+@tags
+#work : #0088ff
+@end
+
+# 2026-03-01
+- 9:00-10:00 Meeting #work
+- Standup @repeat(daily, count:2)
+`;
+    const { data, warnings } = parseTmd(text);
+    assert.strictEqual(warnings.length, 0);
+    assert.ok(data.days['2026-03-01']);
+    assert.ok(data.days['2026-03-02']);
   });
 });

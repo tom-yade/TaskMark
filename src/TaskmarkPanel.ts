@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { parseTmd, TaskMarkData } from './parser';
+import { parseTmd, TaskMarkData, ParseResult } from './parser';
 import { buildGanttEntities, GanttData } from './gantt';
 import { getWebviewHtml } from './template';
 import { debounce, DebouncedFn } from './utils/debounce';
@@ -8,6 +8,7 @@ export interface TaskMarkUpdateMessage {
   type: 'update';
   data: TaskMarkData;
   ganttData: GanttData;
+  warnings: string[];
 }
 
 export interface TaskMarkErrorMessage {
@@ -110,13 +111,14 @@ export class TaskmarkPanel {
   private updateFromDocument(document: vscode.TextDocument) {
     try {
       const text = document.getText();
-      const parsedData = parseTmd(text);
+      const { data: parsedData, warnings } = parseTmd(text);
       const configColors = vscode.workspace.getConfiguration('taskmark').get<Record<string, string>>('tagColors', {});
       parsedData.tagColors = { ...configColors, ...parsedData.tagColors };
       const message: TaskMarkUpdateMessage = {
         type: 'update',
         data: parsedData,
-        ganttData: buildGanttEntities(parsedData)
+        ganttData: buildGanttEntities(parsedData),
+        warnings
       };
       this._panel.webview.postMessage(message);
     } catch (e) {
