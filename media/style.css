@@ -59,6 +59,20 @@ body {
   display: none !important;
 }
 
+/* ─── Parse Error Banner ────────────────────────────────────── */
+.tm-error-banner {
+  position: relative;
+  background: var(--vscode-inputValidation-errorBackground, rgba(180, 30, 30, 0.9));
+  color: var(--vscode-inputValidation-errorForeground, #fff);
+  border-bottom: 1px solid var(--vscode-inputValidation-errorBorder, #be1100);
+  padding: 8px 24px;
+  font-size: 13px;
+  font-family: var(--tm-font);
+  white-space: pre-wrap;
+  word-break: break-word;
+  z-index: 20;
+}
+
 /* ─── Header & Controls ─────────────────────────────────────── */
 .tm-header {
   padding: 16px 24px;
