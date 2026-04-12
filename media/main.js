@@ -443,6 +443,9 @@
       });
     });
 
+    // Sort by start column, then longer spans first for stable top-down placement
+    events.sort((a, b) => a.colStart - b.colStart || (b.colEnd - b.colStart) - (a.colEnd - a.colStart));
+
     // Assign band rows to avoid visual overlap within the same week
     const rowEnds = [];
     events.forEach(event => {
@@ -491,7 +494,7 @@
     if (maxRow < 0 || !cellBands || cellBands.length === 0) return '';
 
     const rowMap = {};
-    if (cellBands) cellBands.forEach(b => { rowMap[b.bandRow] = b; });
+    cellBands.forEach(b => { rowMap[b.bandRow] = b; });
 
     let html = '<div class="tm-cell-bands">';
     for (let r = 0; r <= maxRow; r++) {
@@ -578,8 +581,8 @@
 
       weekCells.forEach((cell, i) => {
         const colIndex = i + 1;
-        const dayData = getDayData(cell.dStr);
-        const regularItems = dayData.items.filter(item => !item.endDate);
+        const dayItems = (currentTaskMarkData.days[cell.dStr] || { items: [] }).items;
+        const regularItems = dayItems.filter(item => !item.endDate);
         const el = createCell(cell.dayNo, cell.isOtherMonth, cell.isToday, cell.dayOfWeek, cell.dStr);
         el.innerHTML += createCellBandsHtml(bandMap[colIndex], maxRow, tagColors);
         el.innerHTML += createItemsHtml(regularItems, tagColors, true);
@@ -610,8 +613,8 @@
       const dStr = formatDateStr(d.getFullYear(), d.getMonth() + 1, d.getDate());
       const dayOfWeek = d.getDay();
       const colIndex = i + 1;
-      const dayData = getDayData(dStr);
-      const regularItems = dayData.items.filter(item => !item.endDate);
+      const dayItems = (currentTaskMarkData.days[dStr] || { items: [] }).items;
+      const regularItems = dayItems.filter(item => !item.endDate);
       const cell = createCell(d.getDate(), false, dStr === todayStr, dayOfWeek, dStr);
       cell.style.flex = '1';
       cell.innerHTML += createCellBandsHtml(bandMap[colIndex], maxRow, tagColors);
