@@ -19,6 +19,7 @@
   let ganttZoom = 1; // 1 = 100px per day
   let expandedGroups = new Set();
   let isPanning = false;
+  let hasDragged = false;
   let startPanX = 0;
   let startPanY = 0;
   let initialScrollL = 0;
@@ -66,10 +67,16 @@
     return '';
   }
 
+  // Keep in sync with VALID_CSS_COLOR_REGEX in src/parser.ts
+  const VALID_CSS_COLOR_RE = /^(?:#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(?:rgb|hsl)a?\(\s*\d[\d.]*%?(?:\s*[,/\s]\s*\d[\d.]*%?){2,3}\s*\)|[a-zA-Z]{1,30})$/;
+
   /** Deterministic color from tag name, or explicit color from map */
   function getTagColor(tagName, tagColorsMap) {
     if (tagColorsMap && tagColorsMap[tagName]) {
-      return tagColorsMap[tagName];
+      if (VALID_CSS_COLOR_RE.test(tagColorsMap[tagName])) {
+        return tagColorsMap[tagName];
+      }
+      console.warn(`[TaskMark] Invalid color value for tag "${tagName}": "${tagColorsMap[tagName]}", using fallback`);
     }
     let hash = 0;
     for (let i = 0; i < tagName.length; i++) {
@@ -214,6 +221,7 @@
   viewTimeline?.addEventListener('mousedown', (e) => {
     if (e.button !== 0) return;
     isPanning = true;
+    hasDragged = false;
     startPanX = e.clientX;
     startPanY = e.clientY;
     initialScrollL = viewTimeline.scrollLeft;
@@ -227,6 +235,11 @@
     if (!(e.buttons & 1)) {
       stopPanning();
       return;
+    }
+    if (!hasDragged) {
+      const dx = e.clientX - startPanX;
+      const dy = e.clientY - startPanY;
+      if (dx * dx + dy * dy > 9) hasDragged = true;
     }
     viewTimeline.scrollLeft = initialScrollL - (e.clientX - startPanX);
     viewTimeline.scrollTop = initialScrollT - (e.clientY - startPanY);
@@ -779,6 +792,7 @@
 
     bar.addEventListener('click', (e) => {
       e.stopPropagation();
+      if (hasDragged) return;
       if (expandedGroups.has(entity.name)) {
         expandedGroups.delete(entity.name);
       } else {

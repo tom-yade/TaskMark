@@ -352,6 +352,86 @@ not a valid tag line
     assert.strictEqual(data.tagColors['work'], '#0088ff', 'Valid tags should still parse');
   });
 
+  test('parseTmd rejects CSS injection in tag color values', () => {
+    const text = `
+@tags
+#valid : #ff0000
+#inject1 : red; background-image: url(evil)
+#inject2 : #fff} .x{color:red
+#inject3 : expression(alert(1))
+#named : steelblue
+#rgb : rgb(255, 0, 128)
+#hsl : hsl(120, 50%, 50%)
+#rgba : rgba(0, 0, 0, 0.5)
+#hsla : hsla(120, 50%, 50%, 0.8)
+@end
+
+# 2026-03-01
+- Task
+`;
+    const { data, warnings } = parseTmd(text);
+    assert.strictEqual(data.tagColors['valid'], '#ff0000', 'Valid hex color accepted');
+    assert.strictEqual(data.tagColors['named'], 'steelblue', 'Valid named color accepted');
+    assert.strictEqual(data.tagColors['rgb'], 'rgb(255, 0, 128)', 'Valid rgb() accepted');
+    assert.strictEqual(data.tagColors['hsl'], 'hsl(120, 50%, 50%)', 'Valid hsl() accepted');
+    assert.strictEqual(data.tagColors['rgba'], 'rgba(0, 0, 0, 0.5)', 'Valid rgba() accepted');
+    assert.strictEqual(data.tagColors['hsla'], 'hsla(120, 50%, 50%, 0.8)', 'Valid hsla() accepted');
+    assert.strictEqual(data.tagColors['inject1'], undefined, 'Semicolon injection rejected');
+    assert.strictEqual(data.tagColors['inject2'], undefined, 'Brace injection rejected');
+    assert.strictEqual(data.tagColors['inject3'], undefined, 'expression() injection rejected');
+    assert.strictEqual(warnings.length, 3, 'Should warn for each rejected color');
+  });
+
+  test('parseTmd validates hex color digit counts', () => {
+    const text = `
+@tags
+#h3 : #fff
+#h4 : #ffff
+#h6 : #ffffff
+#h8 : #ffffffff
+#h1 : #f
+#h2 : #ff
+#h5 : #fffff
+#h7 : #fffffff
+@end
+
+# 2026-03-01
+- Task
+`;
+    const { data, warnings } = parseTmd(text);
+    assert.strictEqual(data.tagColors['h3'], '#fff', '3-digit hex accepted');
+    assert.strictEqual(data.tagColors['h4'], '#ffff', '4-digit hex accepted');
+    assert.strictEqual(data.tagColors['h6'], '#ffffff', '6-digit hex accepted');
+    assert.strictEqual(data.tagColors['h8'], '#ffffffff', '8-digit hex accepted');
+    assert.strictEqual(data.tagColors['h1'], undefined, '1-digit hex rejected');
+    assert.strictEqual(data.tagColors['h2'], undefined, '2-digit hex rejected');
+    assert.strictEqual(data.tagColors['h5'], undefined, '5-digit hex rejected');
+    assert.strictEqual(data.tagColors['h7'], undefined, '7-digit hex rejected');
+    assert.strictEqual(warnings.length, 4, 'Should warn for each invalid hex length');
+  });
+
+  test('parseTmd rejects malformed rgb/hsl values', () => {
+    const text = `
+@tags
+#ok1 : rgb(255, 0, 128)
+#ok2 : rgb(255 0 128 / 0.5)
+#bad1 : rgb()
+#bad2 : rgb(,,,)
+#bad3 : rgb(a, b, c)
+@end
+
+# 2026-03-01
+- Task
+`;
+    const { data, warnings } = parseTmd(text);
+    assert.strictEqual(data.tagColors['ok1'], 'rgb(255, 0, 128)', 'Valid rgb() accepted');
+    assert.strictEqual(data.tagColors['ok2'], 'rgb(255 0 128 / 0.5)', 'Modern rgb() with alpha accepted');
+    assert.strictEqual(data.tagColors['bad1'], undefined, 'Empty rgb() rejected');
+    assert.strictEqual(data.tagColors['bad2'], undefined, 'Comma-only rgb() rejected');
+    assert.strictEqual(data.tagColors['bad3'], undefined, 'Non-numeric rgb() rejected');
+    assert.strictEqual(warnings.length, 3, 'Should warn for each invalid rgb');
+  });
+
   test('parseTmd collects multiple warnings', () => {
     const text = `
 # 2026-99-99
