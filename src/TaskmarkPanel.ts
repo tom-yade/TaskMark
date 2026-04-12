@@ -122,7 +122,6 @@ export class TaskmarkPanel {
     } catch (e) {
       const errorText = e instanceof Error ? e.message : String(e);
       console.error("TaskMark parse error", e);
-      vscode.window.showErrorMessage(`TaskMark parse error: ${errorText}`);
       const errorMessage: TaskMarkErrorMessage = { type: 'parseError', message: errorText };
       this._panel.webview.postMessage(errorMessage);
     }
