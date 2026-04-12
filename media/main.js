@@ -495,6 +495,7 @@
           bandRow: band.bandRow,
           isStart: band.isStart && col === band.colStart,
           isEnd: band.isEnd && col === band.colEnd - 1,
+          showLabel: col === band.colStart,
           item: band.item
         });
       }
@@ -517,7 +518,7 @@
         if (band.isStart) classes.push('band-start');
         if (band.isEnd) classes.push('band-end');
         const color = getItemBorderColor(band.item.tags, tagColorsMap);
-        const text = band.isStart ? escapeHtml(band.item.text) : '';
+        const text = band.showLabel ? escapeHtml(band.item.text) : '';
         html += `<div class="${classes.join(' ')}" style="background-color: ${color}">${text}</div>`;
       } else {
         html += '<div class="tm-cell-band-spacer"></div>';
