@@ -15,6 +15,7 @@
   let activeView = 'monthly'; // 'monthly' | 'weekly' | 'daily'
   let currentDate = new Date();
   let currentTaskMarkData = null;
+  let currentGanttData = null;
   let ganttZoom = 1; // 1 = 100px per day
   let isPanning = false;
   let startPanX = 0;
@@ -46,7 +47,7 @@
   /** Parse 'YYYY-MM-DD' string into a local midnight Date */
   function parseLocalDate(dateStr) {
     const p = dateStr.split('-');
-    return new Date(parseInt(p[0]), parseInt(p[1]) - 1, parseInt(p[2]));
+    return new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
   }
 
   /** Get today's date as 'YYYY-MM-DD' */
@@ -121,6 +122,7 @@
     const message = event.data;
     if (message.type === 'update') {
       currentTaskMarkData = message.data;
+      currentGanttData = message.ganttData;
       render();
     }
   });
@@ -176,24 +178,38 @@
     }
   });
 
+  function stopPanning() {
+    if (!isPanning) return;
+    isPanning = false;
+    document.body.style.userSelect = '';
+    viewTimeline.style.cursor = 'grab';
+  }
+
   // Gantt panning
   viewTimeline?.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return;
     isPanning = true;
     startPanX = e.clientX;
     startPanY = e.clientY;
     initialScrollL = viewTimeline.scrollLeft;
     initialScrollT = viewTimeline.scrollTop;
     viewTimeline.style.cursor = 'grabbing';
+    document.body.style.userSelect = 'none'; // suppress text selection during drag only
   });
   window.addEventListener('mousemove', (e) => {
     if (!isPanning) return;
+    // Button released outside the window: end panning on the next in-window mousemove
+    if (!(e.buttons & 1)) {
+      stopPanning();
+      return;
+    }
     viewTimeline.scrollLeft = initialScrollL - (e.clientX - startPanX);
     viewTimeline.scrollTop = initialScrollT - (e.clientY - startPanY);
   });
-  window.addEventListener('mouseup', () => {
-    isPanning = false;
-    if (viewTimeline) viewTimeline.style.cursor = 'grab';
+  window.addEventListener('mouseup', (e) => {
+    if (e.button === 0) stopPanning();
   });
+  window.addEventListener('blur', stopPanning);
 
   // Gantt zoom
   viewTimeline?.addEventListener('wheel', (e) => {
@@ -222,7 +238,7 @@
   // ─── Main Render ─────────────────────────────────────────────
 
   function render() {
-    if (!currentTaskMarkData) return;
+    if (!currentTaskMarkData || !currentGanttData) return;
 
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth() + 1;
@@ -484,79 +500,6 @@
 
   // ─── Gantt / Timeline View ───────────────────────────────────
 
-  /** Collect entities (groups and standalone items) from sorted dates.
-   *  Also returns lastDateStr accounting for endDate ranges to avoid a separate scan. */
-  function collectGanttEntities(sortedDates) {
-    const entities = {};
-    let lastDateStr = sortedDates[sortedDates.length - 1];
-
-    sortedDates.forEach(dStr => {
-      const dayData = currentTaskMarkData.days[dStr];
-      const dayStartMs = parseLocalDate(dStr).getTime();
-
-      dayData.items.forEach(item => {
-        if (item.endDate && item.endDate > lastDateStr) lastDateStr = item.endDate;
-
-        let startMs = dayStartMs;
-        let endMs = item.endDate
-          ? getEndOfDayMs(item.endDate)
-          : getEndOfDayMs(dStr);
-
-        if (itemHasTime(item)) {
-          const parts = item.time.split('-');
-          const sTime = parts[0].trim().split(':');
-          if (sTime.length >= 2) {
-            startMs = dayStartMs + parseInt(sTime[0]) * MS_PER_HOUR + parseInt(sTime[1]) * MS_PER_MINUTE;
-          }
-          if (parts[1]) {
-            const eTime = parts[1].trim().split(':');
-            if (eTime.length >= 2) {
-              endMs = dayStartMs + parseInt(eTime[0]) * MS_PER_HOUR + parseInt(eTime[1]) * MS_PER_MINUTE;
-            }
-          } else {
-            endMs = startMs + MS_PER_HOUR;
-          }
-        }
-
-        const eName = item.group ? `[Group] ${item.group}` : item.text;
-        if (!entities[eName]) {
-          entities[eName] = {
-            name: item.group || item.text,
-            isGroup: !!item.group,
-            minTime: startMs,
-            maxTime: endMs,
-            tags: item.tags || [],
-            tasksTotal: 0,
-            tasksDone: 0,
-            items: []
-          };
-        } else {
-          if (startMs < entities[eName].minTime) entities[eName].minTime = startMs;
-          if (endMs > entities[eName].maxTime) entities[eName].maxTime = endMs;
-        }
-
-        entities[eName].items.push({
-          startMs,
-          endMs,
-          isTask: item.type === 'task',
-          isDone: item.status === 'done'
-        });
-
-        if (item.type === 'task') {
-          entities[eName].tasksTotal++;
-          if (item.status === 'done') entities[eName].tasksDone++;
-        }
-      });
-    });
-
-    return {
-      entities: Object.values(entities).sort(
-        (a, b) => a.minTime - b.minTime || a.name.localeCompare(b.name)
-      ),
-      lastDateStr
-    };
-  }
-
   /** Render the date axis row and weekend column backgrounds */
   function renderGanttAxis(container, startDate, totalRenderDays, pxPerMs) {
     const axisRow = document.createElement('div');
@@ -649,16 +592,16 @@
   }
 
   function renderStandaloneBars(container, entity, startDate, pxPerMs, yOffset, bgColor) {
-    entity.items.forEach(itemObj => {
-      const left = (itemObj.startMs - startDate.getTime()) * pxPerMs;
-      const width = Math.max((itemObj.endMs - itemObj.startMs) * pxPerMs, GANTT_MIN_BAR_WIDTH);
+    entity.children.forEach(child => {
+      const left = (child.startMs - startDate.getTime()) * pxPerMs;
+      const width = Math.max((child.endMs - child.startMs) * pxPerMs, GANTT_MIN_BAR_WIDTH);
 
       const bar = createGanttBar(left, yOffset, width, bgColor);
 
       const pBar = document.createElement('div');
       pBar.className = 'tm-gantt-progress';
-      if (itemObj.isTask) {
-        pBar.style.width = itemObj.isDone ? '100%' : '0%';
+      if (child.isTask) {
+        pBar.style.width = child.isDone ? '100%' : '0%';
       } else {
         pBar.style.width = '100%';
       }
@@ -668,6 +611,41 @@
 
       // Label (outside bar, to the right)
       container.appendChild(createGanttLabel(entity.name, left + width, yOffset));
+    });
+  }
+
+  /** Render child task rows below the group bar */
+  function renderGroupChildren(container, entity, startDate, pxPerMs, groupYOffset, totalWidth) {
+    entity.children.forEach((child, i) => {
+      const childYOffset = groupYOffset + (GANTT_ROW_HEIGHT + 4) * (i + 1);
+
+      // Child row background
+      const rowBg = document.createElement('div');
+      rowBg.className = 'tm-gantt-row-bg tm-gantt-child-row-bg';
+      rowBg.style.top = childYOffset + 'px';
+      rowBg.style.width = totalWidth + 'px';
+      container.appendChild(rowBg);
+
+      const childColor = getItemBorderColor(child.tags, currentTaskMarkData.tagColors);
+      const left = (child.startMs - startDate.getTime()) * pxPerMs;
+      const width = Math.max((child.endMs - child.startMs) * pxPerMs, GANTT_MIN_BAR_WIDTH);
+
+      const bar = createGanttBar(left, childYOffset, width, childColor);
+      bar.classList.add('tm-gantt-child-bar');
+
+      const pBar = document.createElement('div');
+      pBar.className = 'tm-gantt-progress';
+      if (child.isTask) {
+        pBar.style.width = child.isDone ? '100%' : '0%';
+      } else {
+        pBar.style.width = '100%';
+      }
+      pBar.style.backgroundColor = childColor;
+      bar.appendChild(pBar);
+      container.appendChild(bar);
+
+      // Label (outside bar, to the right)
+      container.appendChild(createGanttLabel(child.text, left + width, childYOffset));
     });
   }
 
@@ -712,8 +690,9 @@
     // Clamp zoom
     ganttZoom = Math.max(0.1, Math.min(48, ganttZoom));
 
-    // Collect entities; lastDateStr accounts for endDate ranges (avoids a separate scan)
-    const { entities: entityArray, lastDateStr } = collectGanttEntities(sortedDates);
+    // Use pre-computed entities from the extension (built via buildGanttEntities in gantt.ts)
+    const entityArray = currentGanttData.entities;
+    const lastDateStr = currentGanttData.lastDateStr;
     const endDate = parseLocalDate(lastDateStr);
     endDate.setDate(endDate.getDate() + (6 - endDate.getDay()) + 1);
 
@@ -727,7 +706,10 @@
     const ganttContainer = document.createElement('div');
     ganttContainer.className = 'tm-gantt-container';
     ganttContainer.style.width = totalWidth + 'px';
-    ganttContainer.style.height = (entityArray.length * (GANTT_ROW_HEIGHT + 4) + GANTT_HEADER_HEIGHT + 10) + 'px';
+    const totalRowCount = entityArray.reduce((sum, e) => {
+      return sum + 1 + (e.isGroup ? e.children.length : 0);
+    }, 0);
+    ganttContainer.style.height = (totalRowCount * (GANTT_ROW_HEIGHT + 4) + GANTT_HEADER_HEIGHT + 10) + 'px';
 
     // Render axis and column backgrounds
     renderGanttAxis(ganttContainer, startDate, totalRenderDays, pxPerMs);
@@ -735,8 +717,13 @@
     // Render entity bars
     let yOffset = GANTT_HEADER_HEIGHT;
     entityArray.forEach(entity => {
-      renderGanttEntityBar(ganttContainer, entity, startDate, pxPerMs, yOffset, totalWidth);
-      yOffset += GANTT_ROW_HEIGHT;
+      const entityYOffset = yOffset;
+      renderGanttEntityBar(ganttContainer, entity, startDate, pxPerMs, entityYOffset, totalWidth);
+      yOffset += GANTT_ROW_HEIGHT + 4;
+      if (entity.isGroup) {
+        renderGroupChildren(ganttContainer, entity, startDate, pxPerMs, entityYOffset, totalWidth);
+        yOffset += (GANTT_ROW_HEIGHT + 4) * entity.children.length;
+      }
     });
 
     viewTimeline.appendChild(ganttContainer);

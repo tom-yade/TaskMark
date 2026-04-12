@@ -498,3 +498,12 @@ body {
   white-space: nowrap;
   pointer-events: none;
 }
+
+/* Child rows (group task members) */
+.tm-gantt-child-row-bg {
+  border-left: 2px solid var(--tm-card-border);
+}
+
+.tm-gantt-child-bar {
+  opacity: 0.8;
+}
