@@ -4,6 +4,11 @@ All notable changes to the "TaskMark" extension will be documented in this file.
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.3.2] - 2026-04-12
+
+### Fixed
+- Fixed an issue where custom tag colors were not applied in the Webview due to CSP restrictions.
+
 ## [1.3.1] - 2026-04-12
 
 ### Added
