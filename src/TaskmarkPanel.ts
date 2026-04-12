@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { parseTmd, TaskMarkData, ParseResult } from './parser';
+import { parseTmd, TaskMarkData } from './parser';
 import { buildGanttEntities, GanttData } from './gantt';
 import { getWebviewHtml } from './template';
 import { debounce, DebouncedFn } from './utils/debounce';

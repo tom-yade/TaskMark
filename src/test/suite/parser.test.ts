@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { parseTmd, ParseResult } from '../../parser';
+import { parseTmd } from '../../parser';
 
 suite('Parser Test Suite', () => {
   test('parseTmd returns ParseResult with data and warnings', () => {
@@ -299,12 +299,57 @@ suite('Parser Test Suite', () => {
   test('parseTmd warns on invalid until date in @repeat and does not throw', () => {
     const text = `
 # 2026-03-16
-- 10:00-11:00 Weekly Sync @repeat(weekly, until:2026-02-30)
+- 10:00-11:00 Weekly Sync @repeat(weekly, count:3, until:2026-02-30)
 `;
     const { data, warnings } = parseTmd(text);
     assert.strictEqual(warnings.length, 1, 'Should have one warning');
     assert.ok(warnings[0].includes('2026-02-30'), 'Warning should include the invalid until date');
     assert.ok(data.days['2026-03-16'], 'Origin item should still exist');
+    // Invalid until is ignored, so count:3 controls expansion
+    assert.strictEqual(Object.keys(data.days).length, 3, 'Should expand based on count when until is invalid');
+  });
+
+  test('parseTmd repeat until with unpadded date works correctly', () => {
+    const text = `
+# 2026-03-16
+- Weekly Sync @repeat(weekly, until:2026-4-6)
+`;
+    const { data, warnings } = parseTmd(text);
+    assert.strictEqual(warnings.length, 0, 'Unpadded until date should not produce warnings');
+    assert.ok(data.days['2026-03-16'], '2026-03-16 should exist');
+    assert.ok(data.days['2026-03-23'], '2026-03-23 should exist');
+    assert.ok(data.days['2026-03-30'], '2026-03-30 should exist');
+    assert.ok(!data.days['2026-04-13'], '2026-04-13 should not exist (past until)');
+  });
+
+  test('parseTmd warns on invalid except date in @repeat', () => {
+    const text = `
+# 2026-03-16
+- Weekly Sync @repeat(weekly, count:3, except:2026-02-30)
+`;
+    const { data, warnings } = parseTmd(text);
+    assert.strictEqual(warnings.length, 1, 'Should have one warning for invalid except date');
+    assert.ok(warnings[0].includes('2026-02-30'), 'Warning should include the invalid except date');
+    // Invalid except date is ignored, so all 3 days still exist
+    assert.strictEqual(Object.keys(data.days).length, 3);
+  });
+
+  test('parseTmd warns on invalid line inside @tags block', () => {
+    const text = `
+@tags
+#meeting : #ff0000
+not a valid tag line
+#work : #0088ff
+@end
+
+# 2026-03-01
+- Meeting
+`;
+    const { data, warnings } = parseTmd(text);
+    assert.strictEqual(warnings.length, 1, 'Should have one warning');
+    assert.ok(warnings[0].includes('Line 4'), 'Warning should reference the correct line');
+    assert.strictEqual(data.tagColors['meeting'], '#ff0000', 'Valid tags should still parse');
+    assert.strictEqual(data.tagColors['work'], '#0088ff', 'Valid tags should still parse');
   });
 
   test('parseTmd collects multiple warnings', () => {

@@ -109,7 +109,7 @@ interface RepeatOptions {
 
 const MAX_OCCURRENCES = 3650;
 
-function parseRepeatOptions(repeatStr: string, lineNum?: number, warnings?: string[]): RepeatOptions {
+function parseRepeatOptions(repeatStr: string, lineNum: number, warnings: string[]): RepeatOptions {
   const parts = repeatStr.split(',').map(s => s.trim());
   let mode: 'days' | 'months' = 'days';
   let interval = 7; // default: weekly
@@ -135,14 +135,11 @@ function parseRepeatOptions(repeatStr: string, lineNum?: number, warnings?: stri
       mode = 'months'; interval = 1;
     } else if (part.startsWith('until:')) {
       const dateStr = part.substring(6);
-      if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
-        try {
-          until = parseLocalDate(dateStr);
-        } catch {
-          if (warnings && lineNum !== undefined) {
-            warnings.push(`Line ${lineNum + 1}: invalid until date '${dateStr}', skipped`);
-          }
-        }
+      const normalized = tryNormalizeDate(dateStr);
+      if (normalized) {
+        until = parseLocalDate(normalized);
+      } else if (dateStr) {
+        warnings.push(`Line ${lineNum + 1}: invalid until date '${dateStr}', skipped`);
       }
     } else if (part.startsWith('count:')) {
       const parsedCount = parseInt(part.substring(6), 10);
@@ -150,7 +147,11 @@ function parseRepeatOptions(repeatStr: string, lineNum?: number, warnings?: stri
     } else if (part.startsWith('except:')) {
       for (const d of part.substring(7).trim().split(/\s+/).filter(Boolean)) {
         const normalized = tryNormalizeDate(d);
-        if (normalized) { exceptDates.add(normalized); }
+        if (normalized) {
+          exceptDates.add(normalized);
+        } else {
+          warnings.push(`Line ${lineNum + 1}: invalid except date '${d}', skipped`);
+        }
       }
     }
   }
@@ -186,7 +187,11 @@ export function parseTmd(text: string): ParseResult {
     if (line === '@end' && inTagsBlock) { inTagsBlock = false; continue; }
     if (inTagsBlock) {
       const match = line.match(TAG_COLOR_REGEX);
-      if (match) data.tagColors[match[1]] = match[2].trim();
+      if (match) {
+        data.tagColors[match[1]] = match[2].trim();
+      } else {
+        warnings.push(`Line ${i + 1}: invalid tag definition '${line}', skipped`);
+      }
       continue;
     }
 
