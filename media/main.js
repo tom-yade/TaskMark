@@ -416,30 +416,43 @@
    * Collect range events overlapping [weekStartStr, weekEndStr] and assign band rows
    * to prevent visual overlap. Returns an array of band descriptors.
    */
-  function collectWeekBands(weekStartStr, weekEndStr) {
+  /** Collect all range items from the dataset (items with endDate). */
+  function collectAllRangeItems() {
+    const rangeItems = [];
+    Object.entries(currentTaskMarkData.days).forEach(([date, dayData]) => {
+      dayData.items.forEach(item => {
+        if (item.endDate) rangeItems.push({ date, item });
+      });
+    });
+    return rangeItems;
+  }
+
+  /** Count day difference between two dates using calendar arithmetic (DST-safe). */
+  function dayDiff(fromDate, toDate) {
+    const a = new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate());
+    const b = new Date(toDate.getFullYear(), toDate.getMonth(), toDate.getDate());
+    return Math.round((b - a) / MS_PER_DAY);
+  }
+
+  function collectWeekBands(weekStartStr, weekEndStr, rangeItems) {
     const weekStartDate = parseLocalDate(weekStartStr);
     const events = [];
 
-    Object.entries(currentTaskMarkData.days).forEach(([date, dayData]) => {
-      dayData.items.forEach(item => {
-        if (!item.endDate) return;
-        if (date > weekEndStr || item.endDate < weekStartStr) return;
+    rangeItems.forEach(({ date, item }) => {
+      if (date > weekEndStr || item.endDate < weekStartStr) return;
 
-        const clippedStart = date < weekStartStr ? weekStartStr : date;
-        const clippedEnd = item.endDate > weekEndStr ? weekEndStr : item.endDate;
+      const clippedStart = date < weekStartStr ? weekStartStr : date;
+      const clippedEnd = item.endDate > weekEndStr ? weekEndStr : item.endDate;
 
-        const startDate = parseLocalDate(clippedStart);
-        const endDate = parseLocalDate(clippedEnd);
-        const colStart = Math.round((startDate - weekStartDate) / MS_PER_DAY) + 1;
-        const colEnd = Math.round((endDate - weekStartDate) / MS_PER_DAY) + 2;
+      const colStart = dayDiff(weekStartDate, parseLocalDate(clippedStart)) + 1;
+      const colEnd = dayDiff(weekStartDate, parseLocalDate(clippedEnd)) + 2;
 
-        events.push({
-          item,
-          colStart,
-          colEnd,
-          isStart: date >= weekStartStr,
-          isEnd: item.endDate <= weekEndStr,
-        });
+      events.push({
+        item,
+        colStart,
+        colEnd,
+        isStart: date >= weekStartStr,
+        isEnd: item.endDate <= weekEndStr,
       });
     });
 
@@ -570,13 +583,14 @@
     }
 
     // Render week by week: band segments inside each cell
+    const rangeItems = collectAllRangeItems();
     const numWeeks = cells.length / 7;
     for (let w = 0; w < numWeeks; w++) {
       const weekCells = cells.slice(w * 7, (w + 1) * 7);
       const weekStartStr = weekCells[0].dStr;
       const weekEndStr = weekCells[6].dStr;
 
-      const weekBands = collectWeekBands(weekStartStr, weekEndStr);
+      const weekBands = collectWeekBands(weekStartStr, weekEndStr, rangeItems);
       const { map: bandMap, maxRow } = buildCellBandMap(weekBands);
 
       weekCells.forEach((cell, i) => {
@@ -606,7 +620,8 @@
     weekEndDate.setDate(weekEndDate.getDate() + 6);
     const weekEndStr = formatDateStr(weekEndDate.getFullYear(), weekEndDate.getMonth() + 1, weekEndDate.getDate());
 
-    const weekBands = collectWeekBands(weekStartStr, weekEndStr);
+    const rangeItems = collectAllRangeItems();
+    const weekBands = collectWeekBands(weekStartStr, weekEndStr, rangeItems);
     const { map: bandMap, maxRow } = buildCellBandMap(weekBands);
 
     for (let i = 0; i < 7; i++) {

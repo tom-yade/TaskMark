@@ -176,13 +176,18 @@ body {
 
 .tm-calendar-grid.monthly .tm-cal-cell:hover,
 .tm-calendar-grid.weekly .tm-cal-cell:hover {
-  box-shadow: inset 0 0 0 2px var(--tm-accent);
+  box-shadow: inset 0 0 0 2px var(--tm-accent-hover);
 }
 
 .tm-calendar-grid.monthly .tm-cal-cell.today,
 .tm-calendar-grid.weekly .tm-cal-cell.today {
   border: none;
   box-shadow: inset 0 0 0 2px var(--tm-accent);
+}
+
+.tm-calendar-grid.monthly .tm-cal-cell.today:hover,
+.tm-calendar-grid.weekly .tm-cal-cell.today:hover {
+  box-shadow: inset 0 0 0 3px var(--tm-accent-hover);
 }
 
 /* ─── Multi-Day Bands (inside cells) ─────────────────────────── */
