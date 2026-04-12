@@ -76,7 +76,8 @@ export class TaskmarkPanel {
     vscode.window.onDidChangeActiveTextEditor(
       editor => {
         if (editor && editor.document.languageId === 'tmd') {
-          this._debouncedUpdateFromDocument(editor.document);
+          this._debouncedUpdateFromDocument.cancel();
+          this.updateFromDocument(editor.document);
         }
       },
       null,
