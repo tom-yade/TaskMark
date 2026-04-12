@@ -465,37 +465,50 @@
   }
 
   /**
-   * Create a bands container element for one week row.
-   * Returns null if there are no range events for the given week.
+   * Build a per-column map from week band data.
+   * Returns { map: { colIndex -> [{bandRow, isStart, isEnd, item}] }, maxRow: number }
    */
-  function createWeekBandsElement(weekStartStr, weekEndStr) {
-    const bands = collectWeekBands(weekStartStr, weekEndStr);
-    if (bands.length === 0) return null;
-
-    const container = document.createElement('div');
-    container.className = 'tm-week-bands';
-    container.style.gridColumn = '1 / -1';
-
-    bands.forEach(band => {
-      const el = document.createElement('div');
-      const classes = ['tm-multi-day-band'];
-      if (band.isStart) classes.push('band-start');
-      if (band.isEnd) classes.push('band-end');
-      el.className = classes.join(' ');
-      el.style.gridColumn = `${band.colStart} / ${band.colEnd}`;
-      el.style.gridRow = `${band.bandRow + 1}`;
-
-      const color = getItemBorderColor(band.item.tags, currentTaskMarkData.tagColors);
-      el.style.backgroundColor = color;
-
-      if (band.isStart) {
-        el.textContent = band.item.text;
+  function buildCellBandMap(weekBands) {
+    const map = {};
+    let maxRow = -1;
+    weekBands.forEach(band => {
+      if (band.bandRow > maxRow) maxRow = band.bandRow;
+      for (let col = band.colStart; col < band.colEnd; col++) {
+        if (!map[col]) map[col] = [];
+        map[col].push({
+          bandRow: band.bandRow,
+          isStart: band.isStart && col === band.colStart,
+          isEnd: band.isEnd && col === band.colEnd - 1,
+          item: band.item
+        });
       }
-
-      container.appendChild(el);
     });
+    return { map, maxRow };
+  }
 
-    return container;
+  /** Create HTML for band segments inside a single cell */
+  function createCellBandsHtml(cellBands, maxRow, tagColorsMap) {
+    if (maxRow < 0) return '';
+
+    const rowMap = {};
+    if (cellBands) cellBands.forEach(b => { rowMap[b.bandRow] = b; });
+
+    let html = '<div class="tm-cell-bands">';
+    for (let r = 0; r <= maxRow; r++) {
+      const band = rowMap[r];
+      if (band) {
+        const classes = ['tm-cell-band'];
+        if (band.isStart) classes.push('band-start');
+        if (band.isEnd) classes.push('band-end');
+        const color = getItemBorderColor(band.item.tags, tagColorsMap);
+        const text = band.isStart ? escapeHtml(band.item.text) : '';
+        html += `<div class="${classes.join(' ')}" style="background-color: ${color}">${text}</div>`;
+      } else {
+        html += '<div class="tm-cell-band-spacer"></div>';
+      }
+    }
+    html += '</div>';
+    return html;
   }
 
   // ─── Calendar Views ──────────────────────────────────────────
@@ -553,20 +566,22 @@
       });
     }
 
-    // Render week by week: optional bands row + 7 day cells
+    // Render week by week: band segments inside each cell
     const numWeeks = cells.length / 7;
     for (let w = 0; w < numWeeks; w++) {
       const weekCells = cells.slice(w * 7, (w + 1) * 7);
       const weekStartStr = weekCells[0].dStr;
       const weekEndStr = weekCells[6].dStr;
 
-      const bandsEl = createWeekBandsElement(weekStartStr, weekEndStr);
-      if (bandsEl) viewCalendar.appendChild(bandsEl);
+      const weekBands = collectWeekBands(weekStartStr, weekEndStr);
+      const { map: bandMap, maxRow } = buildCellBandMap(weekBands);
 
-      weekCells.forEach(cell => {
+      weekCells.forEach((cell, i) => {
+        const colIndex = i + 1;
         const dayData = getDayData(cell.dStr);
         const regularItems = dayData.items.filter(item => !item.endDate);
         const el = createCell(cell.dayNo, cell.isOtherMonth, cell.isToday, cell.dayOfWeek, cell.dStr);
+        el.innerHTML += createCellBandsHtml(bandMap[colIndex], maxRow, tagColors);
         el.innerHTML += createItemsHtml(regularItems, tagColors, true);
         viewCalendar.appendChild(el);
       });
@@ -588,16 +603,18 @@
     weekEndDate.setDate(weekEndDate.getDate() + 6);
     const weekEndStr = formatDateStr(weekEndDate.getFullYear(), weekEndDate.getMonth() + 1, weekEndDate.getDate());
 
-    const bandsEl = createWeekBandsElement(weekStartStr, weekEndStr);
-    if (bandsEl) viewCalendar.appendChild(bandsEl);
+    const weekBands = collectWeekBands(weekStartStr, weekEndStr);
+    const { map: bandMap, maxRow } = buildCellBandMap(weekBands);
 
     for (let i = 0; i < 7; i++) {
       const dStr = formatDateStr(d.getFullYear(), d.getMonth() + 1, d.getDate());
       const dayOfWeek = d.getDay();
+      const colIndex = i + 1;
       const dayData = getDayData(dStr);
       const regularItems = dayData.items.filter(item => !item.endDate);
       const cell = createCell(d.getDate(), false, dStr === todayStr, dayOfWeek, dStr);
       cell.style.flex = '1';
+      cell.innerHTML += createCellBandsHtml(bandMap[colIndex], maxRow, tagColors);
       cell.innerHTML += createItemsHtml(regularItems, tagColors);
       viewCalendar.appendChild(cell);
       d.setDate(d.getDate() + 1);
