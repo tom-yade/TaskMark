@@ -17,7 +17,7 @@
   let currentTaskMarkData = null;
   let currentGanttData = null;
   let ganttZoom = 1; // 1 = 100px per day
-  let collapsedGroups = new Set();
+  let expandedGroups = new Set();
   let isPanning = false;
   let startPanX = 0;
   let startPanY = 0;
@@ -211,14 +211,6 @@
     if (e.button === 0) stopPanning();
   });
   window.addEventListener('blur', stopPanning);
-
-  // Keep group toggles visible at the left edge while scrolling horizontally
-  viewTimeline?.addEventListener('scroll', () => {
-    const sl = viewTimeline.scrollLeft;
-    viewTimeline.querySelectorAll('.tm-gantt-group-toggle').forEach(el => {
-      el.style.left = (sl + 4) + 'px';
-    });
-  });
 
   // Gantt zoom
   viewTimeline?.addEventListener('wheel', (e) => {
@@ -725,23 +717,6 @@
     rowBg.style.width = totalWidth + 'px';
     container.appendChild(rowBg);
 
-    if (entity.isGroup) {
-      const toggle = document.createElement('span');
-      toggle.className = 'tm-gantt-group-toggle';
-      toggle.textContent = collapsedGroups.has(entity.name) ? '▶' : '▼';
-      toggle.style.top = (yOffset + 4) + 'px';
-      toggle.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (collapsedGroups.has(entity.name)) {
-          collapsedGroups.delete(entity.name);
-        } else {
-          collapsedGroups.add(entity.name);
-        }
-        renderTimeline();
-      });
-      container.appendChild(toggle);
-    }
-
     const bgColor = getItemBorderColor(entity.tags, currentTaskMarkData.tagColors);
 
     if (entity.isGroup) {
@@ -756,6 +731,7 @@
     const width = Math.max((entity.maxTime - entity.minTime) * pxPerMs, GANTT_MIN_BAR_WIDTH);
 
     const bar = createGanttBar(left, yOffset, width, bgColor);
+    bar.classList.add('tm-gantt-group-bar');
 
     // Progress fill
     const pBar = document.createElement('div');
@@ -771,6 +747,17 @@
     }
     pBar.style.backgroundColor = bgColor;
     bar.appendChild(pBar);
+
+    bar.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (expandedGroups.has(entity.name)) {
+        expandedGroups.delete(entity.name);
+      } else {
+        expandedGroups.add(entity.name);
+      }
+      renderTimeline();
+    });
+
     container.appendChild(bar);
 
     // Label (outside bar, to the right)
@@ -894,7 +881,7 @@
     ganttContainer.className = 'tm-gantt-container';
     ganttContainer.style.width = totalWidth + 'px';
     const totalRowCount = entityArray.reduce((sum, e) => {
-      const childCount = e.isGroup && !collapsedGroups.has(e.name) ? e.children.length : 0;
+      const childCount = e.isGroup && expandedGroups.has(e.name) ? e.children.length : 0;
       return sum + 1 + childCount;
     }, 0);
     ganttContainer.style.height = (totalRowCount * (GANTT_ROW_HEIGHT + 4) + GANTT_HEADER_HEIGHT + 10) + 'px';
@@ -908,19 +895,13 @@
       const entityYOffset = yOffset;
       renderGanttEntityBar(ganttContainer, entity, startDate, pxPerMs, entityYOffset, totalWidth);
       yOffset += GANTT_ROW_HEIGHT + 4;
-      if (entity.isGroup && !collapsedGroups.has(entity.name)) {
+      if (entity.isGroup && expandedGroups.has(entity.name)) {
         renderGroupChildren(ganttContainer, entity, startDate, pxPerMs, entityYOffset, totalWidth);
         yOffset += (GANTT_ROW_HEIGHT + 4) * entity.children.length;
       }
     });
 
     viewTimeline.appendChild(ganttContainer);
-
-    // Align toggle buttons to current scroll position
-    const sl = viewTimeline.scrollLeft;
-    ganttContainer.querySelectorAll('.tm-gantt-group-toggle').forEach(el => {
-      el.style.left = (sl + 4) + 'px';
-    });
   }
 
 })();

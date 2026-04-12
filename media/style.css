@@ -552,6 +552,10 @@ body {
   transition: transform 0.1s, filter 0.1s;
 }
 
+.tm-gantt-group-bar {
+  cursor: pointer;
+}
+
 .tm-gantt-absolute-bar:hover {
   transform: translateY(-2px);
   filter: brightness(1.1);
@@ -576,27 +580,6 @@ body {
   font-weight: bold;
   white-space: nowrap;
   pointer-events: none;
-}
-
-/* Group row toggle button */
-.tm-gantt-group-toggle {
-  position: absolute;
-  left: 4px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 32px;
-  font-size: 10px;
-  color: var(--tm-fg);
-  cursor: pointer;
-  user-select: none;
-  opacity: 0.6;
-  z-index: 8;
-}
-
-.tm-gantt-group-toggle:hover {
-  opacity: 1;
 }
 
 /* Child rows (group task members) */
