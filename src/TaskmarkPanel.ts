@@ -1,12 +1,7 @@
 import * as vscode from 'vscode';
 import { parseTmd, TaskMarkData } from './parser';
-import { buildGanttEntities, GanttEntity } from './gantt';
+import { buildGanttEntities, GanttData } from './gantt';
 import { getWebviewHtml } from './template';
-
-export interface GanttData {
-  entities: GanttEntity[];
-  lastDateStr: string;
-}
 
 export interface TaskMarkUpdateMessage {
   type: 'update';

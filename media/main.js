@@ -238,7 +238,7 @@
   // ─── Main Render ─────────────────────────────────────────────
 
   function render() {
-    if (!currentTaskMarkData) return;
+    if (!currentTaskMarkData || !currentGanttData) return;
 
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth() + 1;
@@ -717,10 +717,11 @@
     // Render entity bars
     let yOffset = GANTT_HEADER_HEIGHT;
     entityArray.forEach(entity => {
-      renderGanttEntityBar(ganttContainer, entity, startDate, pxPerMs, yOffset, totalWidth);
+      const entityYOffset = yOffset;
+      renderGanttEntityBar(ganttContainer, entity, startDate, pxPerMs, entityYOffset, totalWidth);
       yOffset += GANTT_ROW_HEIGHT;
       if (entity.isGroup) {
-        renderGroupChildren(ganttContainer, entity, startDate, pxPerMs, yOffset - GANTT_ROW_HEIGHT, totalWidth);
+        renderGroupChildren(ganttContainer, entity, startDate, pxPerMs, entityYOffset, totalWidth);
         yOffset += GANTT_ROW_HEIGHT * entity.children.length;
       }
     });

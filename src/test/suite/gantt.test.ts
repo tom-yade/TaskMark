@@ -94,6 +94,33 @@ suite('Gantt Test Suite', () => {
     assert.strictEqual(groupB!.children[0].isDone, true);
   });
 
+  test('schedule item inside group is included in children but not counted as task', () => {
+    const data = parseTmd(`
+# 2026-03-01
+> Sprint
+> - [ ] Task Item
+> - Schedule Item
+`);
+    const { entities } = buildGanttEntities(data);
+    const group = entities[0];
+    assert.strictEqual(group.children.length, 2);
+    assert.strictEqual(group.tasksTotal, 1, 'only the task should count toward tasksTotal');
+    assert.strictEqual(group.children[1].isTask, false);
+    assert.strictEqual(group.children[1].text, 'Schedule Item');
+  });
+
+  test('lastDateStr is the last date when no endDate ranges are present', () => {
+    const data = parseTmd(`
+# 2026-03-01
+- [ ] First Task
+
+# 2026-03-10
+- [ ] Last Task
+`);
+    const { lastDateStr } = buildGanttEntities(data);
+    assert.strictEqual(lastDateStr, '2026-03-10');
+  });
+
   test('group minTime and maxTime span all child items', () => {
     const data = parseTmd(`
 # 2026-03-01

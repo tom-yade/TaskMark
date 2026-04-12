@@ -1,4 +1,4 @@
-import { TaskMarkData } from './parser';
+import { TaskMarkData, parseLocalDate } from './parser';
 
 const MS_PER_MINUTE = 60000;
 const MS_PER_HOUR = 3600000;
@@ -23,11 +23,6 @@ export interface GanttEntity {
   children: GanttChildItem[];
 }
 
-function parseLocalDate(dateStr: string): Date {
-  const p = dateStr.split('-');
-  return new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
-}
-
 function getEndOfDayMs(dateStr: string): number {
   const d = parseLocalDate(dateStr);
   d.setDate(d.getDate() + 1);
@@ -38,9 +33,12 @@ function itemHasTime(item: { time?: string; endDate?: string }): boolean {
   return !!(item.time && !item.endDate);
 }
 
-export function buildGanttEntities(
-  data: TaskMarkData
-): { entities: GanttEntity[]; lastDateStr: string } {
+export interface GanttData {
+  entities: GanttEntity[];
+  lastDateStr: string;
+}
+
+export function buildGanttEntities(data: TaskMarkData): GanttData {
   const sortedDates = Object.keys(data.days).sort();
 
   if (sortedDates.length === 0) {
@@ -85,7 +83,7 @@ export function buildGanttEntities(
           isGroup: !!item.group,
           minTime: startMs,
           maxTime: endMs,
-          tags: item.tags || [],
+          tags: item.tags,
           tasksTotal: 0,
           tasksDone: 0,
           children: []
@@ -97,7 +95,7 @@ export function buildGanttEntities(
 
       entities[eName].children.push({
         text: item.text,
-        tags: item.tags || [],
+        tags: item.tags,
         startMs,
         endMs,
         isTask: item.type === 'task',
