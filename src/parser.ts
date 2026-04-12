@@ -239,7 +239,7 @@ export function parseTmd(text: string): ParseResult {
     }
   }
 
-  return { data: expandRepeats(data, warnings), warnings };
+  return { data: expandRepeats(data, warnings), warnings: [...new Set(warnings)] };
 }
 
 function createMarkItem(

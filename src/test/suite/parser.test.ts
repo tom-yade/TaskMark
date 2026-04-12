@@ -381,4 +381,17 @@ not a valid tag line
     assert.ok(data.days['2026-03-01']);
     assert.ok(data.days['2026-03-02']);
   });
+
+  test('parseTmd returns deduplicated warnings', () => {
+    const text = `
+# 2026-99-99
+- Item A
+# 2026-88-88
+- Item B
+`;
+    const { warnings } = parseTmd(text);
+    assert.ok(warnings.length > 0, 'Should have warnings');
+    const uniqueWarnings = [...new Set(warnings)];
+    assert.deepStrictEqual(warnings, uniqueWarnings, 'warnings should be deduplicated');
+  });
 });
