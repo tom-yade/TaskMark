@@ -17,6 +17,7 @@
   let currentTaskMarkData = null;
   let currentGanttData = null;
   let ganttZoom = 1; // 1 = 100px per day
+  let expandedGroups = new Set();
   let isPanning = false;
   let startPanX = 0;
   let startPanY = 0;
@@ -730,6 +731,7 @@
     const width = Math.max((entity.maxTime - entity.minTime) * pxPerMs, GANTT_MIN_BAR_WIDTH);
 
     const bar = createGanttBar(left, yOffset, width, bgColor);
+    bar.classList.add('tm-gantt-group-bar');
 
     // Progress fill
     const pBar = document.createElement('div');
@@ -745,6 +747,22 @@
     }
     pBar.style.backgroundColor = bgColor;
     bar.appendChild(pBar);
+
+    const indicator = document.createElement('span');
+    indicator.className = 'tm-gantt-group-indicator';
+    indicator.textContent = expandedGroups.has(entity.name) ? '▼' : '▶';
+    bar.appendChild(indicator);
+
+    bar.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (expandedGroups.has(entity.name)) {
+        expandedGroups.delete(entity.name);
+      } else {
+        expandedGroups.add(entity.name);
+      }
+      renderTimeline();
+    });
+
     container.appendChild(bar);
 
     // Label (outside bar, to the right)
@@ -834,6 +852,8 @@
 
   /** Main timeline (Gantt) renderer */
   function renderTimeline() {
+    const savedScrollLeft = viewTimeline.scrollLeft;
+    const savedScrollTop = viewTimeline.scrollTop;
     viewTimeline.innerHTML = '';
     viewTimeline.className = 'tm-gantt-view';
 
@@ -868,7 +888,8 @@
     ganttContainer.className = 'tm-gantt-container';
     ganttContainer.style.width = totalWidth + 'px';
     const totalRowCount = entityArray.reduce((sum, e) => {
-      return sum + 1 + (e.isGroup ? e.children.length : 0);
+      const childCount = e.isGroup && expandedGroups.has(e.name) ? e.children.length : 0;
+      return sum + 1 + childCount;
     }, 0);
     ganttContainer.style.height = (totalRowCount * (GANTT_ROW_HEIGHT + 4) + GANTT_HEADER_HEIGHT + 10) + 'px';
 
@@ -881,13 +902,15 @@
       const entityYOffset = yOffset;
       renderGanttEntityBar(ganttContainer, entity, startDate, pxPerMs, entityYOffset, totalWidth);
       yOffset += GANTT_ROW_HEIGHT + 4;
-      if (entity.isGroup) {
+      if (entity.isGroup && expandedGroups.has(entity.name)) {
         renderGroupChildren(ganttContainer, entity, startDate, pxPerMs, entityYOffset, totalWidth);
         yOffset += (GANTT_ROW_HEIGHT + 4) * entity.children.length;
       }
     });
 
     viewTimeline.appendChild(ganttContainer);
+    viewTimeline.scrollLeft = savedScrollLeft;
+    viewTimeline.scrollTop = savedScrollTop;
   }
 
 })();

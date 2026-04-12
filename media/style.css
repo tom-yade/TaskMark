@@ -552,6 +552,19 @@ body {
   transition: transform 0.1s, filter 0.1s;
 }
 
+.tm-gantt-group-bar {
+  cursor: pointer;
+}
+
+.tm-gantt-group-indicator {
+  position: relative;
+  z-index: 2;
+  padding: 0 6px;
+  font-size: 9px;
+  color: var(--tm-fg);
+  pointer-events: none;
+}
+
 .tm-gantt-absolute-bar:hover {
   transform: translateY(-2px);
   filter: brightness(1.1);
