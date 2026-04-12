@@ -748,6 +748,11 @@
     pBar.style.backgroundColor = bgColor;
     bar.appendChild(pBar);
 
+    const indicator = document.createElement('span');
+    indicator.className = 'tm-gantt-group-indicator';
+    indicator.textContent = expandedGroups.has(entity.name) ? '▼' : '▶';
+    bar.appendChild(indicator);
+
     bar.addEventListener('click', (e) => {
       e.stopPropagation();
       if (expandedGroups.has(entity.name)) {
