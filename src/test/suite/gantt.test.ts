@@ -158,4 +158,44 @@ suite('Gantt Test Suite', () => {
     assert.ok(sprint.minTime < sprint.maxTime, 'minTime should be before maxTime');
     assert.ok(sprint.children[0].startMs < sprint.children[1].startMs, 'children should be in chronological order');
   });
+
+  test('range item child spans correct time in gantt entity', () => {
+    const data = parseTmd(`
+# 2026-03-01 : 2026-03-05
+- Conference
+`);
+    const { entities } = buildGanttEntities(data);
+    assert.strictEqual(entities.length, 1);
+
+    const entity = entities[0];
+    assert.strictEqual(entity.name, 'Conference');
+    assert.strictEqual(entity.children.length, 1);
+
+    const child = entity.children[0];
+    const expectedStart = new Date(2026, 2, 1).getTime();
+    const expectedEnd = new Date(2026, 2, 6).getTime() - 1;
+
+    assert.strictEqual(child.startMs, expectedStart);
+    assert.strictEqual(child.endMs, expectedEnd);
+    assert.strictEqual(entity.minTime, expectedStart);
+    assert.strictEqual(entity.maxTime, expectedEnd);
+  });
+
+  test('range items from different weeks each produce a separate child in gantt', () => {
+    const data = parseTmd(`
+# 2026-03-01 : 2026-03-03
+- Workshop A
+
+# 2026-03-10 : 2026-03-12
+- Workshop B
+`);
+    const { entities } = buildGanttEntities(data);
+    assert.strictEqual(entities.length, 2);
+
+    const workshopA = entities.find(e => e.name === 'Workshop A');
+    const workshopB = entities.find(e => e.name === 'Workshop B');
+    assert.ok(workshopA, 'Workshop A entity should exist');
+    assert.ok(workshopB, 'Workshop B entity should exist');
+    assert.ok(workshopA!.minTime < workshopB!.minTime, 'Workshop A should start before Workshop B');
+  });
 });
