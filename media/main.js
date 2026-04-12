@@ -715,11 +715,13 @@
     rowBg.className = 'tm-gantt-row-bg';
     rowBg.style.top = yOffset + 'px';
     rowBg.style.width = totalWidth + 'px';
+    container.appendChild(rowBg);
 
     if (entity.isGroup) {
       const toggle = document.createElement('span');
       toggle.className = 'tm-gantt-group-toggle';
       toggle.textContent = collapsedGroups.has(entity.name) ? '▶' : '▼';
+      toggle.style.top = (yOffset + 4) + 'px';
       toggle.addEventListener('click', (e) => {
         e.stopPropagation();
         if (collapsedGroups.has(entity.name)) {
@@ -729,10 +731,8 @@
         }
         renderTimeline();
       });
-      rowBg.appendChild(toggle);
+      container.appendChild(toggle);
     }
-
-    container.appendChild(rowBg);
 
     const bgColor = getItemBorderColor(entity.tags, currentTaskMarkData.tagColors);
 
