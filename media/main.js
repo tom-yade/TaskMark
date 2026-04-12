@@ -423,11 +423,9 @@
     return rangeItems;
   }
 
-  /** Count day difference between two dates using calendar arithmetic (DST-safe). */
+  /** Count day difference between two local-midnight Date objects (DST-safe via Math.round). */
   function dayDiff(fromDate, toDate) {
-    const a = new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate());
-    const b = new Date(toDate.getFullYear(), toDate.getMonth(), toDate.getDate());
-    return Math.round((b - a) / MS_PER_DAY);
+    return Math.round((toDate - fromDate) / MS_PER_DAY);
   }
 
   /**
