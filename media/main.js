@@ -617,7 +617,7 @@
   /** Render child task rows below the group bar */
   function renderGroupChildren(container, entity, startDate, pxPerMs, groupYOffset, totalWidth) {
     entity.children.forEach((child, i) => {
-      const childYOffset = groupYOffset + GANTT_ROW_HEIGHT * (i + 1);
+      const childYOffset = groupYOffset + (GANTT_ROW_HEIGHT + 4) * (i + 1);
 
       // Child row background
       const rowBg = document.createElement('div');
@@ -719,10 +719,10 @@
     entityArray.forEach(entity => {
       const entityYOffset = yOffset;
       renderGanttEntityBar(ganttContainer, entity, startDate, pxPerMs, entityYOffset, totalWidth);
-      yOffset += GANTT_ROW_HEIGHT;
+      yOffset += GANTT_ROW_HEIGHT + 4;
       if (entity.isGroup) {
         renderGroupChildren(ganttContainer, entity, startDate, pxPerMs, entityYOffset, totalWidth);
-        yOffset += GANTT_ROW_HEIGHT * entity.children.length;
+        yOffset += (GANTT_ROW_HEIGHT + 4) * entity.children.length;
       }
     });
 

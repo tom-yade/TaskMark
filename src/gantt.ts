@@ -85,7 +85,7 @@ export function buildGanttEntities(data: TaskMarkData): GanttData {
           isGroup: !!item.group,
           minTime: startMs,
           maxTime: endMs,
-          tags: item.tags,
+          tags: [...item.tags],
           tasksTotal: 0,
           tasksDone: 0,
           children: []
@@ -97,7 +97,7 @@ export function buildGanttEntities(data: TaskMarkData): GanttData {
 
       bucket[key].children.push({
         text: item.text,
-        tags: item.tags,
+        tags: [...item.tags],
         startMs,
         endMs,
         isTask: item.type === 'task',
