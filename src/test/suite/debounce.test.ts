@@ -60,4 +60,31 @@ suite('debounce', () => {
       done();
     }, 100);
   });
+
+  test('cancel prevents the pending call from firing', done => {
+    let callCount = 0;
+    const fn = debounce(() => { callCount++; }, 50);
+
+    fn();
+    fn.cancel();
+
+    setTimeout(() => {
+      assert.strictEqual(callCount, 0, 'should not be called after cancel');
+      done();
+    }, 100);
+  });
+
+  test('can be called normally after cancel', done => {
+    let callCount = 0;
+    const fn = debounce(() => { callCount++; }, 50);
+
+    fn();
+    fn.cancel();
+    fn();
+
+    setTimeout(() => {
+      assert.strictEqual(callCount, 1, 'should be called once after re-invoking post-cancel');
+      done();
+    }, 100);
+  });
 });

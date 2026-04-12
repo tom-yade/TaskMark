@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { parseTmd, TaskMarkData } from './parser';
 import { buildGanttEntities, GanttData } from './gantt';
 import { getWebviewHtml } from './template';
-import { debounce } from './utils/debounce';
+import { debounce, DebouncedFn } from './utils/debounce';
 
 export interface TaskMarkUpdateMessage {
   type: 'update';
@@ -17,7 +17,7 @@ export class TaskmarkPanel {
   private readonly _panel: vscode.WebviewPanel;
   private readonly _extensionUri: vscode.Uri;
   private _disposables: vscode.Disposable[] = [];
-  private readonly _debouncedUpdateFromDocument: (document: vscode.TextDocument) => void;
+  private readonly _debouncedUpdateFromDocument: DebouncedFn<(document: vscode.TextDocument) => void>;
 
   public static createOrShow(extensionUri: vscode.Uri) {
     const column = vscode.window.activeTextEditor
@@ -125,6 +125,7 @@ export class TaskmarkPanel {
 
   public dispose() {
     TaskmarkPanel.currentPanel = undefined;
+    this._debouncedUpdateFromDocument.cancel();
     this._panel.dispose();
     vscode.Disposable.from(...this._disposables).dispose();
     this._disposables = [];
