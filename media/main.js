@@ -212,6 +212,14 @@
   });
   window.addEventListener('blur', stopPanning);
 
+  // Keep group toggles visible at the left edge while scrolling horizontally
+  viewTimeline?.addEventListener('scroll', () => {
+    const sl = viewTimeline.scrollLeft;
+    viewTimeline.querySelectorAll('.tm-gantt-group-toggle').forEach(el => {
+      el.style.left = (sl + 4) + 'px';
+    });
+  });
+
   // Gantt zoom
   viewTimeline?.addEventListener('wheel', (e) => {
     if (e.ctrlKey) {
@@ -907,6 +915,12 @@
     });
 
     viewTimeline.appendChild(ganttContainer);
+
+    // Align toggle buttons to current scroll position
+    const sl = viewTimeline.scrollLeft;
+    ganttContainer.querySelectorAll('.tm-gantt-group-toggle').forEach(el => {
+      el.style.left = (sl + 4) + 'px';
+    });
   }
 
 })();
