@@ -17,6 +17,7 @@
   let currentTaskMarkData = null;
   let currentGanttData = null;
   let ganttZoom = 1; // 1 = 100px per day
+  let collapsedGroups = new Set();
   let isPanning = false;
   let startPanX = 0;
   let startPanY = 0;
@@ -714,6 +715,23 @@
     rowBg.className = 'tm-gantt-row-bg';
     rowBg.style.top = yOffset + 'px';
     rowBg.style.width = totalWidth + 'px';
+
+    if (entity.isGroup) {
+      const toggle = document.createElement('span');
+      toggle.className = 'tm-gantt-group-toggle';
+      toggle.textContent = collapsedGroups.has(entity.name) ? '▶' : '▼';
+      toggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (collapsedGroups.has(entity.name)) {
+          collapsedGroups.delete(entity.name);
+        } else {
+          collapsedGroups.add(entity.name);
+        }
+        renderTimeline();
+      });
+      rowBg.appendChild(toggle);
+    }
+
     container.appendChild(rowBg);
 
     const bgColor = getItemBorderColor(entity.tags, currentTaskMarkData.tagColors);
@@ -868,7 +886,8 @@
     ganttContainer.className = 'tm-gantt-container';
     ganttContainer.style.width = totalWidth + 'px';
     const totalRowCount = entityArray.reduce((sum, e) => {
-      return sum + 1 + (e.isGroup ? e.children.length : 0);
+      const childCount = e.isGroup && !collapsedGroups.has(e.name) ? e.children.length : 0;
+      return sum + 1 + childCount;
     }, 0);
     ganttContainer.style.height = (totalRowCount * (GANTT_ROW_HEIGHT + 4) + GANTT_HEADER_HEIGHT + 10) + 'px';
 
@@ -881,7 +900,7 @@
       const entityYOffset = yOffset;
       renderGanttEntityBar(ganttContainer, entity, startDate, pxPerMs, entityYOffset, totalWidth);
       yOffset += GANTT_ROW_HEIGHT + 4;
-      if (entity.isGroup) {
+      if (entity.isGroup && !collapsedGroups.has(entity.name)) {
         renderGroupChildren(ganttContainer, entity, startDate, pxPerMs, entityYOffset, totalWidth);
         yOffset += (GANTT_ROW_HEIGHT + 4) * entity.children.length;
       }
