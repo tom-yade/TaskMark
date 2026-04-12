@@ -1,11 +1,12 @@
 import * as vscode from 'vscode';
-import { parseTmd, TaskMarkData } from './parser';
+import { parseTmd, TaskMarkData, VALID_CSS_COLOR_REGEX } from './parser';
 import { buildGanttEntities, GanttData } from './gantt';
 import { getWebviewHtml } from './template';
 import { debounce, DebouncedFn } from './utils/debounce';
 
 export interface TaskMarkUpdateMessage {
   type: 'update';
+  uri: string;
   data: TaskMarkData;
   ganttData: GanttData;
   warnings: string[];
@@ -113,12 +114,21 @@ export class TaskmarkPanel {
       const text = document.getText();
       const { data: parsedData, warnings } = parseTmd(text);
       const configColors = vscode.workspace.getConfiguration('taskmark').get<Record<string, string>>('tagColors', {});
-      parsedData.tagColors = { ...configColors, ...parsedData.tagColors };
+      for (const [tag, color] of Object.entries(configColors)) {
+        if (VALID_CSS_COLOR_REGEX.test(color)) {
+          if (!parsedData.tagColors[tag]) {
+            parsedData.tagColors[tag] = color;
+          }
+        } else {
+          warnings.push(`Setting tagColors: invalid color '${color}' for tag '${tag}', skipped`);
+        }
+      }
       const message: TaskMarkUpdateMessage = {
         type: 'update',
+        uri: document.uri.toString(),
         data: parsedData,
         ganttData: buildGanttEntities(parsedData),
-        warnings
+        warnings: [...new Set(warnings)]
       };
       this._panel.webview.postMessage(message);
     } catch (e) {
@@ -141,6 +151,6 @@ export class TaskmarkPanel {
     const webview = this._panel.webview;
     const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'main.js'));
     const stylesUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'style.css'));
-    webview.html = getWebviewHtml(scriptUri, stylesUri);
+    webview.html = getWebviewHtml(scriptUri, stylesUri, webview.cspSource);
   }
 }

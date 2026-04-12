@@ -14,8 +14,10 @@
   let baseView = 'calendar'; // 'calendar' | 'timeline'
   let activeView = 'monthly'; // 'monthly' | 'weekly' | 'daily'
   let currentDate = new Date();
+  let currentUri = null;
   let currentTaskMarkData = null;
   let currentGanttData = null;
+  let rangeItemIndex = null; // Pre-built index: date string -> range items spanning that date
   let ganttZoom = 1; // 1 = 100px per day
   let expandedGroups = new Set();
   let isPanning = false;
@@ -126,13 +128,49 @@
     return d.getTime() - 1;
   }
 
+  /** Build an index mapping each date to range items that span into it.
+   *  Called once per data update so getDayData can do O(1) lookups. */
+  function buildRangeItemIndex(taskMarkData) {
+    if (!taskMarkData) return {};
+    const index = {};
+    Object.entries(taskMarkData.days).forEach(([startDate, data]) => {
+      data.items.forEach(item => {
+        if (!item.endDate || item.endDate <= startDate) return;
+        // Add this item to every date after startDate through endDate
+        const start = parseLocalDate(startDate);
+        const end = parseLocalDate(item.endDate);
+        const cursor = new Date(start);
+        cursor.setDate(cursor.getDate() + 1);
+        while (cursor <= end) {
+          const key = cursor.getFullYear() + '-' +
+            String(cursor.getMonth() + 1).padStart(2, '0') + '-' +
+            String(cursor.getDate()).padStart(2, '0');
+          if (!index[key]) index[key] = [];
+          index[key].push(item);
+          cursor.setDate(cursor.getDate() + 1);
+        }
+      });
+    });
+    return index;
+  }
+
   // ─── Message Handling ────────────────────────────────────────
 
   window.addEventListener('message', event => {
     const message = event.data;
     if (message.type === 'update') {
+      if (message.uri && message.uri !== currentUri) {
+        currentUri = message.uri;
+        expandedGroups = new Set();
+        ganttZoom = 1;
+        if (viewTimeline) {
+          viewTimeline.scrollLeft = 0;
+          viewTimeline.scrollTop = 0;
+        }
+      }
       currentTaskMarkData = message.data;
       currentGanttData = message.ganttData;
+      rangeItemIndex = buildRangeItemIndex(currentTaskMarkData);
       if (errorBanner) {
         errorBanner.textContent = '';
         errorBanner.classList.add('hidden');
@@ -261,11 +299,16 @@
   // Date navigation
   function navigateDate(direction) {
     if (baseView === 'timeline' || activeView === 'monthly') {
-      currentDate.setMonth(currentDate.getMonth() + direction);
+      const y = currentDate.getFullYear();
+      const m = currentDate.getMonth() + direction;
+      // Clamp day to last day of target month to avoid overflow (e.g. Jan 31 + 1 month = Feb 28)
+      const maxDay = new Date(y, m + 1, 0).getDate();
+      const d = Math.min(currentDate.getDate(), maxDay);
+      currentDate = new Date(y, m, d);
     } else if (activeView === 'weekly') {
-      currentDate.setDate(currentDate.getDate() + 7 * direction);
+      currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() + 7 * direction);
     } else if (activeView === 'daily') {
-      currentDate.setDate(currentDate.getDate() + direction);
+      currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() + direction);
     }
     render();
   }
@@ -435,17 +478,9 @@
   /** Get day data from the current dataset, including range items that span into dStr */
   function getDayData(dStr) {
     const dayData = currentTaskMarkData.days[dStr] || { items: [] };
-    const rangeItems = [];
-    Object.entries(currentTaskMarkData.days).forEach(([date, data]) => {
-      if (date >= dStr) return;
-      data.items.forEach(item => {
-        if (item.endDate && item.endDate >= dStr) {
-          rangeItems.push(item);
-        }
-      });
-    });
-    if (rangeItems.length === 0) return dayData;
-    return { ...dayData, items: [...dayData.items, ...rangeItems] };
+    const spanning = rangeItemIndex && rangeItemIndex[dStr];
+    if (!spanning || spanning.length === 0) return dayData;
+    return { ...dayData, items: [...dayData.items, ...spanning] };
   }
 
   // ─── Multi-Day Band Rendering ────────────────────────────────

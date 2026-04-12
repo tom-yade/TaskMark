@@ -1,10 +1,11 @@
 import * as vscode from 'vscode';
 
-export function getWebviewHtml(scriptUri: vscode.Uri, stylesUri: vscode.Uri): string {
+export function getWebviewHtml(scriptUri: vscode.Uri, stylesUri: vscode.Uri, cspSource: string): string {
   return `<!DOCTYPE html>
       <html lang="en">
       <head>
         <meta charset="UTF-8">
+        <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${cspSource}; script-src ${cspSource};">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>TaskMark</title>
         <link href="${stylesUri}" rel="stylesheet">
