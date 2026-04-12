@@ -45,7 +45,8 @@ export function buildGanttEntities(data: TaskMarkData): GanttData {
     return { entities: [], lastDateStr: '' };
   }
 
-  const entities: Record<string, GanttEntity> = {};
+  const groupEntities: Record<string, GanttEntity> = {};
+  const standaloneEntities: Record<string, GanttEntity> = {};
   let lastDateStr = sortedDates[sortedDates.length - 1];
 
   sortedDates.forEach(dStr => {
@@ -76,10 +77,11 @@ export function buildGanttEntities(data: TaskMarkData): GanttData {
         }
       }
 
-      const eName = item.group ? `[Group] ${item.group}` : item.text;
-      if (!entities[eName]) {
-        entities[eName] = {
-          name: item.group || item.text,
+      const bucket = item.group ? groupEntities : standaloneEntities;
+      const key = item.group ?? item.text;
+      if (!bucket[key]) {
+        bucket[key] = {
+          name: key,
           isGroup: !!item.group,
           minTime: startMs,
           maxTime: endMs,
@@ -89,11 +91,11 @@ export function buildGanttEntities(data: TaskMarkData): GanttData {
           children: []
         };
       } else {
-        if (startMs < entities[eName].minTime) { entities[eName].minTime = startMs; }
-        if (endMs > entities[eName].maxTime) { entities[eName].maxTime = endMs; }
+        if (startMs < bucket[key].minTime) { bucket[key].minTime = startMs; }
+        if (endMs > bucket[key].maxTime) { bucket[key].maxTime = endMs; }
       }
 
-      entities[eName].children.push({
+      bucket[key].children.push({
         text: item.text,
         tags: item.tags,
         startMs,
@@ -103,15 +105,18 @@ export function buildGanttEntities(data: TaskMarkData): GanttData {
       });
 
       if (item.type === 'task') {
-        entities[eName].tasksTotal++;
+        bucket[key].tasksTotal++;
         if (item.status === 'done') {
-          entities[eName].tasksDone++;
+          bucket[key].tasksDone++;
         }
       }
     });
   });
 
-  const entityArray = Object.values(entities).sort(
+  const entityArray = [
+    ...Object.values(groupEntities),
+    ...Object.values(standaloneEntities)
+  ].sort(
     (a, b) => a.minTime - b.minTime || a.name.localeCompare(b.name)
   );
 

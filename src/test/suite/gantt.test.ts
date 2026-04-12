@@ -121,6 +121,25 @@ suite('Gantt Test Suite', () => {
     assert.strictEqual(lastDateStr, '2026-03-10');
   });
 
+  test('group name and standalone task with the same name do not collide', () => {
+    const data = parseTmd(`
+# 2026-03-01
+> Sprint
+> - [ ] Task A
+
+- [ ] Sprint
+`);
+    const { entities } = buildGanttEntities(data);
+    assert.strictEqual(entities.length, 2, 'group and standalone task with the same name must be separate entities');
+
+    const group = entities.find(e => e.isGroup);
+    const standalone = entities.find(e => !e.isGroup);
+    assert.ok(group, 'group entity should exist');
+    assert.ok(standalone, 'standalone entity should exist');
+    assert.strictEqual(group!.name, 'Sprint');
+    assert.strictEqual(standalone!.name, 'Sprint');
+  });
+
   test('group minTime and maxTime span all child items', () => {
     const data = parseTmd(`
 # 2026-03-01
