@@ -1,15 +1,18 @@
 import * as vscode from 'vscode';
 
-export function getWebviewHtml(scriptUri: vscode.Uri, stylesUri: vscode.Uri): string {
+export function getWebviewHtml(scriptUri: vscode.Uri, stylesUri: vscode.Uri, cspSource: string): string {
   return `<!DOCTYPE html>
       <html lang="en">
       <head>
         <meta charset="UTF-8">
+        <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${cspSource}; script-src ${cspSource};">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>TaskMark</title>
         <link href="${stylesUri}" rel="stylesheet">
       </head>
       <body>
+        <div id="tm-parse-error-banner" class="tm-error-banner hidden"></div>
+        <div id="tm-warning-banner" class="tm-warning-banner hidden"></div>
         <div class="tm-header">
           <div class="tm-toggle-container">
             <button class="tm-view-toggle active" id="btn-calendar">Calendar</button>

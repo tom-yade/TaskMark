@@ -1,12 +1,20 @@
 import * as vscode from 'vscode';
-import { parseTmd, TaskMarkData } from './parser';
+import { parseTmd, TaskMarkData, VALID_CSS_COLOR_REGEX } from './parser';
 import { buildGanttEntities, GanttData } from './gantt';
 import { getWebviewHtml } from './template';
+import { debounce, DebouncedFn } from './utils/debounce';
 
 export interface TaskMarkUpdateMessage {
   type: 'update';
+  uri: string;
   data: TaskMarkData;
   ganttData: GanttData;
+  warnings: string[];
+}
+
+export interface TaskMarkErrorMessage {
+  type: 'parseError';
+  message: string;
 }
 
 export class TaskmarkPanel {
@@ -16,6 +24,7 @@ export class TaskmarkPanel {
   private readonly _panel: vscode.WebviewPanel;
   private readonly _extensionUri: vscode.Uri;
   private _disposables: vscode.Disposable[] = [];
+  private readonly _debouncedUpdateFromDocument: DebouncedFn<(document: vscode.TextDocument) => void>;
 
   public static createOrShow(extensionUri: vscode.Uri) {
     const column = vscode.window.activeTextEditor
@@ -49,6 +58,10 @@ export class TaskmarkPanel {
   private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
     this._panel = panel;
     this._extensionUri = extensionUri;
+    this._debouncedUpdateFromDocument = debounce(
+      (document: vscode.TextDocument) => this.updateFromDocument(document),
+      250
+    );
 
     this._update();
     this.updateFromActiveEditor();
@@ -59,7 +72,7 @@ export class TaskmarkPanel {
       e => {
         if (e.document === vscode.window.activeTextEditor?.document) {
           if (e.document.languageId === 'tmd') {
-            this.updateFromDocument(e.document);
+            this._debouncedUpdateFromDocument(e.document);
           }
         }
       },
@@ -69,6 +82,7 @@ export class TaskmarkPanel {
 
     vscode.window.onDidChangeActiveTextEditor(
       editor => {
+        this._debouncedUpdateFromDocument.cancel();
         if (editor && editor.document.languageId === 'tmd') {
           this.updateFromDocument(editor.document);
         }
@@ -98,27 +112,36 @@ export class TaskmarkPanel {
   private updateFromDocument(document: vscode.TextDocument) {
     try {
       const text = document.getText();
-      const parsedData = parseTmd(text);
+      const { data: parsedData, warnings } = parseTmd(text);
       const configColors = vscode.workspace.getConfiguration('taskmark').get<Record<string, string>>('tagColors', {});
-      parsedData.tagColors = { ...configColors, ...parsedData.tagColors };
+      for (const [tag, color] of Object.entries(configColors)) {
+        if (VALID_CSS_COLOR_REGEX.test(color)) {
+          if (!parsedData.tagColors[tag]) {
+            parsedData.tagColors[tag] = color;
+          }
+        } else {
+          warnings.push(`Setting tagColors: invalid color '${color}' for tag '${tag}', skipped`);
+        }
+      }
       const message: TaskMarkUpdateMessage = {
         type: 'update',
+        uri: document.uri.toString(),
         data: parsedData,
-        ganttData: buildGanttEntities(parsedData)
+        ganttData: buildGanttEntities(parsedData),
+        warnings: [...new Set(warnings)]
       };
       this._panel.webview.postMessage(message);
     } catch (e) {
+      const errorText = e instanceof Error ? e.message : String(e);
       console.error("TaskMark parse error", e);
-      if (e instanceof Error) {
-        vscode.window.showErrorMessage(`TaskMark parse error: ${e.message}`);
-      } else {
-        vscode.window.showErrorMessage(`TaskMark parse error: ${String(e)}`);
-      }
+      const errorMessage: TaskMarkErrorMessage = { type: 'parseError', message: errorText };
+      this._panel.webview.postMessage(errorMessage);
     }
   }
 
   public dispose() {
     TaskmarkPanel.currentPanel = undefined;
+    this._debouncedUpdateFromDocument.cancel();
     this._panel.dispose();
     vscode.Disposable.from(...this._disposables).dispose();
     this._disposables = [];
@@ -128,6 +151,6 @@ export class TaskmarkPanel {
     const webview = this._panel.webview;
     const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'main.js'));
     const stylesUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'style.css'));
-    webview.html = getWebviewHtml(scriptUri, stylesUri);
+    webview.html = getWebviewHtml(scriptUri, stylesUri, webview.cspSource);
   }
 }

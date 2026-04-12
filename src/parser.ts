@@ -3,6 +3,11 @@ export interface TaskMarkData {
   days: Record<string, DayData>; // Key is YYYY-MM-DD
 }
 
+export interface ParseResult {
+  data: TaskMarkData;
+  warnings: string[];
+}
+
 export interface DayData {
   date: string;
   items: MarkItem[];
@@ -26,6 +31,8 @@ export interface MarkItem {
 
 // ─── Regex Patterns ────────────────────────────────────────────
 const TAG_COLOR_REGEX = /^#([^\s:]+)\s*:\s*(.+)$/;
+// Keep in sync with VALID_CSS_COLOR_RE in media/main.js
+export const VALID_CSS_COLOR_REGEX = /^(?:#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(?:rgb|hsl)a?\(\s*\d[\d.]*%?(?:\s*[,/\s]\s*\d[\d.]*%?){2,3}\s*\)|[a-zA-Z]{1,30})$/;
 const DATE_REGEX = /^#\s+(\d{4}-\d{1,2}-\d{1,2})(?:\s*:\s*(\d{4}-\d{1,2}-\d{1,2}))?/;
 const GROUP_REGEX = /^>\s*([^-\s].+)$/;
 const ITEM_REGEX = /^(>\s*)?(-)?\s*(\[\s*([xX\s])\s*\])?\s*((\d{1,2}:\d{1,2})(?:-(\d{1,2}:\d{1,2}))?)?\s*(.*)$/;
@@ -104,7 +111,7 @@ interface RepeatOptions {
 
 const MAX_OCCURRENCES = 3650;
 
-function parseRepeatOptions(repeatStr: string): RepeatOptions {
+function parseRepeatOptions(repeatStr: string, lineNum: number, warnings: string[]): RepeatOptions {
   const parts = repeatStr.split(',').map(s => s.trim());
   let mode: 'days' | 'months' = 'days';
   let interval = 7; // default: weekly
@@ -130,8 +137,11 @@ function parseRepeatOptions(repeatStr: string): RepeatOptions {
       mode = 'months'; interval = 1;
     } else if (part.startsWith('until:')) {
       const dateStr = part.substring(6);
-      if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
-        until = parseLocalDate(dateStr);
+      const normalized = tryNormalizeDate(dateStr);
+      if (normalized) {
+        until = parseLocalDate(normalized);
+      } else if (dateStr) {
+        warnings.push(`Line ${lineNum + 1}: invalid until date '${dateStr}', skipped`);
       }
     } else if (part.startsWith('count:')) {
       const parsedCount = parseInt(part.substring(6), 10);
@@ -139,7 +149,11 @@ function parseRepeatOptions(repeatStr: string): RepeatOptions {
     } else if (part.startsWith('except:')) {
       for (const d of part.substring(7).trim().split(/\s+/).filter(Boolean)) {
         const normalized = tryNormalizeDate(d);
-        if (normalized) { exceptDates.add(normalized); }
+        if (normalized) {
+          exceptDates.add(normalized);
+        } else {
+          warnings.push(`Line ${lineNum + 1}: invalid except date '${d}', skipped`);
+        }
       }
     }
   }
@@ -151,9 +165,10 @@ function parseRepeatOptions(repeatStr: string): RepeatOptions {
 
 // ─── Main Parser ───────────────────────────────────────────────
 
-export function parseTmd(text: string): TaskMarkData {
+export function parseTmd(text: string): ParseResult {
   const lines = text.split(/\r?\n/);
   const data: TaskMarkData = { tagColors: {}, days: {} };
+  const warnings: string[] = [];
 
   let inTagsBlock = false;
   let currentDate = '';
@@ -174,7 +189,16 @@ export function parseTmd(text: string): TaskMarkData {
     if (line === '@end' && inTagsBlock) { inTagsBlock = false; continue; }
     if (inTagsBlock) {
       const match = line.match(TAG_COLOR_REGEX);
-      if (match) data.tagColors[match[1]] = match[2].trim();
+      if (match) {
+        const colorValue = match[2].trim();
+        if (VALID_CSS_COLOR_REGEX.test(colorValue)) {
+          data.tagColors[match[1]] = colorValue;
+        } else {
+          warnings.push(`Line ${i + 1}: invalid color value '${colorValue}', skipped`);
+        }
+      } else {
+        warnings.push(`Line ${i + 1}: invalid tag definition '${line}', skipped`);
+      }
       continue;
     }
 
@@ -182,12 +206,22 @@ export function parseTmd(text: string): TaskMarkData {
     const dateMatch = line.match(DATE_REGEX);
     if (dateMatch) {
       const normalizedStart = tryNormalizeDate(dateMatch[1]);
-      if (!normalizedStart) { currentDate = ''; continue; }
+      if (!normalizedStart) {
+        warnings.push(`Line ${i + 1}: invalid date '${dateMatch[1]}', skipped`);
+        currentDate = '';
+        continue;
+      }
       currentDate = normalizedStart;
       currentEndDate = '';
       if (dateMatch[2]) {
         const normalizedEnd = tryNormalizeDate(dateMatch[2]);
-        if (normalizedEnd && normalizedEnd >= currentDate) { currentEndDate = normalizedEnd; }
+        if (!normalizedEnd) {
+          warnings.push(`Line ${i + 1}: invalid end date '${dateMatch[2]}', skipped`);
+        } else if (normalizedEnd < currentDate) {
+          warnings.push(`Line ${i + 1}: end date '${dateMatch[2]}' is before start date, skipped`);
+        } else {
+          currentEndDate = normalizedEnd;
+        }
       }
       ensureDay(data.days, currentDate);
       currentGroup = '';
@@ -212,7 +246,7 @@ export function parseTmd(text: string): TaskMarkData {
     }
   }
 
-  return expandRepeats(data);
+  return { data: expandRepeats(data, warnings), warnings: [...new Set(warnings)] };
 }
 
 function createMarkItem(
@@ -268,7 +302,7 @@ function createMarkItem(
 
 // ─── Repeat Expansion ──────────────────────────────────────────
 
-function expandRepeats(data: TaskMarkData): TaskMarkData {
+function expandRepeats(data: TaskMarkData, warnings: string[]): TaskMarkData {
   const expandedDays: Record<string, DayData> = {};
   for (const [date, day] of Object.entries(data.days)) {
     expandedDays[date] = { date, items: day.items.map(item => ({ ...item, tags: [...item.tags] })) };
@@ -278,16 +312,16 @@ function expandRepeats(data: TaskMarkData): TaskMarkData {
     day.items.forEach(item => {
       if (!item.repeat || item.type === 'task' || item.endDate) return;
 
-      generateRepeatedItems(item, day.date, expandedDays);
+      generateRepeatedItems(item, day.date, expandedDays, warnings);
     });
   });
 
   return { ...data, days: expandedDays };
 }
 
-function generateRepeatedItems(item: MarkItem, originDateStr: string, expandedDays: Record<string, DayData>) {
+function generateRepeatedItems(item: MarkItem, originDateStr: string, expandedDays: Record<string, DayData>, warnings: string[]) {
   const origin = parseLocalDate(originDateStr);
-  const opts = parseRepeatOptions(item.repeat!);
+  const opts = parseRepeatOptions(item.repeat!, item.rawLine, warnings);
   for (let i = 1; i < opts.count; i++) {
     const nextDate = new Date(origin);
 

@@ -14,16 +14,22 @@
   let baseView = 'calendar'; // 'calendar' | 'timeline'
   let activeView = 'monthly'; // 'monthly' | 'weekly' | 'daily'
   let currentDate = new Date();
+  let currentUri = null;
   let currentTaskMarkData = null;
   let currentGanttData = null;
+  let rangeItemIndex = null; // Pre-built index: date string -> range items spanning that date
   let ganttZoom = 1; // 1 = 100px per day
+  let expandedGroups = new Set();
   let isPanning = false;
+  let hasDragged = false;
   let startPanX = 0;
   let startPanY = 0;
   let initialScrollL = 0;
   let initialScrollT = 0;
 
   // ─── DOM References ──────────────────────────────────────────
+  const errorBanner = document.getElementById('tm-parse-error-banner');
+  const warningBanner = document.getElementById('tm-warning-banner');
   const btnCalendar = document.getElementById('btn-calendar');
   const btnTimeline = document.getElementById('btn-timeline');
   const btnMonthly = document.getElementById('btn-monthly');
@@ -63,10 +69,16 @@
     return '';
   }
 
+  // Keep in sync with VALID_CSS_COLOR_REGEX in src/parser.ts
+  const VALID_CSS_COLOR_RE = /^(?:#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(?:rgb|hsl)a?\(\s*\d[\d.]*%?(?:\s*[,/\s]\s*\d[\d.]*%?){2,3}\s*\)|[a-zA-Z]{1,30})$/;
+
   /** Deterministic color from tag name, or explicit color from map */
   function getTagColor(tagName, tagColorsMap) {
     if (tagColorsMap && tagColorsMap[tagName]) {
-      return tagColorsMap[tagName];
+      if (VALID_CSS_COLOR_RE.test(tagColorsMap[tagName])) {
+        return tagColorsMap[tagName];
+      }
+      console.warn(`[TaskMark] Invalid color value for tag "${tagName}": "${tagColorsMap[tagName]}", using fallback`);
     }
     let hash = 0;
     for (let i = 0; i < tagName.length; i++) {
@@ -116,14 +128,70 @@
     return d.getTime() - 1;
   }
 
+  /** Build an index mapping each date to range items that span into it.
+   *  Called once per data update so getDayData can do O(1) lookups. */
+  function buildRangeItemIndex(taskMarkData) {
+    if (!taskMarkData) return {};
+    const index = {};
+    Object.entries(taskMarkData.days).forEach(([startDate, data]) => {
+      data.items.forEach(item => {
+        if (!item.endDate || item.endDate <= startDate) return;
+        // Add this item to every date after startDate through endDate
+        const start = parseLocalDate(startDate);
+        const end = parseLocalDate(item.endDate);
+        const cursor = new Date(start);
+        cursor.setDate(cursor.getDate() + 1);
+        while (cursor <= end) {
+          const key = formatDateStr(cursor.getFullYear(), cursor.getMonth() + 1, cursor.getDate());
+          if (!index[key]) index[key] = [];
+          index[key].push(item);
+          cursor.setDate(cursor.getDate() + 1);
+        }
+      });
+    });
+    return index;
+  }
+
   // ─── Message Handling ────────────────────────────────────────
 
   window.addEventListener('message', event => {
     const message = event.data;
     if (message.type === 'update') {
+      if (message.uri && message.uri !== currentUri) {
+        currentUri = message.uri;
+        expandedGroups = new Set();
+        ganttZoom = 1;
+        if (viewTimeline) {
+          viewTimeline.scrollLeft = 0;
+          viewTimeline.scrollTop = 0;
+        }
+      }
       currentTaskMarkData = message.data;
       currentGanttData = message.ganttData;
+      rangeItemIndex = buildRangeItemIndex(currentTaskMarkData);
+      if (errorBanner) {
+        errorBanner.textContent = '';
+        errorBanner.classList.add('hidden');
+      }
+      if (warningBanner) {
+        if (message.warnings && message.warnings.length > 0) {
+          warningBanner.textContent = message.warnings.join('\n');
+          warningBanner.classList.remove('hidden');
+        } else {
+          warningBanner.textContent = '';
+          warningBanner.classList.add('hidden');
+        }
+      }
       render();
+    } else if (message.type === 'parseError') {
+      if (errorBanner) {
+        errorBanner.textContent = `Parse error: ${message.message}`;
+        errorBanner.classList.remove('hidden');
+      }
+      if (warningBanner) {
+        warningBanner.textContent = '';
+        warningBanner.classList.add('hidden');
+      }
     }
   });
 
@@ -189,6 +257,7 @@
   viewTimeline?.addEventListener('mousedown', (e) => {
     if (e.button !== 0) return;
     isPanning = true;
+    hasDragged = false;
     startPanX = e.clientX;
     startPanY = e.clientY;
     initialScrollL = viewTimeline.scrollLeft;
@@ -202,6 +271,11 @@
     if (!(e.buttons & 1)) {
       stopPanning();
       return;
+    }
+    if (!hasDragged) {
+      const dx = e.clientX - startPanX;
+      const dy = e.clientY - startPanY;
+      if (dx * dx + dy * dy > 9) hasDragged = true;
     }
     viewTimeline.scrollLeft = initialScrollL - (e.clientX - startPanX);
     viewTimeline.scrollTop = initialScrollT - (e.clientY - startPanY);
@@ -223,11 +297,16 @@
   // Date navigation
   function navigateDate(direction) {
     if (baseView === 'timeline' || activeView === 'monthly') {
-      currentDate.setMonth(currentDate.getMonth() + direction);
+      const y = currentDate.getFullYear();
+      const m = currentDate.getMonth() + direction;
+      // Clamp day to last day of target month to avoid overflow (e.g. Jan 31 + 1 month = Feb 28)
+      const maxDay = new Date(y, m + 1, 0).getDate();
+      const d = Math.min(currentDate.getDate(), maxDay);
+      currentDate = new Date(y, m, d);
     } else if (activeView === 'weekly') {
-      currentDate.setDate(currentDate.getDate() + 7 * direction);
+      currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() + 7 * direction);
     } else if (activeView === 'daily') {
-      currentDate.setDate(currentDate.getDate() + direction);
+      currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() + direction);
     }
     render();
   }
@@ -397,17 +476,125 @@
   /** Get day data from the current dataset, including range items that span into dStr */
   function getDayData(dStr) {
     const dayData = currentTaskMarkData.days[dStr] || { items: [] };
+    const spanning = rangeItemIndex && rangeItemIndex[dStr];
+    if (!spanning || spanning.length === 0) return dayData;
+    return { ...dayData, items: [...dayData.items, ...spanning] };
+  }
+
+  // ─── Multi-Day Band Rendering ────────────────────────────────
+
+  /** Collect all range items from the dataset (items with endDate). */
+  function collectAllRangeItems() {
     const rangeItems = [];
-    Object.entries(currentTaskMarkData.days).forEach(([date, data]) => {
-      if (date >= dStr) return;
-      data.items.forEach(item => {
-        if (item.endDate && item.endDate >= dStr) {
-          rangeItems.push(item);
-        }
+    Object.entries(currentTaskMarkData.days).forEach(([date, dayData]) => {
+      dayData.items.forEach(item => {
+        if (item.endDate) rangeItems.push({ date, item });
       });
     });
-    if (rangeItems.length === 0) return dayData;
-    return { ...dayData, items: [...dayData.items, ...rangeItems] };
+    return rangeItems;
+  }
+
+  /** Count day difference between two local-midnight Date objects (DST-safe via Math.round). */
+  function dayDiff(fromDate, toDate) {
+    return Math.round((toDate - fromDate) / MS_PER_DAY);
+  }
+
+  /**
+   * Collect range events overlapping [weekStartStr, weekEndStr] and assign band rows
+   * to prevent visual overlap. Returns an array of band descriptors.
+   */
+  function collectWeekBands(weekStartStr, weekEndStr, rangeItems) {
+    const weekStartDate = parseLocalDate(weekStartStr);
+    const events = [];
+
+    rangeItems.forEach(({ date, item }) => {
+      if (date > weekEndStr || item.endDate < weekStartStr) return;
+
+      const clippedStart = date < weekStartStr ? weekStartStr : date;
+      const clippedEnd = item.endDate > weekEndStr ? weekEndStr : item.endDate;
+
+      const colStart = dayDiff(weekStartDate, parseLocalDate(clippedStart)) + 1;
+      const colEnd = dayDiff(weekStartDate, parseLocalDate(clippedEnd)) + 2;
+
+      events.push({
+        item,
+        colStart,
+        colEnd,
+        isStart: date >= weekStartStr,
+        isEnd: item.endDate <= weekEndStr,
+      });
+    });
+
+    // Sort by start column, then longer spans first for stable top-down placement
+    events.sort((a, b) => a.colStart - b.colStart || (b.colEnd - b.colStart) - (a.colEnd - a.colStart));
+
+    // Assign band rows to avoid visual overlap within the same week
+    const rowEnds = [];
+    events.forEach(event => {
+      let assigned = false;
+      for (let r = 0; r < rowEnds.length; r++) {
+        if (rowEnds[r] <= event.colStart) {
+          event.bandRow = r;
+          rowEnds[r] = event.colEnd;
+          assigned = true;
+          break;
+        }
+      }
+      if (!assigned) {
+        event.bandRow = rowEnds.length;
+        rowEnds.push(event.colEnd);
+      }
+    });
+
+    return events;
+  }
+
+  /**
+   * Build a per-column map from week band data.
+   * Returns { map: { colIndex -> [{bandRow, isStart, isEnd, item}] }, maxRow: number }
+   */
+  function buildCellBandMap(weekBands) {
+    const map = {};
+    let maxRow = -1;
+    weekBands.forEach(band => {
+      if (band.bandRow > maxRow) maxRow = band.bandRow;
+      for (let col = band.colStart; col < band.colEnd; col++) {
+        if (!map[col]) map[col] = [];
+        map[col].push({
+          bandRow: band.bandRow,
+          isStart: band.isStart && col === band.colStart,
+          isEnd: band.isEnd && col === band.colEnd - 1,
+          showLabel: col === band.colStart,
+          item: band.item
+        });
+      }
+    });
+    return { map, maxRow };
+  }
+
+  /** Create HTML for band segments inside a single cell */
+  function createCellBandsHtml(cellBands, maxRow, tagColorsMap) {
+    if (maxRow < 0 || !cellBands || cellBands.length === 0) return '';
+
+    const rowMap = {};
+    cellBands.forEach(b => { rowMap[b.bandRow] = b; });
+
+    let html = '<div class="tm-cell-bands">';
+    for (let r = 0; r <= maxRow; r++) {
+      const band = rowMap[r];
+      if (band) {
+        const classes = ['tm-cell-band'];
+        if (band.isStart) classes.push('band-start');
+        if (band.isEnd) classes.push('band-end');
+        const color = getItemBorderColor(band.item.tags, tagColorsMap);
+        const text = band.showLabel ? escapeHtml(band.item.text) : '';
+        html += `<div class="${classes.join(' ')}" style="background-color: ${color}">${text}</div>`;
+      } else {
+        html += '<div class="tm-cell-band-spacer"></div>';
+      }
+    }
+    html += '</div>';
+    return html;
   }
 
   // ─── Calendar Views ──────────────────────────────────────────
@@ -424,34 +611,67 @@
     const todayStr = getTodayStr();
     const tagColors = currentTaskMarkData.tagColors;
 
-    // Previous month padding
+    // Build full cell list (prev padding + current month + next padding) as complete weeks
+    const cells = [];
+
     const prevDateObj = new Date(year, monthIndex, 0);
-    const prevMonthLastDay = prevDateObj.getDate();
     for (let i = startPadding - 1; i >= 0; i--) {
-      const d = prevMonthLastDay - i;
-      const dayOfWeek = new Date(prevDateObj.getFullYear(), prevDateObj.getMonth(), d).getDay();
-      const dStr = formatDateStr(prevDateObj.getFullYear(), prevDateObj.getMonth() + 1, d);
-      viewCalendar.appendChild(createCell(d, true, false, dayOfWeek, dStr));
+      const d = prevDateObj.getDate() - i;
+      const dObj = new Date(prevDateObj.getFullYear(), prevDateObj.getMonth(), d);
+      cells.push({
+        dayNo: d,
+        isOtherMonth: true,
+        isToday: false,
+        dayOfWeek: dObj.getDay(),
+        dStr: formatDateStr(dObj.getFullYear(), dObj.getMonth() + 1, d)
+      });
     }
 
-    // Current month days
     for (let i = 1; i <= totalDays; i++) {
       const dStr = formatDateStr(year, monthIndex + 1, i);
-      const dayOfWeek = new Date(year, monthIndex, i).getDay();
-      const dayData = getDayData(dStr);
-      const cell = createCell(i, false, dStr === todayStr, dayOfWeek, dStr);
-      cell.innerHTML += createItemsHtml(dayData.items, tagColors, true);
-      viewCalendar.appendChild(cell);
+      cells.push({
+        dayNo: i,
+        isOtherMonth: false,
+        isToday: dStr === todayStr,
+        dayOfWeek: new Date(year, monthIndex, i).getDay(),
+        dStr
+      });
     }
 
-    // Next month padding
     const totalCells = startPadding + totalDays;
     const endPadding = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
     const nextDateObj = new Date(year, monthIndex + 1, 1);
     for (let i = 1; i <= endPadding; i++) {
-      const dayOfWeek = new Date(nextDateObj.getFullYear(), nextDateObj.getMonth(), i).getDay();
-      const dStr = formatDateStr(nextDateObj.getFullYear(), nextDateObj.getMonth() + 1, i);
-      viewCalendar.appendChild(createCell(i, true, false, dayOfWeek, dStr));
+      const dObj = new Date(nextDateObj.getFullYear(), nextDateObj.getMonth(), i);
+      cells.push({
+        dayNo: i,
+        isOtherMonth: true,
+        isToday: false,
+        dayOfWeek: dObj.getDay(),
+        dStr: formatDateStr(dObj.getFullYear(), dObj.getMonth() + 1, i)
+      });
+    }
+
+    // Render week by week: band segments inside each cell
+    const rangeItems = collectAllRangeItems();
+    const numWeeks = cells.length / 7;
+    for (let w = 0; w < numWeeks; w++) {
+      const weekCells = cells.slice(w * 7, (w + 1) * 7);
+      const weekStartStr = weekCells[0].dStr;
+      const weekEndStr = weekCells[6].dStr;
+
+      const weekBands = collectWeekBands(weekStartStr, weekEndStr, rangeItems);
+      const { map: bandMap, maxRow } = buildCellBandMap(weekBands);
+
+      weekCells.forEach((cell, i) => {
+        const colIndex = i + 1;
+        const dayItems = (currentTaskMarkData.days[cell.dStr] || { items: [] }).items;
+        const regularItems = dayItems.filter(item => !item.endDate);
+        const el = createCell(cell.dayNo, cell.isOtherMonth, cell.isToday, cell.dayOfWeek, cell.dStr);
+        el.innerHTML += createCellBandsHtml(bandMap[colIndex], maxRow, tagColors);
+        el.innerHTML += createItemsHtml(regularItems, tagColors, true);
+        viewCalendar.appendChild(el);
+      });
     }
   }
 
@@ -465,13 +685,25 @@
     const todayStr = getTodayStr();
     const tagColors = currentTaskMarkData.tagColors;
 
+    const weekStartStr = formatDateStr(d.getFullYear(), d.getMonth() + 1, d.getDate());
+    const weekEndDate = new Date(d);
+    weekEndDate.setDate(weekEndDate.getDate() + 6);
+    const weekEndStr = formatDateStr(weekEndDate.getFullYear(), weekEndDate.getMonth() + 1, weekEndDate.getDate());
+
+    const rangeItems = collectAllRangeItems();
+    const weekBands = collectWeekBands(weekStartStr, weekEndStr, rangeItems);
+    const { map: bandMap, maxRow } = buildCellBandMap(weekBands);
+
     for (let i = 0; i < 7; i++) {
       const dStr = formatDateStr(d.getFullYear(), d.getMonth() + 1, d.getDate());
       const dayOfWeek = d.getDay();
-      const dayData = getDayData(dStr);
+      const colIndex = i + 1;
+      const dayItems = (currentTaskMarkData.days[dStr] || { items: [] }).items;
+      const regularItems = dayItems.filter(item => !item.endDate);
       const cell = createCell(d.getDate(), false, dStr === todayStr, dayOfWeek, dStr);
       cell.style.flex = '1';
-      cell.innerHTML += createItemsHtml(dayData.items, tagColors);
+      cell.innerHTML += createCellBandsHtml(bandMap[colIndex], maxRow, tagColors);
+      cell.innerHTML += createItemsHtml(regularItems, tagColors);
       viewCalendar.appendChild(cell);
       d.setDate(d.getDate() + 1);
     }
@@ -569,6 +801,7 @@
     const width = Math.max((entity.maxTime - entity.minTime) * pxPerMs, GANTT_MIN_BAR_WIDTH);
 
     const bar = createGanttBar(left, yOffset, width, bgColor);
+    bar.classList.add('tm-gantt-group-bar');
 
     // Progress fill
     const pBar = document.createElement('div');
@@ -584,6 +817,23 @@
     }
     pBar.style.backgroundColor = bgColor;
     bar.appendChild(pBar);
+
+    const indicator = document.createElement('span');
+    indicator.className = 'tm-gantt-group-indicator';
+    indicator.textContent = expandedGroups.has(entity.name) ? '▼' : '▶';
+    bar.appendChild(indicator);
+
+    bar.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (hasDragged) return;
+      if (expandedGroups.has(entity.name)) {
+        expandedGroups.delete(entity.name);
+      } else {
+        expandedGroups.add(entity.name);
+      }
+      renderTimeline();
+    });
+
     container.appendChild(bar);
 
     // Label (outside bar, to the right)
@@ -673,6 +923,8 @@
 
   /** Main timeline (Gantt) renderer */
   function renderTimeline() {
+    const savedScrollLeft = viewTimeline.scrollLeft;
+    const savedScrollTop = viewTimeline.scrollTop;
     viewTimeline.innerHTML = '';
     viewTimeline.className = 'tm-gantt-view';
 
@@ -707,7 +959,8 @@
     ganttContainer.className = 'tm-gantt-container';
     ganttContainer.style.width = totalWidth + 'px';
     const totalRowCount = entityArray.reduce((sum, e) => {
-      return sum + 1 + (e.isGroup ? e.children.length : 0);
+      const childCount = e.isGroup && expandedGroups.has(e.name) ? e.children.length : 0;
+      return sum + 1 + childCount;
     }, 0);
     ganttContainer.style.height = (totalRowCount * (GANTT_ROW_HEIGHT + 4) + GANTT_HEADER_HEIGHT + 10) + 'px';
 
@@ -720,13 +973,15 @@
       const entityYOffset = yOffset;
       renderGanttEntityBar(ganttContainer, entity, startDate, pxPerMs, entityYOffset, totalWidth);
       yOffset += GANTT_ROW_HEIGHT + 4;
-      if (entity.isGroup) {
+      if (entity.isGroup && expandedGroups.has(entity.name)) {
         renderGroupChildren(ganttContainer, entity, startDate, pxPerMs, entityYOffset, totalWidth);
         yOffset += (GANTT_ROW_HEIGHT + 4) * entity.children.length;
       }
     });
 
     viewTimeline.appendChild(ganttContainer);
+    viewTimeline.scrollLeft = savedScrollLeft;
+    viewTimeline.scrollTop = savedScrollTop;
   }
 
 })();

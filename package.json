@@ -2,7 +2,7 @@
   "name": "taskmark",
   "displayName": "TaskMark",
   "description": "Schedule and Task Management with Markdown and Calendar/Timeline Views",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "icon": "media/icon.png",
   "publisher": "Yadecode",
   "repository": {
@@ -79,7 +79,7 @@
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
     "test": "node ./out/test/runTest.js",
-    "test:unit": "npm run compile && mocha --ui tdd out/test/suite/parser.test.js out/test/suite/gantt.test.js"
+    "test:unit": "npm run compile && mocha --ui tdd \"out/test/suite/*.test.js\" --ignore \"out/test/suite/extension.test.js\""
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
