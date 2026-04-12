@@ -142,9 +142,7 @@
         const cursor = new Date(start);
         cursor.setDate(cursor.getDate() + 1);
         while (cursor <= end) {
-          const key = cursor.getFullYear() + '-' +
-            String(cursor.getMonth() + 1).padStart(2, '0') + '-' +
-            String(cursor.getDate()).padStart(2, '0');
+          const key = formatDateStr(cursor.getFullYear(), cursor.getMonth() + 1, cursor.getDate());
           if (!index[key]) index[key] = [];
           index[key].push(item);
           cursor.setDate(cursor.getDate() + 1);
