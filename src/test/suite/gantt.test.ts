@@ -4,7 +4,7 @@ import { parseTmd } from '../../parser';
 
 suite('Gantt Test Suite', () => {
   test('group entity has children with text and tags', () => {
-    const data = parseTmd(`# 2026-03-01
+    const { data } = parseTmd(`# 2026-03-01
 > Sprint 1
 > - [ ] Task A #work
 > - [x] Task B
@@ -28,7 +28,7 @@ suite('Gantt Test Suite', () => {
   });
 
   test('standalone task entity has a children array with one entry', () => {
-    const data = parseTmd(`
+    const { data } = parseTmd(`
 # 2026-03-01
 - [ ] Standalone Task
 `);
@@ -44,7 +44,7 @@ suite('Gantt Test Suite', () => {
   });
 
   test('group entity tracks task completion counters', () => {
-    const data = parseTmd(`
+    const { data } = parseTmd(`
 # 2026-03-01
 > Group
 > - [ ] Open Task
@@ -63,7 +63,7 @@ suite('Gantt Test Suite', () => {
   });
 
   test('lastDateStr accounts for endDate ranges', () => {
-    const data = parseTmd(`
+    const { data } = parseTmd(`
 # 2026-03-01 : 2026-03-15
 - Conference
 `);
@@ -72,7 +72,7 @@ suite('Gantt Test Suite', () => {
   });
 
   test('multiple groups produce one entity per group', () => {
-    const data = parseTmd(`
+    const { data } = parseTmd(`
 # 2026-03-01
 > Group A
 > - [ ] Task 1
@@ -95,7 +95,7 @@ suite('Gantt Test Suite', () => {
   });
 
   test('schedule item inside group is included in children but not counted as task', () => {
-    const data = parseTmd(`
+    const { data } = parseTmd(`
 # 2026-03-01
 > Sprint
 > - [ ] Task Item
@@ -110,7 +110,7 @@ suite('Gantt Test Suite', () => {
   });
 
   test('lastDateStr is the last date when no endDate ranges are present', () => {
-    const data = parseTmd(`
+    const { data } = parseTmd(`
 # 2026-03-01
 - [ ] First Task
 
@@ -122,7 +122,7 @@ suite('Gantt Test Suite', () => {
   });
 
   test('group name and standalone task with the same name do not collide', () => {
-    const data = parseTmd(`
+    const { data } = parseTmd(`
 # 2026-03-01
 > Sprint
 > - [ ] Task A
@@ -141,7 +141,7 @@ suite('Gantt Test Suite', () => {
   });
 
   test('group minTime and maxTime span all child items', () => {
-    const data = parseTmd(`
+    const { data } = parseTmd(`
 # 2026-03-01
 > Sprint
 > - [ ] 9:00-10:00 Morning Task
@@ -160,7 +160,7 @@ suite('Gantt Test Suite', () => {
   });
 
   test('range item child spans correct time in gantt entity', () => {
-    const data = parseTmd(`
+    const { data } = parseTmd(`
 # 2026-03-01 : 2026-03-05
 - Conference
 `);
@@ -182,7 +182,7 @@ suite('Gantt Test Suite', () => {
   });
 
   test('range items from different weeks each produce a separate child in gantt', () => {
-    const data = parseTmd(`
+    const { data } = parseTmd(`
 # 2026-03-01 : 2026-03-03
 - Workshop A
 

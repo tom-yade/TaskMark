@@ -26,6 +26,7 @@
 
   // ─── DOM References ──────────────────────────────────────────
   const errorBanner = document.getElementById('tm-parse-error-banner');
+  const warningBanner = document.getElementById('tm-warning-banner');
   const btnCalendar = document.getElementById('btn-calendar');
   const btnTimeline = document.getElementById('btn-timeline');
   const btnMonthly = document.getElementById('btn-monthly');
@@ -129,11 +130,24 @@
         errorBanner.textContent = '';
         errorBanner.classList.add('hidden');
       }
+      if (warningBanner) {
+        if (message.warnings && message.warnings.length > 0) {
+          warningBanner.textContent = message.warnings.join('\n');
+          warningBanner.classList.remove('hidden');
+        } else {
+          warningBanner.textContent = '';
+          warningBanner.classList.add('hidden');
+        }
+      }
       render();
     } else if (message.type === 'parseError') {
       if (errorBanner) {
         errorBanner.textContent = `Parse error: ${message.message}`;
         errorBanner.classList.remove('hidden');
+      }
+      if (warningBanner) {
+        warningBanner.textContent = '';
+        warningBanner.classList.add('hidden');
       }
     }
   });

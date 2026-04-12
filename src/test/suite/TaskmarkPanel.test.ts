@@ -6,9 +6,21 @@ suite('TaskmarkPanel message types', () => {
     const msg: TaskMarkUpdateMessage = {
       type: 'update',
       data: { tagColors: {}, days: {} },
-      ganttData: { entities: [], lastDateStr: '' }
+      ganttData: { entities: [], lastDateStr: '' },
+      warnings: []
     };
     assert.strictEqual(msg.type, 'update');
+  });
+
+  test('TaskMarkUpdateMessage includes warnings array', () => {
+    const msg: TaskMarkUpdateMessage = {
+      type: 'update',
+      data: { tagColors: {}, days: {} },
+      ganttData: { entities: [], lastDateStr: '' },
+      warnings: ["Line 5: invalid date '2026-99-99', skipped"]
+    };
+    assert.strictEqual(msg.warnings.length, 1);
+    assert.ok(msg.warnings[0].includes('2026-99-99'));
   });
 
   test('TaskMarkErrorMessage has type "parseError" and a message field', () => {
