@@ -12,7 +12,10 @@ export function debounce<T extends (...args: any[]) => void>(fn: T, delayMs: num
     if (timer !== undefined) {
       clearTimeout(timer);
     }
-    timer = setTimeout(() => fn(...args), delayMs);
+    timer = setTimeout(() => {
+      timer = undefined;
+      fn(...args);
+    }, delayMs);
   };
 
   debounced.cancel = () => {
