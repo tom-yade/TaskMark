@@ -8,22 +8,23 @@ export type DebouncedFn<T extends (...args: any[]) => void> = {
 export function debounce<T extends (...args: any[]) => void>(fn: T, delayMs: number): DebouncedFn<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
 
-  const debounced = (...args: Parameters<T>) => {
-    if (timer !== undefined) {
-      clearTimeout(timer);
+  return Object.assign(
+    (...args: Parameters<T>) => {
+      if (timer !== undefined) {
+        clearTimeout(timer);
+      }
+      timer = setTimeout(() => {
+        timer = undefined;
+        fn(...args);
+      }, delayMs);
+    },
+    {
+      cancel() {
+        if (timer !== undefined) {
+          clearTimeout(timer);
+          timer = undefined;
+        }
+      }
     }
-    timer = setTimeout(() => {
-      timer = undefined;
-      fn(...args);
-    }, delayMs);
-  };
-
-  debounced.cancel = () => {
-    if (timer !== undefined) {
-      clearTimeout(timer);
-      timer = undefined;
-    }
-  };
-
-  return debounced;
+  );
 }
