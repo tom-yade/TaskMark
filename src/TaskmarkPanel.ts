@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { parseTmd, TaskMarkData } from './parser';
 import { buildGanttEntities, GanttData } from './gantt';
 import { getWebviewHtml } from './template';
+import { debounce } from './utils/debounce';
 
 export interface TaskMarkUpdateMessage {
   type: 'update';
@@ -16,6 +17,7 @@ export class TaskmarkPanel {
   private readonly _panel: vscode.WebviewPanel;
   private readonly _extensionUri: vscode.Uri;
   private _disposables: vscode.Disposable[] = [];
+  private readonly _debouncedUpdateFromDocument: (document: vscode.TextDocument) => void;
 
   public static createOrShow(extensionUri: vscode.Uri) {
     const column = vscode.window.activeTextEditor
@@ -49,6 +51,10 @@ export class TaskmarkPanel {
   private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
     this._panel = panel;
     this._extensionUri = extensionUri;
+    this._debouncedUpdateFromDocument = debounce(
+      (document: vscode.TextDocument) => this.updateFromDocument(document),
+      250
+    );
 
     this._update();
     this.updateFromActiveEditor();
@@ -59,7 +65,7 @@ export class TaskmarkPanel {
       e => {
         if (e.document === vscode.window.activeTextEditor?.document) {
           if (e.document.languageId === 'tmd') {
-            this.updateFromDocument(e.document);
+            this._debouncedUpdateFromDocument(e.document);
           }
         }
       },
@@ -70,7 +76,7 @@ export class TaskmarkPanel {
     vscode.window.onDidChangeActiveTextEditor(
       editor => {
         if (editor && editor.document.languageId === 'tmd') {
-          this.updateFromDocument(editor.document);
+          this._debouncedUpdateFromDocument(editor.document);
         }
       },
       null,
