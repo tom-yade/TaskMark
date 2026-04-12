@@ -488,7 +488,7 @@
 
   /** Create HTML for band segments inside a single cell */
   function createCellBandsHtml(cellBands, maxRow, tagColorsMap) {
-    if (maxRow < 0) return '';
+    if (maxRow < 0 || !cellBands || cellBands.length === 0) return '';
 
     const rowMap = {};
     if (cellBands) cellBands.forEach(b => { rowMap[b.bandRow] = b; });
