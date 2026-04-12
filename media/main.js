@@ -847,6 +847,8 @@
 
   /** Main timeline (Gantt) renderer */
   function renderTimeline() {
+    const savedScrollLeft = viewTimeline.scrollLeft;
+    const savedScrollTop = viewTimeline.scrollTop;
     viewTimeline.innerHTML = '';
     viewTimeline.className = 'tm-gantt-view';
 
@@ -902,6 +904,8 @@
     });
 
     viewTimeline.appendChild(ganttContainer);
+    viewTimeline.scrollLeft = savedScrollLeft;
+    viewTimeline.scrollTop = savedScrollTop;
   }
 
 })();
