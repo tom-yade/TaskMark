@@ -4,6 +4,22 @@ All notable changes to the "TaskMark" extension will be documented in this file.
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.3.0] - 2026-04-12
+
+### Added
+- Group task children are now displayed as sub-rows in the Gantt chart (#37).
+
+### Fixed
+- Prevent text selection and stuck grab cursor during Gantt chart drag (#38).
+- Replace `mouseleave` with `e.buttons===0` check to reliably end stuck panning on Gantt.
+- Escape user-supplied content in HTML templates to prevent XSS.
+- Use numeric minute comparison for schedule sort to fix ordering with unpadded hours.
+- Use DST-safe end-of-day calculation (`setDate(+1)`) in date range processing.
+- Add single-quote escaping to `escapeHtml` for completeness.
+
+### Changed
+- Minimum VS Code engine version updated to 1.115.0.
+
 ## [1.2.0] - 2026-03-28
 
 ### Added
