@@ -410,6 +410,122 @@
     return { ...dayData, items: [...dayData.items, ...rangeItems] };
   }
 
+  // ─── Multi-Day Band Rendering ────────────────────────────────
+
+  /** Collect all range items from the dataset (items with endDate). */
+  function collectAllRangeItems() {
+    const rangeItems = [];
+    Object.entries(currentTaskMarkData.days).forEach(([date, dayData]) => {
+      dayData.items.forEach(item => {
+        if (item.endDate) rangeItems.push({ date, item });
+      });
+    });
+    return rangeItems;
+  }
+
+  /** Count day difference between two local-midnight Date objects (DST-safe via Math.round). */
+  function dayDiff(fromDate, toDate) {
+    return Math.round((toDate - fromDate) / MS_PER_DAY);
+  }
+
+  /**
+   * Collect range events overlapping [weekStartStr, weekEndStr] and assign band rows
+   * to prevent visual overlap. Returns an array of band descriptors.
+   */
+  function collectWeekBands(weekStartStr, weekEndStr, rangeItems) {
+    const weekStartDate = parseLocalDate(weekStartStr);
+    const events = [];
+
+    rangeItems.forEach(({ date, item }) => {
+      if (date > weekEndStr || item.endDate < weekStartStr) return;
+
+      const clippedStart = date < weekStartStr ? weekStartStr : date;
+      const clippedEnd = item.endDate > weekEndStr ? weekEndStr : item.endDate;
+
+      const colStart = dayDiff(weekStartDate, parseLocalDate(clippedStart)) + 1;
+      const colEnd = dayDiff(weekStartDate, parseLocalDate(clippedEnd)) + 2;
+
+      events.push({
+        item,
+        colStart,
+        colEnd,
+        isStart: date >= weekStartStr,
+        isEnd: item.endDate <= weekEndStr,
+      });
+    });
+
+    // Sort by start column, then longer spans first for stable top-down placement
+    events.sort((a, b) => a.colStart - b.colStart || (b.colEnd - b.colStart) - (a.colEnd - a.colStart));
+
+    // Assign band rows to avoid visual overlap within the same week
+    const rowEnds = [];
+    events.forEach(event => {
+      let assigned = false;
+      for (let r = 0; r < rowEnds.length; r++) {
+        if (rowEnds[r] <= event.colStart) {
+          event.bandRow = r;
+          rowEnds[r] = event.colEnd;
+          assigned = true;
+          break;
+        }
+      }
+      if (!assigned) {
+        event.bandRow = rowEnds.length;
+        rowEnds.push(event.colEnd);
+      }
+    });
+
+    return events;
+  }
+
+  /**
+   * Build a per-column map from week band data.
+   * Returns { map: { colIndex -> [{bandRow, isStart, isEnd, item}] }, maxRow: number }
+   */
+  function buildCellBandMap(weekBands) {
+    const map = {};
+    let maxRow = -1;
+    weekBands.forEach(band => {
+      if (band.bandRow > maxRow) maxRow = band.bandRow;
+      for (let col = band.colStart; col < band.colEnd; col++) {
+        if (!map[col]) map[col] = [];
+        map[col].push({
+          bandRow: band.bandRow,
+          isStart: band.isStart && col === band.colStart,
+          isEnd: band.isEnd && col === band.colEnd - 1,
+          showLabel: col === band.colStart,
+          item: band.item
+        });
+      }
+    });
+    return { map, maxRow };
+  }
+
+  /** Create HTML for band segments inside a single cell */
+  function createCellBandsHtml(cellBands, maxRow, tagColorsMap) {
+    if (maxRow < 0 || !cellBands || cellBands.length === 0) return '';
+
+    const rowMap = {};
+    cellBands.forEach(b => { rowMap[b.bandRow] = b; });
+
+    let html = '<div class="tm-cell-bands">';
+    for (let r = 0; r <= maxRow; r++) {
+      const band = rowMap[r];
+      if (band) {
+        const classes = ['tm-cell-band'];
+        if (band.isStart) classes.push('band-start');
+        if (band.isEnd) classes.push('band-end');
+        const color = getItemBorderColor(band.item.tags, tagColorsMap);
+        const text = band.showLabel ? escapeHtml(band.item.text) : '';
+        html += `<div class="${classes.join(' ')}" style="background-color: ${color}">${text}</div>`;
+      } else {
+        html += '<div class="tm-cell-band-spacer"></div>';
+      }
+    }
+    html += '</div>';
+    return html;
+  }
+
   // ─── Calendar Views ──────────────────────────────────────────
 
   function renderCalendar(year, monthIndex) {
@@ -424,34 +540,67 @@
     const todayStr = getTodayStr();
     const tagColors = currentTaskMarkData.tagColors;
 
-    // Previous month padding
+    // Build full cell list (prev padding + current month + next padding) as complete weeks
+    const cells = [];
+
     const prevDateObj = new Date(year, monthIndex, 0);
-    const prevMonthLastDay = prevDateObj.getDate();
     for (let i = startPadding - 1; i >= 0; i--) {
-      const d = prevMonthLastDay - i;
-      const dayOfWeek = new Date(prevDateObj.getFullYear(), prevDateObj.getMonth(), d).getDay();
-      const dStr = formatDateStr(prevDateObj.getFullYear(), prevDateObj.getMonth() + 1, d);
-      viewCalendar.appendChild(createCell(d, true, false, dayOfWeek, dStr));
+      const d = prevDateObj.getDate() - i;
+      const dObj = new Date(prevDateObj.getFullYear(), prevDateObj.getMonth(), d);
+      cells.push({
+        dayNo: d,
+        isOtherMonth: true,
+        isToday: false,
+        dayOfWeek: dObj.getDay(),
+        dStr: formatDateStr(dObj.getFullYear(), dObj.getMonth() + 1, d)
+      });
     }
 
-    // Current month days
     for (let i = 1; i <= totalDays; i++) {
       const dStr = formatDateStr(year, monthIndex + 1, i);
-      const dayOfWeek = new Date(year, monthIndex, i).getDay();
-      const dayData = getDayData(dStr);
-      const cell = createCell(i, false, dStr === todayStr, dayOfWeek, dStr);
-      cell.innerHTML += createItemsHtml(dayData.items, tagColors, true);
-      viewCalendar.appendChild(cell);
+      cells.push({
+        dayNo: i,
+        isOtherMonth: false,
+        isToday: dStr === todayStr,
+        dayOfWeek: new Date(year, monthIndex, i).getDay(),
+        dStr
+      });
     }
 
-    // Next month padding
     const totalCells = startPadding + totalDays;
     const endPadding = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
     const nextDateObj = new Date(year, monthIndex + 1, 1);
     for (let i = 1; i <= endPadding; i++) {
-      const dayOfWeek = new Date(nextDateObj.getFullYear(), nextDateObj.getMonth(), i).getDay();
-      const dStr = formatDateStr(nextDateObj.getFullYear(), nextDateObj.getMonth() + 1, i);
-      viewCalendar.appendChild(createCell(i, true, false, dayOfWeek, dStr));
+      const dObj = new Date(nextDateObj.getFullYear(), nextDateObj.getMonth(), i);
+      cells.push({
+        dayNo: i,
+        isOtherMonth: true,
+        isToday: false,
+        dayOfWeek: dObj.getDay(),
+        dStr: formatDateStr(dObj.getFullYear(), dObj.getMonth() + 1, i)
+      });
+    }
+
+    // Render week by week: band segments inside each cell
+    const rangeItems = collectAllRangeItems();
+    const numWeeks = cells.length / 7;
+    for (let w = 0; w < numWeeks; w++) {
+      const weekCells = cells.slice(w * 7, (w + 1) * 7);
+      const weekStartStr = weekCells[0].dStr;
+      const weekEndStr = weekCells[6].dStr;
+
+      const weekBands = collectWeekBands(weekStartStr, weekEndStr, rangeItems);
+      const { map: bandMap, maxRow } = buildCellBandMap(weekBands);
+
+      weekCells.forEach((cell, i) => {
+        const colIndex = i + 1;
+        const dayItems = (currentTaskMarkData.days[cell.dStr] || { items: [] }).items;
+        const regularItems = dayItems.filter(item => !item.endDate);
+        const el = createCell(cell.dayNo, cell.isOtherMonth, cell.isToday, cell.dayOfWeek, cell.dStr);
+        el.innerHTML += createCellBandsHtml(bandMap[colIndex], maxRow, tagColors);
+        el.innerHTML += createItemsHtml(regularItems, tagColors, true);
+        viewCalendar.appendChild(el);
+      });
     }
   }
 
@@ -465,13 +614,25 @@
     const todayStr = getTodayStr();
     const tagColors = currentTaskMarkData.tagColors;
 
+    const weekStartStr = formatDateStr(d.getFullYear(), d.getMonth() + 1, d.getDate());
+    const weekEndDate = new Date(d);
+    weekEndDate.setDate(weekEndDate.getDate() + 6);
+    const weekEndStr = formatDateStr(weekEndDate.getFullYear(), weekEndDate.getMonth() + 1, weekEndDate.getDate());
+
+    const rangeItems = collectAllRangeItems();
+    const weekBands = collectWeekBands(weekStartStr, weekEndStr, rangeItems);
+    const { map: bandMap, maxRow } = buildCellBandMap(weekBands);
+
     for (let i = 0; i < 7; i++) {
       const dStr = formatDateStr(d.getFullYear(), d.getMonth() + 1, d.getDate());
       const dayOfWeek = d.getDay();
-      const dayData = getDayData(dStr);
+      const colIndex = i + 1;
+      const dayItems = (currentTaskMarkData.days[dStr] || { items: [] }).items;
+      const regularItems = dayItems.filter(item => !item.endDate);
       const cell = createCell(d.getDate(), false, dStr === todayStr, dayOfWeek, dStr);
       cell.style.flex = '1';
-      cell.innerHTML += createItemsHtml(dayData.items, tagColors);
+      cell.innerHTML += createCellBandsHtml(bandMap[colIndex], maxRow, tagColors);
+      cell.innerHTML += createItemsHtml(regularItems, tagColors);
       viewCalendar.appendChild(cell);
       d.setDate(d.getDate() + 1);
     }

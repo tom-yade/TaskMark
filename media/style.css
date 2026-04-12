@@ -149,8 +149,87 @@ body {
   height: 100%;
 }
 
+/* Monthly & Weekly: compact grid with 1px lines via background trick */
+.tm-calendar-grid.monthly,
+.tm-calendar-grid.weekly {
+  gap: 1px;
+  background-color: var(--tm-card-border);
+  border-radius: var(--tm-radius);
+  overflow: hidden;
+}
+
 .tm-calendar-grid.weekly {
   grid-template-rows: max-content 1fr;
+}
+
+.tm-calendar-grid.monthly .tm-day-header,
+.tm-calendar-grid.weekly .tm-day-header {
+  background-color: var(--tm-bg);
+  padding: 10px 0 8px;
+}
+
+.tm-calendar-grid.monthly .tm-cal-cell,
+.tm-calendar-grid.weekly .tm-cal-cell {
+  border: none;
+  border-radius: 0;
+}
+
+.tm-calendar-grid.monthly .tm-cal-cell:hover,
+.tm-calendar-grid.weekly .tm-cal-cell:hover {
+  box-shadow: inset 0 0 0 2px var(--tm-accent-hover);
+}
+
+.tm-calendar-grid.monthly .tm-cal-cell.today,
+.tm-calendar-grid.weekly .tm-cal-cell.today {
+  border: none;
+  box-shadow: inset 0 0 0 2px var(--tm-accent);
+}
+
+.tm-calendar-grid.monthly .tm-cal-cell.today:hover,
+.tm-calendar-grid.weekly .tm-cal-cell.today:hover {
+  box-shadow: inset 0 0 0 3px var(--tm-accent-hover);
+}
+
+/* ─── Multi-Day Bands (inside cells) ─────────────────────────── */
+.tm-cell-bands {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.tm-cell-band {
+  height: 20px;
+  line-height: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  border-radius: 0;
+  opacity: 0.9;
+}
+
+.tm-cell-band.band-start {
+  border-radius: 4px 0 0 4px;
+  margin-left: 3px;
+  padding-left: 6px;
+}
+
+.tm-cell-band.band-end {
+  border-radius: 0 4px 4px 0;
+  margin-right: 3px;
+}
+
+.tm-cell-band.band-start.band-end {
+  border-radius: 4px;
+  margin: 0 3px;
+}
+
+.tm-cell-band-spacer {
+  height: 20px;
 }
 
 .tm-calendar-grid.daily {
