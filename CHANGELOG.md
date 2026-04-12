@@ -4,6 +4,16 @@ All notable changes to the "TaskMark" extension will be documented in this file.
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.3.1] - 2026-04-12
+
+### Added
+- Date range events are now displayed as continuous multi-day bands in Calendar (Monthly/Weekly) views (#55).
+- Group task rows in the Gantt chart are now collapsible; click the group bar to toggle child visibility (#56).
+- Parse error and warning banners now appear in the Webview when a `.tmd` file has issues (#59, #61).
+
+### Changed
+- Document update is now debounced for improved rendering performance (#57).
+
 ## [1.3.0] - 2026-04-12
 
 ### Added
