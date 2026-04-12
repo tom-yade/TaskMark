@@ -412,10 +412,6 @@
 
   // ─── Multi-Day Band Rendering ────────────────────────────────
 
-  /**
-   * Collect range events overlapping [weekStartStr, weekEndStr] and assign band rows
-   * to prevent visual overlap. Returns an array of band descriptors.
-   */
   /** Collect all range items from the dataset (items with endDate). */
   function collectAllRangeItems() {
     const rangeItems = [];
@@ -434,6 +430,10 @@
     return Math.round((b - a) / MS_PER_DAY);
   }
 
+  /**
+   * Collect range events overlapping [weekStartStr, weekEndStr] and assign band rows
+   * to prevent visual overlap. Returns an array of band descriptors.
+   */
   function collectWeekBands(weekStartStr, weekEndStr, rangeItems) {
     const weekStartDate = parseLocalDate(weekStartStr);
     const events = [];
