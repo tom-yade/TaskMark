@@ -140,7 +140,7 @@ suite('Gantt Test Suite', () => {
     assert.strictEqual(standalone!.name, 'Sprint');
   });
 
-  test('group minTime and maxTime span all child items', () => {
+  test('same-named groups in different date sections produce separate entities each with correct time range', () => {
     const { data } = parseTmd(`
 # 2026-03-01
 > Sprint
@@ -151,12 +151,13 @@ suite('Gantt Test Suite', () => {
 > - [ ] 14:00-15:00 Afternoon Task
 `);
     const { entities } = buildGanttEntities(data);
-    assert.strictEqual(entities.length, 1);
+    assert.strictEqual(entities.length, 2, 'same-named groups in different date sections must be separate entities');
 
-    const sprint = entities[0];
-    assert.strictEqual(sprint.children.length, 2);
-    assert.ok(sprint.minTime < sprint.maxTime, 'minTime should be before maxTime');
-    assert.ok(sprint.children[0].startMs < sprint.children[1].startMs, 'children should be in chronological order');
+    assert.ok(entities.every(e => e.lane === 'Sprint'), 'all entities should share the Sprint lane');
+    assert.strictEqual(entities[0].children.length, 1);
+    assert.strictEqual(entities[1].children.length, 1);
+    assert.ok(entities[0].minTime < entities[1].minTime, 'entities should be ordered by start time');
+    assert.ok(entities[0].minTime < entities[0].maxTime, 'each entity minTime should be before maxTime');
   });
 
   test('range item child spans correct time in gantt entity', () => {
@@ -227,15 +228,43 @@ suite('Gantt Test Suite', () => {
 > - [ ] Task B
 `);
     const { entities } = buildGanttEntities(data);
-    assert.strictEqual(entities.length, 1, 'same group across different date ranges should be one entity');
+    assert.strictEqual(entities.length, 2, 'same group across different date ranges should produce separate entities');
 
-    const sprint = entities[0];
-    assert.strictEqual(sprint.name, 'Sprint');
-    assert.strictEqual(sprint.children.length, 2);
+    assert.ok(entities.every(e => e.name === 'Sprint'), 'all entities should be named Sprint');
+    assert.ok(entities.every(e => e.lane === 'Sprint'), 'all entities should be on the Sprint lane');
+    assert.notStrictEqual(entities[0].id, entities[1].id, 'entities should have different ids');
+    assert.strictEqual(entities[0].children.length, 1);
+    assert.strictEqual(entities[1].children.length, 1);
+  });
 
-    const expectedMinTime = new Date(2026, 2, 1).getTime();
-    const expectedMaxTime = new Date(2026, 2, 8).getTime() - 1;
-    assert.strictEqual(sprint.minTime, expectedMinTime, 'minTime should be earliest start');
-    assert.strictEqual(sprint.maxTime, expectedMaxTime, 'maxTime should be latest end');
+  test('same-named groups in different date sections produce separate entities on the same lane', () => {
+    const { data } = parseTmd(`
+# 2026-03-01
+> Sprint
+> - [ ] Task A
+
+# 2026-03-10
+> Sprint
+> - [ ] Task B
+`);
+    const { entities } = buildGanttEntities(data);
+    assert.strictEqual(entities.length, 2, 'same-named groups across date sections should be separate entities');
+
+    assert.ok(entities.every(e => e.lane === 'Sprint'), 'all entities should share the Sprint lane');
+    assert.notStrictEqual(entities[0].id, entities[1].id, 'entities should have unique ids');
+    assert.strictEqual(entities[0].tasksTotal, 1, 'first entity task count should be independent');
+    assert.strictEqual(entities[1].tasksTotal, 1, 'second entity task count should be independent');
+  });
+
+  test('entity has id and lane fields', () => {
+    const { data } = parseTmd(`
+# 2026-03-01
+> Sprint
+> - [ ] Task A
+`);
+    const { entities } = buildGanttEntities(data);
+    assert.ok(entities[0].id, 'entity should have an id');
+    assert.strictEqual(entities[0].lane, 'Sprint');
+    assert.strictEqual(entities[0].name, 'Sprint');
   });
 });

@@ -798,13 +798,14 @@
   }
 
   /** Render a single Gantt bar (group or standalone) */
-  function renderGanttEntityBar(container, entity, startDate, pxPerMs, yOffset, totalWidth) {
-    // Row background
-    const rowBg = document.createElement('div');
-    rowBg.className = 'tm-gantt-row-bg';
-    rowBg.style.top = yOffset + 'px';
-    rowBg.style.width = totalWidth + 'px';
-    container.appendChild(rowBg);
+  function renderGanttEntityBar(container, entity, startDate, pxPerMs, yOffset, totalWidth, skipRowBg) {
+    if (!skipRowBg) {
+      const rowBg = document.createElement('div');
+      rowBg.className = 'tm-gantt-row-bg';
+      rowBg.style.top = yOffset + 'px';
+      rowBg.style.width = totalWidth + 'px';
+      container.appendChild(rowBg);
+    }
 
     const bgColor = getItemBorderColor(entity.tags, currentTaskMarkData.tagColors);
 
@@ -839,16 +840,16 @@
 
     const indicator = document.createElement('span');
     indicator.className = 'tm-gantt-group-indicator';
-    indicator.textContent = expandedGroups.has(entity.name) ? '▼' : '▶';
+    indicator.textContent = expandedGroups.has(entity.id) ? '▼' : '▶';
     bar.appendChild(indicator);
 
     bar.addEventListener('click', (e) => {
       e.stopPropagation();
       if (hasDragged) return;
-      if (expandedGroups.has(entity.name)) {
-        expandedGroups.delete(entity.name);
+      if (expandedGroups.has(entity.id)) {
+        expandedGroups.delete(entity.id);
       } else {
-        expandedGroups.add(entity.name);
+        expandedGroups.add(entity.id);
       }
       renderTimeline();
     });
@@ -883,17 +884,21 @@
     });
   }
 
-  /** Render child task rows below the group bar */
+  /** Render row backgrounds for the child area below a lane (called once per lane). */
+  function renderGroupChildRowBgs(container, childCount, groupYOffset, totalWidth) {
+    for (let i = 0; i < childCount; i++) {
+      const rowBg = document.createElement('div');
+      rowBg.className = 'tm-gantt-row-bg tm-gantt-child-row-bg';
+      rowBg.style.top = (groupYOffset + (GANTT_ROW_HEIGHT + 4) * (i + 1)) + 'px';
+      rowBg.style.width = totalWidth + 'px';
+      container.appendChild(rowBg);
+    }
+  }
+
+  /** Render child task bars below the group bar (row backgrounds are rendered separately). */
   function renderGroupChildren(container, entity, startDate, pxPerMs, groupYOffset, totalWidth) {
     entity.children.forEach((child, i) => {
       const childYOffset = groupYOffset + (GANTT_ROW_HEIGHT + 4) * (i + 1);
-
-      // Child row background
-      const rowBg = document.createElement('div');
-      rowBg.className = 'tm-gantt-row-bg tm-gantt-child-row-bg';
-      rowBg.style.top = childYOffset + 'px';
-      rowBg.style.width = totalWidth + 'px';
-      container.appendChild(rowBg);
 
       const childColor = getItemBorderColor(child.tags, currentTaskMarkData.tagColors);
       const left = (child.startMs - startDate.getTime()) * pxPerMs;
@@ -973,28 +978,56 @@
     const totalWidth = totalMs * pxPerMs;
     const totalRenderDays = Math.ceil(totalMs / MS_PER_DAY);
 
+    // Group entities by lane while preserving order of first occurrence
+    const laneGroups = [];
+    const seenLanes = new Map();
+    entityArray.forEach(entity => {
+      if (!seenLanes.has(entity.lane)) {
+        seenLanes.set(entity.lane, laneGroups.length);
+        laneGroups.push([entity]);
+      } else {
+        laneGroups[seenLanes.get(entity.lane)].push(entity);
+      }
+    });
+
+    // Precompute max expanded child count per lane (reused for height and rendering)
+    const laneMaxChildCounts = laneGroups.map(laneEntities =>
+      laneEntities.reduce((max, e) =>
+        e.isGroup && expandedGroups.has(e.id) ? Math.max(max, e.children.length) : max, 0)
+    );
+
     // Build container
     const ganttContainer = document.createElement('div');
     ganttContainer.className = 'tm-gantt-container';
     ganttContainer.style.width = totalWidth + 'px';
-    const totalRowCount = entityArray.reduce((sum, e) => {
-      const childCount = e.isGroup && expandedGroups.has(e.name) ? e.children.length : 0;
-      return sum + 1 + childCount;
-    }, 0);
+    const totalRowCount = laneGroups.reduce((sum, _, i) => sum + 1 + laneMaxChildCounts[i], 0);
     ganttContainer.style.height = (totalRowCount * (GANTT_ROW_HEIGHT + 4) + GANTT_HEADER_HEIGHT + 10) + 'px';
 
     // Render axis and column backgrounds
     renderGanttAxis(ganttContainer, startDate, totalRenderDays, pxPerMs);
 
-    // Render entity bars
+    // Render entity bars grouped by lane (same lane = same row)
     let yOffset = GANTT_HEADER_HEIGHT;
-    entityArray.forEach(entity => {
-      const entityYOffset = yOffset;
-      renderGanttEntityBar(ganttContainer, entity, startDate, pxPerMs, entityYOffset, totalWidth);
+    laneGroups.forEach((laneEntities, laneIdx) => {
+      const laneYOffset = yOffset;
       yOffset += GANTT_ROW_HEIGHT + 4;
-      if (entity.isGroup && expandedGroups.has(entity.name)) {
-        renderGroupChildren(ganttContainer, entity, startDate, pxPerMs, entityYOffset, totalWidth);
-        yOffset += (GANTT_ROW_HEIGHT + 4) * entity.children.length;
+
+      // Render all bars for this lane first
+      laneEntities.forEach((entity, i) => {
+        renderGanttEntityBar(ganttContainer, entity, startDate, pxPerMs, laneYOffset, totalWidth, i > 0);
+      });
+
+      // Render children of each expanded entity relative to laneYOffset.
+      // Row backgrounds are rendered once for the full child area depth.
+      const maxChildCount = laneMaxChildCounts[laneIdx];
+      if (maxChildCount > 0) {
+        renderGroupChildRowBgs(ganttContainer, maxChildCount, laneYOffset, totalWidth);
+        laneEntities.forEach(entity => {
+          if (entity.isGroup && expandedGroups.has(entity.id)) {
+            renderGroupChildren(ganttContainer, entity, startDate, pxPerMs, laneYOffset, totalWidth);
+          }
+        });
+        yOffset += (GANTT_ROW_HEIGHT + 4) * maxChildCount;
       }
     });
 
