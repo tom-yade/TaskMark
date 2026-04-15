@@ -198,4 +198,44 @@ suite('Gantt Test Suite', () => {
     assert.ok(workshopB, 'Workshop B entity should exist');
     assert.ok(workshopA!.minTime < workshopB!.minTime, 'Workshop A should start before Workshop B');
   });
+
+  test('grouped range items merge into one entity per group in gantt', () => {
+    const { data } = parseTmd(`
+# 2026-03-01 : 2026-03-05
+> Sprint
+> - [ ] Task A
+> - [ ] Task B
+`);
+    const { entities } = buildGanttEntities(data);
+    assert.strictEqual(entities.length, 1, 'both group range items should merge into one entity');
+
+    const sprint = entities[0];
+    assert.strictEqual(sprint.isGroup, true);
+    assert.strictEqual(sprint.name, 'Sprint');
+    assert.strictEqual(sprint.children.length, 2);
+    assert.strictEqual(sprint.tasksTotal, 2);
+  });
+
+  test('grouped range items across different date sections merge into one entity per group', () => {
+    const { data } = parseTmd(`
+# 2026-03-01 : 2026-03-05
+> Sprint
+> - [ ] Task A
+
+# 2026-03-03 : 2026-03-07
+> Sprint
+> - [ ] Task B
+`);
+    const { entities } = buildGanttEntities(data);
+    assert.strictEqual(entities.length, 1, 'same group across different date ranges should be one entity');
+
+    const sprint = entities[0];
+    assert.strictEqual(sprint.name, 'Sprint');
+    assert.strictEqual(sprint.children.length, 2);
+
+    const expectedMinTime = new Date(2026, 2, 1).getTime();
+    const expectedMaxTime = new Date(2026, 2, 8).getTime() - 1;
+    assert.strictEqual(sprint.minTime, expectedMinTime, 'minTime should be earliest start');
+    assert.strictEqual(sprint.maxTime, expectedMaxTime, 'maxTime should be latest end');
+  });
 });
