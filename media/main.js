@@ -483,14 +483,33 @@
 
   // ─── Multi-Day Band Rendering ────────────────────────────────
 
-  /** Collect all range items from the dataset (items with endDate). */
+  /** Collect all range items from the dataset (items with endDate).
+   *  Grouped range items are merged into one representative entry per group,
+   *  using the group name as the label and the widest date span across the group. */
   function collectAllRangeItems() {
     const rangeItems = [];
+    const groupMerged = Object.create(null);
+
     Object.entries(currentTaskMarkData.days).forEach(([date, dayData]) => {
       dayData.items.forEach(item => {
-        if (item.endDate) rangeItems.push({ date, item });
+        if (!item.endDate) return;
+
+        if (item.group) {
+          const key = item.group;
+          if (!groupMerged[key]) {
+            groupMerged[key] = { date, item: { ...item, text: item.group } };
+          } else {
+            const existing = groupMerged[key];
+            if (date < existing.date) { existing.date = date; }
+            if (item.endDate > existing.item.endDate) { existing.item.endDate = item.endDate; }
+          }
+        } else {
+          rangeItems.push({ date, item });
+        }
       });
     });
+
+    Object.values(groupMerged).forEach(({ date, item }) => rangeItems.push({ date, item }));
     return rangeItems;
   }
 
