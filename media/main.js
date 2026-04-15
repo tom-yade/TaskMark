@@ -885,11 +885,10 @@
     });
   }
 
-  /** Render child task rows below the group bar.
-   *  childStartYOffset is the absolute top of the first child row. */
-  function renderGroupChildren(container, entity, startDate, pxPerMs, childStartYOffset, totalWidth) {
+  /** Render child task rows below the group bar. */
+  function renderGroupChildren(container, entity, startDate, pxPerMs, groupYOffset, totalWidth) {
     entity.children.forEach((child, i) => {
-      const childYOffset = childStartYOffset + (GANTT_ROW_HEIGHT + 4) * i;
+      const childYOffset = groupYOffset + (GANTT_ROW_HEIGHT + 4) * (i + 1);
 
       // Child row background
       const rowBg = document.createElement('div');
@@ -994,11 +993,11 @@
     ganttContainer.className = 'tm-gantt-container';
     ganttContainer.style.width = totalWidth + 'px';
     const totalRowCount = laneGroups.reduce((sum, laneEntities) => {
-      const expandedChildCount = laneEntities.reduce((childSum, e) => {
+      const maxChildren = laneEntities.reduce((max, e) => {
         const key = e.id !== undefined ? e.id : e.name;
-        return childSum + (e.isGroup && expandedGroups.has(key) ? e.children.length : 0);
+        return e.isGroup && expandedGroups.has(key) ? Math.max(max, e.children.length) : max;
       }, 0);
-      return sum + 1 + expandedChildCount;
+      return sum + 1 + maxChildren;
     }, 0);
     ganttContainer.style.height = (totalRowCount * (GANTT_ROW_HEIGHT + 4) + GANTT_HEADER_HEIGHT + 10) + 'px';
 
@@ -1016,14 +1015,17 @@
         renderGanttEntityBar(ganttContainer, entity, startDate, pxPerMs, laneYOffset, totalWidth, laneIdx > 0);
       });
 
-      // Then render children of each expanded entity sequentially below the lane
+      // Render children of each expanded entity relative to laneYOffset,
+      // then advance yOffset by the largest child count in this lane
+      let maxChildCount = 0;
       laneEntities.forEach(entity => {
         const entityKey = entity.id !== undefined ? entity.id : entity.name;
         if (entity.isGroup && expandedGroups.has(entityKey)) {
-          renderGroupChildren(ganttContainer, entity, startDate, pxPerMs, yOffset, totalWidth);
-          yOffset += (GANTT_ROW_HEIGHT + 4) * entity.children.length;
+          renderGroupChildren(ganttContainer, entity, startDate, pxPerMs, laneYOffset, totalWidth);
+          maxChildCount = Math.max(maxChildCount, entity.children.length);
         }
       });
+      yOffset += (GANTT_ROW_HEIGHT + 4) * maxChildCount;
     });
 
     viewTimeline.appendChild(ganttContainer);
