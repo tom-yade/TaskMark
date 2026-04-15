@@ -885,17 +885,21 @@
     });
   }
 
-  /** Render child task rows below the group bar. */
+  /** Render row backgrounds for the child area below a lane (called once per lane). */
+  function renderGroupChildRowBgs(container, childCount, groupYOffset, totalWidth) {
+    for (let i = 0; i < childCount; i++) {
+      const rowBg = document.createElement('div');
+      rowBg.className = 'tm-gantt-row-bg tm-gantt-child-row-bg';
+      rowBg.style.top = (groupYOffset + (GANTT_ROW_HEIGHT + 4) * (i + 1)) + 'px';
+      rowBg.style.width = totalWidth + 'px';
+      container.appendChild(rowBg);
+    }
+  }
+
+  /** Render child task bars below the group bar (row backgrounds are rendered separately). */
   function renderGroupChildren(container, entity, startDate, pxPerMs, groupYOffset, totalWidth) {
     entity.children.forEach((child, i) => {
       const childYOffset = groupYOffset + (GANTT_ROW_HEIGHT + 4) * (i + 1);
-
-      // Child row background
-      const rowBg = document.createElement('div');
-      rowBg.className = 'tm-gantt-row-bg tm-gantt-child-row-bg';
-      rowBg.style.top = childYOffset + 'px';
-      rowBg.style.width = totalWidth + 'px';
-      container.appendChild(rowBg);
 
       const childColor = getItemBorderColor(child.tags, currentTaskMarkData.tagColors);
       const left = (child.startMs - startDate.getTime()) * pxPerMs;
@@ -1015,17 +1019,22 @@
         renderGanttEntityBar(ganttContainer, entity, startDate, pxPerMs, laneYOffset, totalWidth, laneIdx > 0);
       });
 
-      // Render children of each expanded entity relative to laneYOffset,
-      // then advance yOffset by the largest child count in this lane
-      let maxChildCount = 0;
-      laneEntities.forEach(entity => {
-        const entityKey = entity.id !== undefined ? entity.id : entity.name;
-        if (entity.isGroup && expandedGroups.has(entityKey)) {
-          renderGroupChildren(ganttContainer, entity, startDate, pxPerMs, laneYOffset, totalWidth);
-          maxChildCount = Math.max(maxChildCount, entity.children.length);
-        }
-      });
-      yOffset += (GANTT_ROW_HEIGHT + 4) * maxChildCount;
+      // Render children of each expanded entity relative to laneYOffset.
+      // Row backgrounds are rendered once for the full child area depth.
+      const maxChildCount = laneEntities.reduce((max, e) => {
+        const key = e.id !== undefined ? e.id : e.name;
+        return e.isGroup && expandedGroups.has(key) ? Math.max(max, e.children.length) : max;
+      }, 0);
+      if (maxChildCount > 0) {
+        renderGroupChildRowBgs(ganttContainer, maxChildCount, laneYOffset, totalWidth);
+        laneEntities.forEach(entity => {
+          const entityKey = entity.id !== undefined ? entity.id : entity.name;
+          if (entity.isGroup && expandedGroups.has(entityKey)) {
+            renderGroupChildren(ganttContainer, entity, startDate, pxPerMs, laneYOffset, totalWidth);
+          }
+        });
+        yOffset += (GANTT_ROW_HEIGHT + 4) * maxChildCount;
+      }
     });
 
     viewTimeline.appendChild(ganttContainer);
