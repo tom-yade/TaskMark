@@ -885,10 +885,11 @@
     });
   }
 
-  /** Render child task rows below the group bar */
-  function renderGroupChildren(container, entity, startDate, pxPerMs, groupYOffset, totalWidth) {
+  /** Render child task rows below the group bar.
+   *  childStartYOffset is the absolute top of the first child row. */
+  function renderGroupChildren(container, entity, startDate, pxPerMs, childStartYOffset, totalWidth) {
     entity.children.forEach((child, i) => {
-      const childYOffset = groupYOffset + (GANTT_ROW_HEIGHT + 4) * (i + 1);
+      const childYOffset = childStartYOffset + (GANTT_ROW_HEIGHT + 4) * i;
 
       // Child row background
       const rowBg = document.createElement('div');
@@ -993,11 +994,11 @@
     ganttContainer.className = 'tm-gantt-container';
     ganttContainer.style.width = totalWidth + 'px';
     const totalRowCount = laneGroups.reduce((sum, laneEntities) => {
-      const maxChildren = laneEntities.reduce((max, e) => {
-        return e.isGroup && expandedGroups.has(e.id !== undefined ? e.id : e.name)
-          ? Math.max(max, e.children.length) : max;
+      const expandedChildCount = laneEntities.reduce((childSum, e) => {
+        const key = e.id !== undefined ? e.id : e.name;
+        return childSum + (e.isGroup && expandedGroups.has(key) ? e.children.length : 0);
       }, 0);
-      return sum + 1 + maxChildren;
+      return sum + 1 + expandedChildCount;
     }, 0);
     ganttContainer.style.height = (totalRowCount * (GANTT_ROW_HEIGHT + 4) + GANTT_HEADER_HEIGHT + 10) + 'px';
 
@@ -1009,11 +1010,17 @@
     laneGroups.forEach(laneEntities => {
       const laneYOffset = yOffset;
       yOffset += GANTT_ROW_HEIGHT + 4;
+
+      // Render all bars for this lane first
       laneEntities.forEach((entity, laneIdx) => {
         renderGanttEntityBar(ganttContainer, entity, startDate, pxPerMs, laneYOffset, totalWidth, laneIdx > 0);
+      });
+
+      // Then render children of each expanded entity sequentially below the lane
+      laneEntities.forEach(entity => {
         const entityKey = entity.id !== undefined ? entity.id : entity.name;
         if (entity.isGroup && expandedGroups.has(entityKey)) {
-          renderGroupChildren(ganttContainer, entity, startDate, pxPerMs, laneYOffset, totalWidth);
+          renderGroupChildren(ganttContainer, entity, startDate, pxPerMs, yOffset, totalWidth);
           yOffset += (GANTT_ROW_HEIGHT + 4) * entity.children.length;
         }
       });
