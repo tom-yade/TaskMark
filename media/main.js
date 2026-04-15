@@ -838,19 +838,18 @@
     pBar.style.backgroundColor = bgColor;
     bar.appendChild(pBar);
 
-    const entityKey = entity.id !== undefined ? entity.id : entity.name;
     const indicator = document.createElement('span');
     indicator.className = 'tm-gantt-group-indicator';
-    indicator.textContent = expandedGroups.has(entityKey) ? '▼' : '▶';
+    indicator.textContent = expandedGroups.has(entity.id) ? '▼' : '▶';
     bar.appendChild(indicator);
 
     bar.addEventListener('click', (e) => {
       e.stopPropagation();
       if (hasDragged) return;
-      if (expandedGroups.has(entityKey)) {
-        expandedGroups.delete(entityKey);
+      if (expandedGroups.has(entity.id)) {
+        expandedGroups.delete(entity.id);
       } else {
-        expandedGroups.add(entityKey);
+        expandedGroups.add(entity.id);
       }
       renderTimeline();
     });
@@ -983,26 +982,25 @@
     const laneGroups = [];
     const seenLanes = new Map();
     entityArray.forEach(entity => {
-      const lane = entity.lane !== undefined ? entity.lane : entity.name;
-      if (!seenLanes.has(lane)) {
-        seenLanes.set(lane, laneGroups.length);
+      if (!seenLanes.has(entity.lane)) {
+        seenLanes.set(entity.lane, laneGroups.length);
         laneGroups.push([entity]);
       } else {
-        laneGroups[seenLanes.get(lane)].push(entity);
+        laneGroups[seenLanes.get(entity.lane)].push(entity);
       }
     });
+
+    // Precompute max expanded child count per lane (reused for height and rendering)
+    const laneMaxChildCounts = laneGroups.map(laneEntities =>
+      laneEntities.reduce((max, e) =>
+        e.isGroup && expandedGroups.has(e.id) ? Math.max(max, e.children.length) : max, 0)
+    );
 
     // Build container
     const ganttContainer = document.createElement('div');
     ganttContainer.className = 'tm-gantt-container';
     ganttContainer.style.width = totalWidth + 'px';
-    const totalRowCount = laneGroups.reduce((sum, laneEntities) => {
-      const maxChildren = laneEntities.reduce((max, e) => {
-        const key = e.id !== undefined ? e.id : e.name;
-        return e.isGroup && expandedGroups.has(key) ? Math.max(max, e.children.length) : max;
-      }, 0);
-      return sum + 1 + maxChildren;
-    }, 0);
+    const totalRowCount = laneGroups.reduce((sum, _, i) => sum + 1 + laneMaxChildCounts[i], 0);
     ganttContainer.style.height = (totalRowCount * (GANTT_ROW_HEIGHT + 4) + GANTT_HEADER_HEIGHT + 10) + 'px';
 
     // Render axis and column backgrounds
@@ -1010,26 +1008,22 @@
 
     // Render entity bars grouped by lane (same lane = same row)
     let yOffset = GANTT_HEADER_HEIGHT;
-    laneGroups.forEach(laneEntities => {
+    laneGroups.forEach((laneEntities, laneIdx) => {
       const laneYOffset = yOffset;
       yOffset += GANTT_ROW_HEIGHT + 4;
 
       // Render all bars for this lane first
-      laneEntities.forEach((entity, laneIdx) => {
-        renderGanttEntityBar(ganttContainer, entity, startDate, pxPerMs, laneYOffset, totalWidth, laneIdx > 0);
+      laneEntities.forEach((entity, i) => {
+        renderGanttEntityBar(ganttContainer, entity, startDate, pxPerMs, laneYOffset, totalWidth, i > 0);
       });
 
       // Render children of each expanded entity relative to laneYOffset.
       // Row backgrounds are rendered once for the full child area depth.
-      const maxChildCount = laneEntities.reduce((max, e) => {
-        const key = e.id !== undefined ? e.id : e.name;
-        return e.isGroup && expandedGroups.has(key) ? Math.max(max, e.children.length) : max;
-      }, 0);
+      const maxChildCount = laneMaxChildCounts[laneIdx];
       if (maxChildCount > 0) {
         renderGroupChildRowBgs(ganttContainer, maxChildCount, laneYOffset, totalWidth);
         laneEntities.forEach(entity => {
-          const entityKey = entity.id !== undefined ? entity.id : entity.name;
-          if (entity.isGroup && expandedGroups.has(entityKey)) {
+          if (entity.isGroup && expandedGroups.has(entity.id)) {
             renderGroupChildren(ganttContainer, entity, startDate, pxPerMs, laneYOffset, totalWidth);
           }
         });
