@@ -488,7 +488,7 @@
    *  using the group name as the label and the widest date span across the group. */
   function collectAllRangeItems() {
     const rangeItems = [];
-    const groupMerged = {};
+    const groupMerged = Object.create(null);
 
     Object.entries(currentTaskMarkData.days).forEach(([date, dayData]) => {
       dayData.items.forEach(item => {
