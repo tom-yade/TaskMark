@@ -81,7 +81,8 @@ export function buildGanttEntities(data: TaskMarkData): GanttData {
 
       const bucket = item.group ? groupEntities : standaloneEntities;
       const displayName = item.group ?? item.text;
-      const key = `${dStr}::${displayName}`;
+      const typePrefix = item.group ? 'g' : 's';
+      const key = `${typePrefix}::${dStr}::${displayName}`;
       if (!bucket[key]) {
         bucket[key] = {
           id: key,
