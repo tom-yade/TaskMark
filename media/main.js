@@ -798,13 +798,14 @@
   }
 
   /** Render a single Gantt bar (group or standalone) */
-  function renderGanttEntityBar(container, entity, startDate, pxPerMs, yOffset, totalWidth) {
-    // Row background
-    const rowBg = document.createElement('div');
-    rowBg.className = 'tm-gantt-row-bg';
-    rowBg.style.top = yOffset + 'px';
-    rowBg.style.width = totalWidth + 'px';
-    container.appendChild(rowBg);
+  function renderGanttEntityBar(container, entity, startDate, pxPerMs, yOffset, totalWidth, skipRowBg) {
+    if (!skipRowBg) {
+      const rowBg = document.createElement('div');
+      rowBg.className = 'tm-gantt-row-bg';
+      rowBg.style.top = yOffset + 'px';
+      rowBg.style.width = totalWidth + 'px';
+      container.appendChild(rowBg);
+    }
 
     const bgColor = getItemBorderColor(entity.tags, currentTaskMarkData.tagColors);
 
@@ -1008,8 +1009,8 @@
     laneGroups.forEach(laneEntities => {
       const laneYOffset = yOffset;
       yOffset += GANTT_ROW_HEIGHT + 4;
-      laneEntities.forEach(entity => {
-        renderGanttEntityBar(ganttContainer, entity, startDate, pxPerMs, laneYOffset, totalWidth);
+      laneEntities.forEach((entity, laneIdx) => {
+        renderGanttEntityBar(ganttContainer, entity, startDate, pxPerMs, laneYOffset, totalWidth, laneIdx > 0);
         const entityKey = entity.id !== undefined ? entity.id : entity.name;
         if (entity.isGroup && expandedGroups.has(entityKey)) {
           renderGroupChildren(ganttContainer, entity, startDate, pxPerMs, laneYOffset, totalWidth);
