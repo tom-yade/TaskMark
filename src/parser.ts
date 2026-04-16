@@ -27,6 +27,7 @@ export interface MarkItem {
   repeat?: string;
   group?: string;
   rawLine: number;
+  startDate: string;
   endDate?: string;
 }
 
@@ -303,6 +304,7 @@ function createMarkItem(
     repeat: repeatStr,
     group: newGroup || undefined,
     rawLine: lineIndex,
+    startDate: currentDate,
     endDate: endDate || undefined,
   };
 

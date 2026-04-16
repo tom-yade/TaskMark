@@ -399,10 +399,13 @@
     };
 
     const getGroupBorderColor = (gName, itemList) => {
-      if (dateStr && currentTaskMarkData.groupTags) {
-        const gTags = currentTaskMarkData.groupTags[`${dateStr}::${gName}`];
-        if (gTags && gTags.length > 0) {
-          return getTagColor(gTags[0], tagColorsMap);
+      if (currentTaskMarkData.groupTags) {
+        const lookupDates = new Set();
+        if (dateStr) lookupDates.add(dateStr);
+        itemList.forEach(i => { if (i.startDate) lookupDates.add(i.startDate); });
+        for (const d of lookupDates) {
+          const gTags = currentTaskMarkData.groupTags[`${d}::${gName}`];
+          if (gTags && gTags.length > 0) return getTagColor(gTags[0], tagColorsMap);
         }
       }
       const firstTagItem = itemList.find(i => i.tags && i.tags.length > 0);

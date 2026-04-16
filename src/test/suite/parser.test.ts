@@ -537,4 +537,25 @@ not a valid tag line
     assert.strictEqual(warnings.length, 1, 'Should warn for empty group name');
     assert.ok(warnings[0].includes('Line 3'), 'Warning should reference line number');
   });
+
+  test('parseTmd item has startDate matching the date header', () => {
+    const text = `
+# 2026-03-01
+- Meeting
+`;
+    const { data } = parseTmd(text);
+    const item = data.days['2026-03-01'].items[0];
+    assert.strictEqual(item.startDate, '2026-03-01');
+  });
+
+  test('parseTmd range item has startDate matching the range start date', () => {
+    const text = `
+# 2026-03-01 : 2026-03-10
+> Sprint #backend
+> - [ ] Task A
+`;
+    const { data } = parseTmd(text);
+    const item = data.days['2026-03-01'].items[0];
+    assert.strictEqual(item.startDate, '2026-03-01');
+  });
 });
