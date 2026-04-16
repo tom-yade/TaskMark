@@ -233,6 +233,10 @@ export function parseTmd(text: string): ParseResult {
     const groupMatch = line.match(GROUP_REGEX);
     if (groupMatch) {
       const { tags: gTags, cleaned: gName } = extractTags(groupMatch[1].trim());
+      if (!gName) {
+        warnings.push(`Line ${i + 1}: group header has no name, skipped`);
+        continue;
+      }
       currentGroup = gName;
       if (gTags.length > 0 && currentDate) {
         data.groupTags[`${currentDate}::${currentGroup}`] = gTags;

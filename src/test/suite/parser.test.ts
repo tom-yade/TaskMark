@@ -526,4 +526,15 @@ not a valid tag line
     const { data } = parseTmd(text);
     assert.deepStrictEqual(data.groupTags, {});
   });
+
+  test('parseTmd warns when group header has only tags and no group name', () => {
+    const text = `
+# 2026-03-01
+> #backend
+> - [ ] Task A
+`;
+    const { warnings } = parseTmd(text);
+    assert.strictEqual(warnings.length, 1, 'Should warn for empty group name');
+    assert.ok(warnings[0].includes('Line 3'), 'Warning should reference line number');
+  });
 });
