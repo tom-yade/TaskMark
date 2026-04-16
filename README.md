@@ -134,7 +134,7 @@ Options can be combined using commas. If a limit is not explicitly defined, recu
 - Multi-day event spanning date range #Tag
 - [ ] Multi-day task spanning date range
 
-> Group Name
+> Group Name #Tag
 > - 13:00-15:00 Schedule inside group #Tag
 > - [x] Completed task inside group
 > - [ ] Uncompleted task inside group
@@ -154,8 +154,25 @@ Options can be combined using commas. If a limit is not explicitly defined, recu
 | `HH:mm` | Start time only | Schedules |
 | `#Tag` | Tags (Multiple allowed) | Both |
 | `@repeat(...)` | Recurring items | Schedules only |
-| `> Group Name` | Group header | — |
+| `> Group Name` | Group header (tags optional) | — |
 | `> - Item` | Items inside group | Both |
+
+### 🗂️ Group Colors
+
+Attach a tag directly to a group header to control its display color in both the Calendar and Timeline views.
+
+```tmd
+# 2026-03-01
+> Sprint #Dev
+> - [ ] Implement feature A
+> - [ ] Write tests
+```
+
+If no tag is specified on the group header, the color falls back to the first tag found among the child items, or the default accent color if none exist.
+
+> **Note:** When a schedule inside a group uses `@repeat`, the repeated copies appear on different dates. Because the group header tag is only recorded for the original date, the group bars on those expanded dates will fall back to the child item's tag color (or the default accent color). This is expected behavior.
+
+---
 
 ### 📅 Date Range Header
 
