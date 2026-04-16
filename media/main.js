@@ -408,8 +408,7 @@
           if (gTags && gTags.length > 0) return getTagColor(gTags[0], tagColorsMap);
         }
       }
-      const firstTagItem = itemList.find(i => i.tags && i.tags.length > 0);
-      return firstTagItem ? getTagColor(firstTagItem.tags[0], tagColorsMap) : 'var(--tm-accent)';
+      return 'var(--tm-accent)';
     };
 
     const renderTaskSummary = (itemList, titleFallback, gName = '') => {
@@ -421,7 +420,7 @@
         const doneCount = tasks.filter(t => t.status === 'done').length;
         const totalCount = tasks.length;
         const isAllDone = doneCount === totalCount;
-        const borderColor = getGroupBorderColor(gName, tasks);
+        const borderColor = getGroupBorderColor(gName, itemList);
         const classNames = `tm-item task ${isAllDone ? 'done' : ''}`;
 
         outHtml += `<div class="${classNames}" style="border-left-color: ${borderColor}">
@@ -510,7 +509,7 @@
           const key = item.group;
           if (!groupMerged[key]) {
             const groupTags = currentTaskMarkData.groupTags && currentTaskMarkData.groupTags[`${date}::${item.group}`];
-            const tags = groupTags ? groupTags : item.tags;
+            const tags = groupTags || [];
             groupMerged[key] = { date, item: { ...item, text: item.group, tags } };
           } else {
             const existing = groupMerged[key];

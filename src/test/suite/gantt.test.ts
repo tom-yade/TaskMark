@@ -279,7 +279,7 @@ suite('Gantt Test Suite', () => {
     assert.deepStrictEqual(group.tags, ['backend'], 'group entity should use the group header tags, not child item tags');
   });
 
-  test('group entity falls back to first child tags when no group-header tags', () => {
+  test('group entity has empty tags when no group-header tags', () => {
     const { data } = parseTmd(`
 # 2026-03-01
 > Sprint
@@ -287,7 +287,7 @@ suite('Gantt Test Suite', () => {
 `);
     const { entities } = buildGanttEntities(data);
     const group = entities[0];
-    assert.deepStrictEqual(group.tags, ['frontend'], 'group entity should fall back to first child item tags');
+    assert.deepStrictEqual(group.tags, [], 'group entity should have no tags when group header has no tags');
   });
 
   test('group entity with header tags ignores empty child tags', () => {
