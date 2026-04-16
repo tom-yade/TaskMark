@@ -506,7 +506,9 @@
         if (item.group) {
           const key = item.group;
           if (!groupMerged[key]) {
-            groupMerged[key] = { date, item: { ...item, text: item.group } };
+            const groupTags = currentTaskMarkData.groupTags && currentTaskMarkData.groupTags[`${date}::${item.group}`];
+            const tags = groupTags ? groupTags : item.tags;
+            groupMerged[key] = { date, item: { ...item, text: item.group, tags } };
           } else {
             const existing = groupMerged[key];
             if (date < existing.date) { existing.date = date; }
