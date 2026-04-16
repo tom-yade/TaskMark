@@ -1,5 +1,6 @@
 export interface TaskMarkData {
   tagColors: Record<string, string>;
+  groupTags: Record<string, string[]>; // Key is "YYYY-MM-DD::groupName"
   days: Record<string, DayData>; // Key is YYYY-MM-DD
 }
 
@@ -167,7 +168,7 @@ function parseRepeatOptions(repeatStr: string, lineNum: number, warnings: string
 
 export function parseTmd(text: string): ParseResult {
   const lines = text.split(/\r?\n/);
-  const data: TaskMarkData = { tagColors: {}, days: {} };
+  const data: TaskMarkData = { tagColors: {}, groupTags: {}, days: {} };
   const warnings: string[] = [];
 
   let inTagsBlock = false;
@@ -231,7 +232,11 @@ export function parseTmd(text: string): ParseResult {
     // 3. Group header
     const groupMatch = line.match(GROUP_REGEX);
     if (groupMatch) {
-      currentGroup = groupMatch[1].trim();
+      const { tags: gTags, cleaned: gName } = extractTags(groupMatch[1].trim());
+      currentGroup = gName;
+      if (gTags.length > 0 && currentDate) {
+        data.groupTags[`${currentDate}::${currentGroup}`] = gTags;
+      }
       continue;
     }
 

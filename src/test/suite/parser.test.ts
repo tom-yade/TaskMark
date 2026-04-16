@@ -474,4 +474,56 @@ not a valid tag line
     const uniqueWarnings = [...new Set(warnings)];
     assert.deepStrictEqual(warnings, uniqueWarnings, 'warnings should be deduplicated');
   });
+
+  // ─── Group Tags Tests ────────────────────────────────────────
+
+  test('parseTmd group header with tag stores groupTags entry', () => {
+    const text = `
+# 2026-03-01
+> Sprint #backend
+> - [ ] Task A
+`;
+    const { data } = parseTmd(text);
+    assert.deepStrictEqual(data.groupTags['2026-03-01::Sprint'], ['backend']);
+  });
+
+  test('parseTmd group header without tag produces no groupTags entry', () => {
+    const text = `
+# 2026-03-01
+> Sprint
+> - [ ] Task A
+`;
+    const { data } = parseTmd(text);
+    assert.strictEqual(data.groupTags['2026-03-01::Sprint'], undefined);
+  });
+
+  test('parseTmd group header tag is stripped from group name', () => {
+    const text = `
+# 2026-03-01
+> Sprint #backend
+> - [ ] Task A
+`;
+    const { data } = parseTmd(text);
+    const items = data.days['2026-03-01'].items;
+    assert.strictEqual(items[0].group, 'Sprint', 'group name should not include the tag');
+  });
+
+  test('parseTmd group header with multiple tags stores all tags', () => {
+    const text = `
+# 2026-03-01
+> Sprint #backend #mobile
+> - [ ] Task A
+`;
+    const { data } = parseTmd(text);
+    assert.deepStrictEqual(data.groupTags['2026-03-01::Sprint'], ['backend', 'mobile']);
+  });
+
+  test('parseTmd groupTags is empty object when no group tags exist', () => {
+    const text = `
+# 2026-03-01
+- Task
+`;
+    const { data } = parseTmd(text);
+    assert.deepStrictEqual(data.groupTags, {});
+  });
 });

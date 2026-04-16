@@ -6,7 +6,7 @@ suite('TaskmarkPanel message types', () => {
     const msg: TaskMarkUpdateMessage = {
       type: 'update',
       uri: 'file:///test.tmd',
-      data: { tagColors: {}, days: {} },
+      data: { tagColors: {}, groupTags: {}, days: {} },
       ganttData: { entities: [], lastDateStr: '' },
       warnings: []
     };
@@ -17,7 +17,7 @@ suite('TaskmarkPanel message types', () => {
     const msg: TaskMarkUpdateMessage = {
       type: 'update',
       uri: 'file:///test.tmd',
-      data: { tagColors: {}, days: {} },
+      data: { tagColors: {}, groupTags: {}, days: {} },
       ganttData: { entities: [], lastDateStr: '' },
       warnings: ["Line 5: invalid date '2026-99-99', skipped"]
     };
