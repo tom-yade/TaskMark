@@ -9,6 +9,8 @@
   const GANTT_MIN_BAR_WIDTH = 12;
   const GANTT_LABEL_OFFSET_X = 6;
   const GANTT_LABEL_OFFSET_Y = 4;
+  const GANTT_ZOOM_IN_FACTOR = 1.25;
+  const GANTT_ZOOM_OUT_FACTOR = 0.8;
 
   // ─── State ───────────────────────────────────────────────────
   let baseView = 'calendar'; // 'calendar' | 'timeline'
@@ -42,6 +44,9 @@
   const viewTimeline = document.getElementById('tm-timeline');
   const monthNav = document.querySelector('.tm-month-nav');
   const monthDisplay = document.getElementById('current-month-display');
+  const zoomControls = document.getElementById('tm-zoom-controls');
+  const btnZoomIn = document.getElementById('btn-zoom-in');
+  const btnZoomOut = document.getElementById('btn-zoom-out');
 
   // ─── Utility Functions ───────────────────────────────────────
 
@@ -211,10 +216,12 @@
       viewTimeline.classList.remove('hidden');
       viewCalendar.classList.add('hidden');
       monthNav?.classList.add('hidden');
+      zoomControls.classList.remove('hidden');
     } else {
       viewTimeline.classList.add('hidden');
       viewCalendar.classList.remove('hidden');
       monthNav?.classList.remove('hidden');
+      zoomControls.classList.add('hidden');
     }
   }
 
@@ -286,13 +293,20 @@
   window.addEventListener('blur', stopPanning);
 
   // Gantt zoom
-  viewTimeline?.addEventListener('wheel', (e) => {
+  function applyZoom(factor) {
+    ganttZoom *= factor;
+    renderTimeline();
+  }
+
+  viewTimeline.addEventListener('wheel', (e) => {
     if (e.ctrlKey) {
       e.preventDefault();
-      ganttZoom *= (e.deltaY < 0 ? 1.2 : 0.8);
-      renderTimeline();
+      applyZoom(e.deltaY < 0 ? GANTT_ZOOM_IN_FACTOR : GANTT_ZOOM_OUT_FACTOR);
     }
   });
+
+  btnZoomIn.addEventListener('click', () => applyZoom(GANTT_ZOOM_IN_FACTOR));
+  btnZoomOut.addEventListener('click', () => applyZoom(GANTT_ZOOM_OUT_FACTOR));
 
   // Date navigation
   function navigateDate(direction) {
