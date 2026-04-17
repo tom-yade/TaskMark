@@ -9,6 +9,8 @@
   const GANTT_MIN_BAR_WIDTH = 12;
   const GANTT_LABEL_OFFSET_X = 6;
   const GANTT_LABEL_OFFSET_Y = 4;
+  const GANTT_ZOOM_IN_FACTOR = 1.25;
+  const GANTT_ZOOM_OUT_FACTOR = 0.8;
 
   // ─── State ───────────────────────────────────────────────────
   let baseView = 'calendar'; // 'calendar' | 'timeline'
@@ -294,18 +296,18 @@
   viewTimeline?.addEventListener('wheel', (e) => {
     if (e.ctrlKey) {
       e.preventDefault();
-      ganttZoom *= (e.deltaY < 0 ? 1.25 : 0.8);
+      ganttZoom *= (e.deltaY < 0 ? GANTT_ZOOM_IN_FACTOR : GANTT_ZOOM_OUT_FACTOR);
       renderTimeline();
     }
   });
 
   btnZoomIn?.addEventListener('click', () => {
-    ganttZoom *= 1.25;
+    ganttZoom *= GANTT_ZOOM_IN_FACTOR;
     renderTimeline();
   });
 
   btnZoomOut?.addEventListener('click', () => {
-    ganttZoom *= 0.8;
+    ganttZoom *= GANTT_ZOOM_OUT_FACTOR;
     renderTimeline();
   });
 

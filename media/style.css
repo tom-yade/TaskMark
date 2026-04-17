@@ -173,9 +173,9 @@ body {
   background: var(--tm-card-bg);
   border: 1px solid var(--tm-card-border);
   color: var(--tm-fg);
-  width: 28px;
-  height: 28px;
-  border-radius: var(--tm-radius);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
   cursor: pointer;
   font-size: 16px;
   line-height: 1;
