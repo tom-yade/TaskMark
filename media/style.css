@@ -162,6 +162,35 @@ body {
   background: var(--tm-card-border);
 }
 
+/* ─── Zoom Controls ─────────────────────────────────────────── */
+.tm-zoom-controls {
+  display: flex;
+  gap: 4px;
+  padding: 4px 24px;
+  background: var(--tm-bg);
+  border-bottom: 1px solid var(--tm-card-border);
+}
+
+.tm-zoom-controls button {
+  background: var(--tm-card-bg);
+  border: 1px solid var(--tm-card-border);
+  color: var(--tm-fg);
+  width: 28px;
+  height: 28px;
+  border-radius: var(--tm-radius);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--tm-transition);
+}
+
+.tm-zoom-controls button:hover {
+  background: var(--tm-card-border);
+}
+
 /* ─── Main Content Area ─────────────────────────────────────── */
 .tm-content {
   flex: 1;

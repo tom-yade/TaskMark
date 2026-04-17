@@ -42,6 +42,9 @@
   const viewTimeline = document.getElementById('tm-timeline');
   const monthNav = document.querySelector('.tm-month-nav');
   const monthDisplay = document.getElementById('current-month-display');
+  const zoomControls = document.getElementById('tm-zoom-controls');
+  const btnZoomIn = document.getElementById('btn-zoom-in');
+  const btnZoomOut = document.getElementById('btn-zoom-out');
 
   // ─── Utility Functions ───────────────────────────────────────
 
@@ -211,10 +214,12 @@
       viewTimeline.classList.remove('hidden');
       viewCalendar.classList.add('hidden');
       monthNav?.classList.add('hidden');
+      zoomControls?.classList.remove('hidden');
     } else {
       viewTimeline.classList.add('hidden');
       viewCalendar.classList.remove('hidden');
       monthNav?.classList.remove('hidden');
+      zoomControls?.classList.add('hidden');
     }
   }
 
@@ -292,6 +297,16 @@
       ganttZoom *= (e.deltaY < 0 ? 1.2 : 0.8);
       renderTimeline();
     }
+  });
+
+  btnZoomIn?.addEventListener('click', () => {
+    ganttZoom *= 1.2;
+    renderTimeline();
+  });
+
+  btnZoomOut?.addEventListener('click', () => {
+    ganttZoom *= 0.8;
+    renderTimeline();
   });
 
   // Date navigation

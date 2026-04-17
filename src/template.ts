@@ -30,6 +30,10 @@ export function getWebviewHtml(scriptUri: vscode.Uri, stylesUri: vscode.Uri, csp
              <button id="btn-next-month">&gt;</button>
           </div>
         </div>
+        <div class="tm-zoom-controls hidden" id="tm-zoom-controls">
+          <button id="btn-zoom-in">+</button>
+          <button id="btn-zoom-out">-</button>
+        </div>
         <div class="tm-content" id="tm-content-area">
           <div class="tm-calendar-grid" id="tm-calendar"></div>
           <div class="tm-timeline-view hidden" id="tm-timeline"></div>
