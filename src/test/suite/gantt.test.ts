@@ -57,7 +57,7 @@ suite('Gantt Test Suite', () => {
   });
 
   test('empty data returns empty entities and empty lastDateStr', () => {
-    const { entities, lastDateStr } = buildGanttEntities({ tagColors: {}, days: {} });
+    const { entities, lastDateStr } = buildGanttEntities({ tagColors: {}, groupTags: {}, days: {} });
     assert.strictEqual(entities.length, 0);
     assert.strictEqual(lastDateStr, '');
   });
@@ -266,5 +266,52 @@ suite('Gantt Test Suite', () => {
     assert.ok(entities[0].id, 'entity should have an id');
     assert.strictEqual(entities[0].lane, 'Sprint');
     assert.strictEqual(entities[0].name, 'Sprint');
+  });
+
+  test('group entity uses group-header tags when present', () => {
+    const { data } = parseTmd(`
+# 2026-03-01
+> Sprint #backend
+> - [ ] Task A #frontend
+`);
+    const { entities } = buildGanttEntities(data);
+    const group = entities[0];
+    assert.deepStrictEqual(group.tags, ['backend'], 'group entity should use the group header tags, not child item tags');
+  });
+
+  test('group entity has empty tags when no group-header tags', () => {
+    const { data } = parseTmd(`
+# 2026-03-01
+> Sprint
+> - [ ] Task A #frontend
+`);
+    const { entities } = buildGanttEntities(data);
+    const group = entities[0];
+    assert.deepStrictEqual(group.tags, [], 'group entity should have no tags when group header has no tags');
+  });
+
+  test('group entity with header tags ignores empty child tags', () => {
+    const { data } = parseTmd(`
+# 2026-03-01
+> Sprint #design
+> - [ ] Task A
+> - [ ] Task B
+`);
+    const { entities } = buildGanttEntities(data);
+    const group = entities[0];
+    assert.deepStrictEqual(group.tags, ['design'], 'group entity should use header tags even when children have no tags');
+  });
+
+  test('repeat-expanded group entity inherits group-header tags from original date', () => {
+    const { data } = parseTmd(`
+# 2026-03-01
+> Sprint #backend
+> - 9:00-10:00 Daily Standup @repeat(weekly, count:2)
+`);
+    const { entities } = buildGanttEntities(data);
+    assert.strictEqual(entities.length, 2, 'should produce two entities');
+    entities.forEach(entity => {
+      assert.deepStrictEqual(entity.tags, ['backend'], 'repeat-expanded entity should use group header tags from original date');
+    });
   });
 });

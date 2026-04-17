@@ -474,4 +474,88 @@ not a valid tag line
     const uniqueWarnings = [...new Set(warnings)];
     assert.deepStrictEqual(warnings, uniqueWarnings, 'warnings should be deduplicated');
   });
+
+  // ─── Group Tags Tests ────────────────────────────────────────
+
+  test('parseTmd group header with tag stores groupTags entry', () => {
+    const text = `
+# 2026-03-01
+> Sprint #backend
+> - [ ] Task A
+`;
+    const { data } = parseTmd(text);
+    assert.deepStrictEqual(data.groupTags['2026-03-01::Sprint'], ['backend']);
+  });
+
+  test('parseTmd group header without tag produces no groupTags entry', () => {
+    const text = `
+# 2026-03-01
+> Sprint
+> - [ ] Task A
+`;
+    const { data } = parseTmd(text);
+    assert.strictEqual(data.groupTags['2026-03-01::Sprint'], undefined);
+  });
+
+  test('parseTmd group header tag is stripped from group name', () => {
+    const text = `
+# 2026-03-01
+> Sprint #backend
+> - [ ] Task A
+`;
+    const { data } = parseTmd(text);
+    const items = data.days['2026-03-01'].items;
+    assert.strictEqual(items[0].group, 'Sprint', 'group name should not include the tag');
+  });
+
+  test('parseTmd group header with multiple tags stores all tags', () => {
+    const text = `
+# 2026-03-01
+> Sprint #backend #mobile
+> - [ ] Task A
+`;
+    const { data } = parseTmd(text);
+    assert.deepStrictEqual(data.groupTags['2026-03-01::Sprint'], ['backend', 'mobile']);
+  });
+
+  test('parseTmd groupTags is empty object when no group tags exist', () => {
+    const text = `
+# 2026-03-01
+- Task
+`;
+    const { data } = parseTmd(text);
+    assert.deepStrictEqual(data.groupTags, {});
+  });
+
+  test('parseTmd warns when group header has only tags and no group name', () => {
+    const text = `
+# 2026-03-01
+> #backend
+> - [ ] Task A
+`;
+    const { warnings } = parseTmd(text);
+    assert.strictEqual(warnings.length, 1, 'Should warn for empty group name');
+    assert.ok(warnings[0].includes('Line 3'), 'Warning should reference line number');
+  });
+
+  test('parseTmd item has startDate matching the date header', () => {
+    const text = `
+# 2026-03-01
+- Meeting
+`;
+    const { data } = parseTmd(text);
+    const item = data.days['2026-03-01'].items[0];
+    assert.strictEqual(item.startDate, '2026-03-01');
+  });
+
+  test('parseTmd range item has startDate matching the range start date', () => {
+    const text = `
+# 2026-03-01 : 2026-03-10
+> Sprint #backend
+> - [ ] Task A
+`;
+    const { data } = parseTmd(text);
+    const item = data.days['2026-03-01'].items[0];
+    assert.strictEqual(item.startDate, '2026-03-01');
+  });
 });

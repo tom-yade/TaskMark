@@ -401,6 +401,7 @@ body {
 
 .tm-group-box {
   border: 1px dashed var(--tm-group-border);
+  border-left: 3px solid var(--tm-accent);
   background: var(--tm-group-bg);
   border-radius: var(--tm-radius);
   padding: 8px;

@@ -351,7 +351,7 @@
 
   // ─── Calendar Items HTML ─────────────────────────────────────
 
-  function createItemsHtml(items, tagColorsMap, isMonthly = false) {
+  function createItemsHtml(items, tagColorsMap, isMonthly = false, dateStr = '') {
     if (!items || items.length === 0) return '';
 
     const sortedItems = [...items].sort((a, b) => {
@@ -398,7 +398,22 @@
       </div>`;
     };
 
-    const renderTaskSummary = (itemList, titleFallback) => {
+    const getGroupBorderColor = (gName, itemList) => {
+      if (gName && currentTaskMarkData.groupTags) {
+        const lookupDates = new Set();
+        if (dateStr) lookupDates.add(dateStr);
+        itemList.forEach(i => { if (i.startDate) lookupDates.add(i.startDate); });
+        for (const d of lookupDates) {
+          const gTags = currentTaskMarkData.groupTags[`${d}::${gName}`];
+          if (gTags && gTags.length > 0) return getTagColor(gTags[0], tagColorsMap);
+        }
+        return 'var(--tm-accent)';
+      }
+      const firstTagItem = itemList.find(i => i.tags && i.tags.length > 0);
+      return firstTagItem ? getTagColor(firstTagItem.tags[0], tagColorsMap) : 'var(--tm-accent)';
+    };
+
+    const renderTaskSummary = (itemList, titleFallback, gName = '') => {
       const tasks = itemList.filter(i => i.type === 'task');
       const schedules = itemList.filter(i => i.type === 'schedule');
       let outHtml = schedules.map(renderItem).join('');
@@ -407,10 +422,7 @@
         const doneCount = tasks.filter(t => t.status === 'done').length;
         const totalCount = tasks.length;
         const isAllDone = doneCount === totalCount;
-        const firstTagTask = tasks.find(t => t.tags && t.tags.length > 0);
-        const borderColor = firstTagTask
-          ? getTagColor(firstTagTask.tags[0], tagColorsMap)
-          : 'var(--tm-accent)';
+        const borderColor = getGroupBorderColor(gName, itemList);
         const classNames = `tm-item task ${isAllDone ? 'done' : ''}`;
 
         outHtml += `<div class="${classNames}" style="border-left-color: ${borderColor}">
@@ -424,10 +436,11 @@
     let html = '<div class="tm-items-list">';
 
     Object.keys(grouped).forEach(gName => {
+      const groupBorderColor = getGroupBorderColor(gName, grouped[gName]);
       const groupContent = isMonthly
-        ? renderTaskSummary(grouped[gName], 'Tasks')
+        ? renderTaskSummary(grouped[gName], 'Tasks', gName)
         : grouped[gName].map(renderItem).join('');
-      html += `<div class="tm-group-box">
+      html += `<div class="tm-group-box" style="border-left-color: ${groupBorderColor}">
         <div class="tm-group-title">${escapeHtml(gName)}</div>
         ${groupContent}
       </div>`;
@@ -497,7 +510,9 @@
         if (item.group) {
           const key = item.group;
           if (!groupMerged[key]) {
-            groupMerged[key] = { date, item: { ...item, text: item.group } };
+            const groupTags = currentTaskMarkData.groupTags && currentTaskMarkData.groupTags[`${date}::${item.group}`];
+            const tags = groupTags || [];
+            groupMerged[key] = { date, item: { ...item, text: item.group, tags } };
           } else {
             const existing = groupMerged[key];
             if (date < existing.date) { existing.date = date; }
@@ -688,7 +703,7 @@
         const regularItems = dayItems.filter(item => !item.endDate);
         const el = createCell(cell.dayNo, cell.isOtherMonth, cell.isToday, cell.dayOfWeek, cell.dStr);
         el.innerHTML += createCellBandsHtml(bandMap[colIndex], maxRow, tagColors);
-        el.innerHTML += createItemsHtml(regularItems, tagColors, true);
+        el.innerHTML += createItemsHtml(regularItems, tagColors, true, cell.dStr);
         viewCalendar.appendChild(el);
       });
     }
@@ -722,7 +737,7 @@
       const cell = createCell(d.getDate(), false, dStr === todayStr, dayOfWeek, dStr);
       cell.style.flex = '1';
       cell.innerHTML += createCellBandsHtml(bandMap[colIndex], maxRow, tagColors);
-      cell.innerHTML += createItemsHtml(regularItems, tagColors);
+      cell.innerHTML += createItemsHtml(regularItems, tagColors, false, dStr);
       viewCalendar.appendChild(cell);
       d.setDate(d.getDate() + 1);
     }
@@ -745,7 +760,7 @@
     const dayData = getDayData(dStr);
     const cell = createCell('', false, dStr === todayStr, dayOfWeek);
     cell.style.flex = '1';
-    cell.innerHTML += createItemsHtml(dayData.items, currentTaskMarkData.tagColors);
+    cell.innerHTML += createItemsHtml(dayData.items, currentTaskMarkData.tagColors, false, dStr);
     viewCalendar.appendChild(cell);
   }
 
