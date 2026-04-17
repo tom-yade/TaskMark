@@ -300,7 +300,7 @@
   });
 
   btnZoomIn?.addEventListener('click', () => {
-    ganttZoom *= 1.2;
+    ganttZoom *= 1.25;
     renderTimeline();
   });
 
