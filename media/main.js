@@ -294,7 +294,7 @@
   viewTimeline?.addEventListener('wheel', (e) => {
     if (e.ctrlKey) {
       e.preventDefault();
-      ganttZoom *= (e.deltaY < 0 ? 1.2 : 0.8);
+      ganttZoom *= (e.deltaY < 0 ? 1.25 : 0.8);
       renderTimeline();
     }
   });
