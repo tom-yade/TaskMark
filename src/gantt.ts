@@ -92,7 +92,9 @@ export function buildGanttEntities(data: TaskMarkData): GanttData {
           isGroup: !!item.group,
           minTime: startMs,
           maxTime: endMs,
-          tags: groupHeaderTags ? [...groupHeaderTags] : [],
+          tags: item.group
+            ? (groupHeaderTags ? [...groupHeaderTags] : [])
+            : [...item.tags],
           tasksTotal: 0,
           tasksDone: 0,
           children: []
