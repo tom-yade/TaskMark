@@ -168,9 +168,9 @@ Attach a tag directly to a group header to control its display color in both the
 > - [ ] Write tests
 ```
 
-If no tag is specified on the group header, the color falls back to the first tag found among the child items, or the default accent color if none exist.
+If no tag is specified on the group header, the group box and its bar use the default accent color. Each child item continues to use its own tag color independently.
 
-> **Note:** When a schedule inside a group uses `@repeat`, the repeated copies appear on different dates. Because the group header tag is only recorded for the original date, the group bars on those expanded dates will fall back to the child item's tag color (or the default accent color). This is expected behavior.
+> **Note:** When a schedule inside a group uses `@repeat`, the group header tag is correctly applied to all expanded instances by referencing the original date where the group was defined.
 
 ---
 

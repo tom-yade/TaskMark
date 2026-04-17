@@ -399,7 +399,7 @@
     };
 
     const getGroupBorderColor = (gName, itemList) => {
-      if (currentTaskMarkData.groupTags) {
+      if (gName && currentTaskMarkData.groupTags) {
         const lookupDates = new Set();
         if (dateStr) lookupDates.add(dateStr);
         itemList.forEach(i => { if (i.startDate) lookupDates.add(i.startDate); });
@@ -407,8 +407,10 @@
           const gTags = currentTaskMarkData.groupTags[`${d}::${gName}`];
           if (gTags && gTags.length > 0) return getTagColor(gTags[0], tagColorsMap);
         }
+        return 'var(--tm-accent)';
       }
-      return 'var(--tm-accent)';
+      const firstTagItem = itemList.find(i => i.tags && i.tags.length > 0);
+      return firstTagItem ? getTagColor(firstTagItem.tags[0], tagColorsMap) : 'var(--tm-accent)';
     };
 
     const renderTaskSummary = (itemList, titleFallback, gName = '') => {

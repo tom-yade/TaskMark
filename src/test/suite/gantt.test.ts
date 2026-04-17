@@ -301,4 +301,17 @@ suite('Gantt Test Suite', () => {
     const group = entities[0];
     assert.deepStrictEqual(group.tags, ['design'], 'group entity should use header tags even when children have no tags');
   });
+
+  test('repeat-expanded group entity inherits group-header tags from original date', () => {
+    const { data } = parseTmd(`
+# 2026-03-01
+> Sprint #backend
+> - 9:00-10:00 Daily Standup @repeat(weekly, count:2)
+`);
+    const { entities } = buildGanttEntities(data);
+    assert.strictEqual(entities.length, 2, 'should produce two entities');
+    entities.forEach(entity => {
+      assert.deepStrictEqual(entity.tags, ['backend'], 'repeat-expanded entity should use group header tags from original date');
+    });
+  });
 });
