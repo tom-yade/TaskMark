@@ -166,9 +166,7 @@ body {
 .tm-zoom-controls {
   display: flex;
   gap: 4px;
-  padding: 4px 24px;
-  background: var(--tm-bg);
-  border-bottom: 1px solid var(--tm-card-border);
+  align-items: center;
 }
 
 .tm-zoom-controls button {
