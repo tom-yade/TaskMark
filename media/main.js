@@ -216,12 +216,12 @@
       viewTimeline.classList.remove('hidden');
       viewCalendar.classList.add('hidden');
       monthNav?.classList.add('hidden');
-      zoomControls?.classList.remove('hidden');
+      zoomControls.classList.remove('hidden');
     } else {
       viewTimeline.classList.add('hidden');
       viewCalendar.classList.remove('hidden');
       monthNav?.classList.remove('hidden');
-      zoomControls?.classList.add('hidden');
+      zoomControls.classList.add('hidden');
     }
   }
 
@@ -293,23 +293,20 @@
   window.addEventListener('blur', stopPanning);
 
   // Gantt zoom
-  viewTimeline?.addEventListener('wheel', (e) => {
+  function applyZoom(factor) {
+    ganttZoom *= factor;
+    renderTimeline();
+  }
+
+  viewTimeline.addEventListener('wheel', (e) => {
     if (e.ctrlKey) {
       e.preventDefault();
-      ganttZoom *= (e.deltaY < 0 ? GANTT_ZOOM_IN_FACTOR : GANTT_ZOOM_OUT_FACTOR);
-      renderTimeline();
+      applyZoom(e.deltaY < 0 ? GANTT_ZOOM_IN_FACTOR : GANTT_ZOOM_OUT_FACTOR);
     }
   });
 
-  btnZoomIn?.addEventListener('click', () => {
-    ganttZoom *= GANTT_ZOOM_IN_FACTOR;
-    renderTimeline();
-  });
-
-  btnZoomOut?.addEventListener('click', () => {
-    ganttZoom *= GANTT_ZOOM_OUT_FACTOR;
-    renderTimeline();
-  });
+  btnZoomIn.addEventListener('click', () => applyZoom(GANTT_ZOOM_IN_FACTOR));
+  btnZoomOut.addEventListener('click', () => applyZoom(GANTT_ZOOM_OUT_FACTOR));
 
   // Date navigation
   function navigateDate(direction) {
