@@ -314,4 +314,13 @@ suite('Gantt Test Suite', () => {
       assert.deepStrictEqual(entity.tags, ['backend'], 'repeat-expanded entity should use group header tags from original date');
     });
   });
+
+  test('standalone task entity uses its own tags', () => {
+    const { data } = parseTmd(`
+# 2026-03-01
+- [ ] Lone Task #urgent
+`);
+    const { entities } = buildGanttEntities(data);
+    assert.deepStrictEqual(entities[0].tags, ['urgent'], 'standalone entity should use its own tags');
+  });
 });

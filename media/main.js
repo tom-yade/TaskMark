@@ -460,11 +460,7 @@
       </div>`;
     });
 
-    if (isMonthly) {
-      html += renderTaskSummary(standalone, 'Tasks');
-    } else {
-      html += standalone.map(renderItem).join('');
-    }
+    html += standalone.map(renderItem).join('');
 
     html += '</div>';
     return html;
