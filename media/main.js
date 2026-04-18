@@ -267,7 +267,8 @@
     render();
   });
 
-  viewCalendar?.addEventListener('dblclick', (e) => {
+  viewCalendar?.addEventListener('click', (e) => {
+    if (e.target.closest('.tm-checkbox[data-raw-line]')) return;
     const wrap = e.target.closest('.clickable-date');
     if (wrap && wrap.dataset.date) {
       currentDate = parseLocalDate(wrap.dataset.date);
@@ -509,10 +510,7 @@
       dStr ? 'clickable-date' : ''
     ].filter(Boolean).join(' ');
 
-    if (dStr) {
-      el.dataset.date = dStr;
-      el.title = 'Double-click to view daily';
-    }
+    if (dStr) el.dataset.date = dStr;
     if (dayNo !== '') {
       el.innerHTML = `<div class="tm-cal-date-wrap"><span class="tm-cal-date">${dayNo}</span></div>`;
     }
