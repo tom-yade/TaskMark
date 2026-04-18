@@ -89,4 +89,26 @@ suite('toggleCheckboxInLine', () => {
   test('returns null for an empty line', () => {
     assert.strictEqual(toggleCheckboxInLine(''), null);
   });
+
+  test('only toggles the leading status checkbox when text contains bracketed content', () => {
+    assert.strictEqual(
+      toggleCheckboxInLine('- [ ] Check the [ ] box'),
+      '- [x] Check the [ ] box'
+    );
+  });
+
+  test('does not toggle a checked checkbox that appears inside text', () => {
+    assert.strictEqual(
+      toggleCheckboxInLine('- [ ] see [x] below'),
+      '- [x] see [x] below'
+    );
+  });
+
+  test('returns null when bracket pair is not at the start of the line', () => {
+    assert.strictEqual(toggleCheckboxInLine('random [ ] text'), null);
+  });
+
+  test('returns null when non-bullet text precedes the checkbox', () => {
+    assert.strictEqual(toggleCheckboxInLine('foo - [ ] bar'), null);
+  });
 });
