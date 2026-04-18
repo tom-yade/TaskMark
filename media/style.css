@@ -260,8 +260,8 @@ body {
 }
 
 .tm-cell-band {
-  height: 20px;
-  line-height: 20px;
+  height: calc(var(--tm-font-size) + 6px);
+  line-height: calc(var(--tm-font-size) + 6px);
   font-size: calc(var(--tm-font-size) - 3px);
   font-weight: 600;
   overflow: hidden;
@@ -290,7 +290,7 @@ body {
 }
 
 .tm-cell-band-spacer {
-  height: 20px;
+  height: calc(var(--tm-font-size) + 6px);
 }
 
 .tm-calendar-grid.daily {
@@ -381,9 +381,9 @@ body {
   font-size: calc(var(--tm-font-size) + 2px);
   font-weight: 600;
   display: inline-block;
-  width: 24px;
-  height: 24px;
-  line-height: 24px;
+  width: 1.5em;
+  height: 1.5em;
+  line-height: 1.5em;
   text-align: center;
   border-radius: 50%;
   transition: var(--tm-transition);
@@ -541,7 +541,7 @@ body {
 .tm-item.compact .tm-tag {
   flex-shrink: 0;
   padding: 1px 5px;
-  font-size: calc(var(--tm-font-size) - 4px);
+  font-size: max(9px, calc(var(--tm-font-size) - 4px));
   margin-left: 0;
 }
 
@@ -625,7 +625,7 @@ body {
   left: 0;
   width: 100%;
   height: 20px;
-  font-size: calc(var(--tm-font-size) - 4px);
+  font-size: max(9px, calc(var(--tm-font-size) - 4px));
   opacity: 0.5;
   border-top: 1px dashed var(--tm-axis-line);
 }
