@@ -186,6 +186,9 @@
       currentTaskMarkData = message.data;
       currentGanttData = message.ganttData;
       rangeItemIndex = buildRangeItemIndex(currentTaskMarkData);
+      if (typeof message.fontSize === 'number') {
+        document.documentElement.style.setProperty('--tm-font-size', `${message.fontSize}px`);
+      }
       if (errorBanner) {
         errorBanner.textContent = '';
         errorBanner.classList.add('hidden');
