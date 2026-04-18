@@ -214,6 +214,11 @@ body {
   overflow: hidden;
 }
 
+.tm-calendar-grid.monthly {
+  grid-template-rows: max-content;
+  grid-auto-rows: 1fr;
+}
+
 .tm-calendar-grid.weekly {
   grid-template-rows: max-content 1fr;
 }
