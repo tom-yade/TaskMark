@@ -52,6 +52,7 @@ Switch between three granularity levels to check your schedule.
 
 **Interactions:**
 - Click a date cell → Jump directly to the Daily view for that day
+- Click a task checkbox → Toggle completion (`- [ ]` / `- [x]`) directly in the `.tmd` file
 - `<` `>` Buttons → Navigate forward and backward in time
 - `Today` Button → Return to the current date
 - Saturdays are highlighted in blue, Sundays in red
@@ -65,7 +66,7 @@ Visualize schedule durations and project spans as a Gantt chart.
 
 
 - **Pan** — Move smoothly in any direction by clicking and dragging
-- **Zoom** — Use `Ctrl + Mouse Wheel` to zoom in/out (from days to hours)
+- **Zoom** — Zoom in/out (from days to hours) with `Ctrl + Mouse Wheel`, or the zoom buttons in the view header
 - **Progress Bars** — Group task completion rates are displayed visually on the bars
 - **Weekend Colors** — Colored backgrounds corresponding to the calendar view
 - **Sub-rows** — Tasks inside a group are displayed as individual sub-rows beneath the group bar; click the group bar to collapse or expand them
