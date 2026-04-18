@@ -11,7 +11,7 @@
   const GANTT_LABEL_OFFSET_Y = 4;
   const GANTT_ZOOM_IN_FACTOR = 1.25;
   const GANTT_ZOOM_OUT_FACTOR = 0.8;
-  const GANTT_DEFAULT_ZOOM = Math.pow(GANTT_ZOOM_IN_FACTOR, 3); // ≈1.95, three zoom-in steps
+  const GANTT_DEFAULT_ZOOM = Math.pow(GANTT_ZOOM_IN_FACTOR, 5); // ≈3.05, five zoom-in steps
 
   // ─── State ───────────────────────────────────────────────────
   let baseView = 'calendar'; // 'calendar' | 'timeline'
