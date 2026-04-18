@@ -407,12 +407,13 @@
 
       const cbHtml = item.type === 'task' ? '<span class="tm-checkbox"></span>' : '';
       const timeHtml = itemHasTime(item) ? `<span class="tm-time">${item.time}</span>` : '';
-      const classNames = `tm-item ${item.type} ${item.status || ''}`;
+      const compactClass = isMonthly ? ' compact' : '';
+      const classNames = `tm-item ${item.type} ${item.status || ''}${compactClass}`;
       const borderColor = getItemBorderColor(item.tags, tagColorsMap);
 
       return `<div class="${classNames}" style="border-left-color: ${borderColor}">
         ${cbHtml}
-        <div>${timeHtml} ${escapeHtml(item.text)} ${tagsHtml}</div>
+        <div class="tm-item-body">${timeHtml} <span class="tm-item-text">${escapeHtml(item.text)}</span> ${tagsHtml}</div>
       </div>`;
     };
 
@@ -441,11 +442,11 @@
         const totalCount = tasks.length;
         const isAllDone = doneCount === totalCount;
         const borderColor = getGroupBorderColor(gName, itemList);
-        const classNames = `tm-item task ${isAllDone ? 'done' : ''}`;
+        const classNames = `tm-item task compact ${isAllDone ? 'done' : ''}`;
 
         outHtml += `<div class="${classNames}" style="border-left-color: ${borderColor}">
           <span class="tm-checkbox"></span>
-          <div><strong>${doneCount}/${totalCount}</strong> ${titleFallback}</div>
+          <div class="tm-item-body"><span class="tm-item-text"><strong>${doneCount}/${totalCount}</strong> ${titleFallback}</span></div>
         </div>`;
       }
       return outHtml;
