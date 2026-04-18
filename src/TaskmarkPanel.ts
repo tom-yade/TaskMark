@@ -1,21 +1,21 @@
 import * as vscode from 'vscode';
-import { parseTmd, TaskMarkData, VALID_CSS_COLOR_REGEX } from './parser';
-import { buildGanttEntities, GanttData } from './gantt';
+import { parseTmd, VALID_CSS_COLOR_REGEX } from './parser';
+import { buildGanttEntities } from './gantt';
 import { getWebviewHtml } from './template';
 import { debounce, DebouncedFn } from './utils/debounce';
+import {
+  TaskMarkUpdateMessage,
+  TaskMarkErrorMessage,
+  ToggleTaskMessage,
+  toggleCheckboxInLine
+} from './messages';
 
-export interface TaskMarkUpdateMessage {
-  type: 'update';
-  uri: string;
-  data: TaskMarkData;
-  ganttData: GanttData;
-  warnings: string[];
-}
-
-export interface TaskMarkErrorMessage {
-  type: 'parseError';
-  message: string;
-}
+export {
+  TaskMarkUpdateMessage,
+  TaskMarkErrorMessage,
+  ToggleTaskMessage,
+  toggleCheckboxInLine
+};
 
 export class TaskmarkPanel {
   public static currentPanel: TaskmarkPanel | undefined;
@@ -100,6 +100,49 @@ export class TaskmarkPanel {
       null,
       this._disposables
     );
+
+    this._panel.webview.onDidReceiveMessage(
+      msg => this.handleWebviewMessage(msg),
+      null,
+      this._disposables
+    );
+  }
+
+  private handleWebviewMessage(message: unknown): void {
+    if (!message || typeof message !== 'object') {
+      return;
+    }
+    const msg = message as { type?: unknown };
+    if (msg.type === 'toggleTask') {
+      const toggle = message as ToggleTaskMessage;
+      if (typeof toggle.uri !== 'string' || typeof toggle.rawLine !== 'number') {
+        return;
+      }
+      void this.toggleTaskInDocument(toggle.uri, toggle.rawLine);
+    }
+  }
+
+  private async toggleTaskInDocument(uriString: string, rawLine: number): Promise<void> {
+    try {
+      const uri = vscode.Uri.parse(uriString);
+      const document = await vscode.workspace.openTextDocument(uri);
+      if (rawLine < 0 || rawLine >= document.lineCount) {
+        return;
+      }
+      const line = document.lineAt(rawLine);
+      const toggled = toggleCheckboxInLine(line.text);
+      if (toggled === null || toggled === line.text) {
+        return;
+      }
+      const edit = new vscode.WorkspaceEdit();
+      edit.replace(uri, line.range, toggled);
+      const applied = await vscode.workspace.applyEdit(edit);
+      if (applied) {
+        this.updateFromDocument(document);
+      }
+    } catch (e) {
+      console.error('TaskMark toggleTask error', e);
+    }
   }
 
   private updateFromActiveEditor() {

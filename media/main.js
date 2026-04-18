@@ -29,6 +29,9 @@
   let initialScrollL = 0;
   let initialScrollT = 0;
 
+  // ─── VS Code API ─────────────────────────────────────────────
+  const vscode = acquireVsCodeApi();
+
   // ─── DOM References ──────────────────────────────────────────
   const errorBanner = document.getElementById('tm-parse-error-banner');
   const warningBanner = document.getElementById('tm-warning-banner');
@@ -207,6 +210,16 @@
         warningBanner.classList.add('hidden');
       }
     }
+  });
+
+  // ─── Checkbox Toggle ─────────────────────────────────────────
+
+  document.addEventListener('click', event => {
+    const cb = event.target.closest('.tm-checkbox[data-raw-line]');
+    if (!cb || !currentUri) return;
+    const rawLine = Number(cb.dataset.rawLine);
+    if (!Number.isInteger(rawLine) || rawLine < 0) return;
+    vscode.postMessage({ type: 'toggleTask', uri: currentUri, rawLine });
   });
 
   // ─── UI State Management ─────────────────────────────────────
@@ -405,7 +418,9 @@
     const renderItem = (item) => {
       const tagsHtml = createTagPillsHtml(item.tags, tagColorsMap);
 
-      const cbHtml = item.type === 'task' ? '<span class="tm-checkbox"></span>' : '';
+      const cbHtml = item.type === 'task'
+        ? `<span class="tm-checkbox" data-raw-line="${item.rawLine}"></span>`
+        : '';
       const timeHtml = itemHasTime(item) ? `<span class="tm-time">${item.time}</span>` : '';
       const compactClass = isMonthly ? ' compact' : '';
       const classNames = `tm-item ${item.type} ${item.status || ''}${compactClass}`;
