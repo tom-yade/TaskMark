@@ -139,7 +139,8 @@ export class TaskmarkPanel {
       const applied = await vscode.workspace.applyEdit(edit);
       if (applied) {
         this._debouncedUpdateFromDocument.cancel();
-        this.updateFromDocument(document);
+        const latest = await vscode.workspace.openTextDocument(uri);
+        this.updateFromDocument(latest);
       } else {
         vscode.window.showErrorMessage(
           'TaskMark: Failed to toggle task. The file may be read-only or locked by another process.'
