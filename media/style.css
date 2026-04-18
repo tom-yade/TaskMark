@@ -708,20 +708,6 @@ body {
   font-weight: bold;
   white-space: nowrap;
   pointer-events: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.tm-gantt-bar-label-tags {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.tm-gantt-bar-label-tags .tm-tag {
-  margin-left: 0;
-  line-height: 1.4;
 }
 
 /* Child rows (group task members) */

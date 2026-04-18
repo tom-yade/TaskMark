@@ -888,7 +888,7 @@
 
     // Label (outside bar, to the right)
     const progText = entity.tasksTotal > 0 ? ` [${entity.tasksDone}/${entity.tasksTotal}]` : '';
-    container.appendChild(createGanttLabel(entity.name + progText, left + width, yOffset, entity.tags, currentTaskMarkData.tagColors));
+    container.appendChild(createGanttLabel(entity.name + progText, left + width, yOffset));
   }
 
   function renderStandaloneBars(container, entity, startDate, pxPerMs, yOffset, bgColor) {
@@ -910,7 +910,7 @@
       container.appendChild(bar);
 
       // Label (outside bar, to the right)
-      container.appendChild(createGanttLabel(entity.name, left + width, yOffset, entity.tags, currentTaskMarkData.tagColors));
+      container.appendChild(createGanttLabel(entity.name, left + width, yOffset));
     });
   }
 
@@ -965,26 +965,13 @@
     return bar;
   }
 
-  /** Create a label element positioned outside the bar, optionally with tag pills */
-  function createGanttLabel(text, leftPx, yOffset, tags, tagColorsMap) {
+  /** Create a label element positioned outside the bar */
+  function createGanttLabel(text, leftPx, yOffset) {
     const label = document.createElement('span');
     label.className = 'tm-gantt-bar-label';
     label.style.left = (leftPx + GANTT_LABEL_OFFSET_X) + 'px';
     label.style.top = (yOffset + GANTT_LABEL_OFFSET_Y) + 'px';
-
-    const textNode = document.createElement('span');
-    textNode.className = 'tm-gantt-bar-label-text';
-    textNode.textContent = text;
-    label.appendChild(textNode);
-
-    const pillsHtml = createTagPillsHtml(tags, tagColorsMap);
-    if (pillsHtml) {
-      const pills = document.createElement('span');
-      pills.className = 'tm-gantt-bar-label-tags';
-      pills.innerHTML = pillsHtml;
-      label.appendChild(pills);
-    }
-
+    label.textContent = text;
     return label;
   }
 
