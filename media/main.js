@@ -104,6 +104,15 @@
     return 'var(--tm-accent)';
   }
 
+  /** Build HTML for a list of tag pills */
+  function createTagPillsHtml(tags, tagColorsMap) {
+    if (!tags || tags.length === 0) return '';
+    return tags.map(t => {
+      const color = getTagColor(t, tagColorsMap);
+      return `<span class="tm-tag" style="background-color: ${color}">${escapeHtml(t)}</span>`;
+    }).join('');
+  }
+
   /** Escape special HTML characters to prevent XSS when embedding user content */
   function escapeHtml(str) {
     return str
@@ -394,12 +403,7 @@
     });
 
     const renderItem = (item) => {
-      const tagsHtml = (item.tags && item.tags.length > 0)
-        ? item.tags.map(t => {
-          const color = getTagColor(t, tagColorsMap);
-          return `<span class="tm-tag" style="background-color: ${color}">${escapeHtml(t)}</span>`;
-        }).join('')
-        : '';
+      const tagsHtml = createTagPillsHtml(item.tags, tagColorsMap);
 
       const cbHtml = item.type === 'task' ? '<span class="tm-checkbox"></span>' : '';
       const timeHtml = itemHasTime(item) ? `<span class="tm-time">${item.time}</span>` : '';
