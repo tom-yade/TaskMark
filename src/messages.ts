@@ -18,20 +18,8 @@ export function resolveFontSize(value: unknown, fallback: number = FONT_SIZE_DEF
   if (typeof value !== 'number' || Number.isNaN(value)) {
     return fallback;
   }
-  if (value === Infinity) {
-    return FONT_SIZE_MAX;
-  }
-  if (value === -Infinity) {
-    return FONT_SIZE_MIN;
-  }
   const floored = Math.floor(value);
-  if (floored < FONT_SIZE_MIN) {
-    return FONT_SIZE_MIN;
-  }
-  if (floored > FONT_SIZE_MAX) {
-    return FONT_SIZE_MAX;
-  }
-  return floored;
+  return Math.max(FONT_SIZE_MIN, Math.min(FONT_SIZE_MAX, floored));
 }
 
 export interface TaskMarkErrorMessage {
