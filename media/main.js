@@ -104,6 +104,15 @@
     return 'var(--tm-accent)';
   }
 
+  /** Build HTML for a list of tag pills */
+  function createTagPillsHtml(tags, tagColorsMap) {
+    if (!tags || tags.length === 0) return '';
+    return tags.map(t => {
+      const color = getTagColor(t, tagColorsMap);
+      return `<span class="tm-tag" style="background-color: ${color}">${escapeHtml(t)}</span>`;
+    }).join('');
+  }
+
   /** Escape special HTML characters to prevent XSS when embedding user content */
   function escapeHtml(str) {
     return str
@@ -394,21 +403,17 @@
     });
 
     const renderItem = (item) => {
-      const tagsHtml = (item.tags && item.tags.length > 0)
-        ? item.tags.map(t => {
-          const color = getTagColor(t, tagColorsMap);
-          return `<span class="tm-tag" style="background-color: ${color}">${escapeHtml(t)}</span>`;
-        }).join('')
-        : '';
+      const tagsHtml = createTagPillsHtml(item.tags, tagColorsMap);
 
       const cbHtml = item.type === 'task' ? '<span class="tm-checkbox"></span>' : '';
       const timeHtml = itemHasTime(item) ? `<span class="tm-time">${item.time}</span>` : '';
-      const classNames = `tm-item ${item.type} ${item.status || ''}`;
+      const compactClass = isMonthly ? ' compact' : '';
+      const classNames = `tm-item ${item.type} ${item.status || ''}${compactClass}`;
       const borderColor = getItemBorderColor(item.tags, tagColorsMap);
 
       return `<div class="${classNames}" style="border-left-color: ${borderColor}">
         ${cbHtml}
-        <div>${timeHtml} ${escapeHtml(item.text)} ${tagsHtml}</div>
+        <div class="tm-item-body">${timeHtml} <span class="tm-item-text">${escapeHtml(item.text)}</span> ${tagsHtml}</div>
       </div>`;
     };
 
@@ -437,11 +442,11 @@
         const totalCount = tasks.length;
         const isAllDone = doneCount === totalCount;
         const borderColor = getGroupBorderColor(gName, itemList);
-        const classNames = `tm-item task ${isAllDone ? 'done' : ''}`;
+        const classNames = `tm-item task compact ${isAllDone ? 'done' : ''}`;
 
         outHtml += `<div class="${classNames}" style="border-left-color: ${borderColor}">
           <span class="tm-checkbox"></span>
-          <div><strong>${doneCount}/${totalCount}</strong> ${titleFallback}</div>
+          <div class="tm-item-body"><span class="tm-time">${doneCount}/${totalCount}</span> <span class="tm-item-text">${titleFallback}</span></div>
         </div>`;
       }
       return outHtml;
@@ -883,7 +888,7 @@
 
     // Label (outside bar, to the right)
     const progText = entity.tasksTotal > 0 ? ` [${entity.tasksDone}/${entity.tasksTotal}]` : '';
-    container.appendChild(createGanttLabel(entity.name + progText, left + width, yOffset));
+    container.appendChild(createGanttLabel(entity.name + progText, left + width, yOffset, entity.tags, currentTaskMarkData.tagColors));
   }
 
   function renderStandaloneBars(container, entity, startDate, pxPerMs, yOffset, bgColor) {
@@ -905,7 +910,7 @@
       container.appendChild(bar);
 
       // Label (outside bar, to the right)
-      container.appendChild(createGanttLabel(entity.name, left + width, yOffset));
+      container.appendChild(createGanttLabel(entity.name, left + width, yOffset, entity.tags, currentTaskMarkData.tagColors));
     });
   }
 
@@ -960,13 +965,26 @@
     return bar;
   }
 
-  /** Create a label element positioned outside the bar */
-  function createGanttLabel(text, leftPx, yOffset) {
+  /** Create a label element positioned outside the bar, optionally with tag pills */
+  function createGanttLabel(text, leftPx, yOffset, tags, tagColorsMap) {
     const label = document.createElement('span');
     label.className = 'tm-gantt-bar-label';
     label.style.left = (leftPx + GANTT_LABEL_OFFSET_X) + 'px';
     label.style.top = (yOffset + GANTT_LABEL_OFFSET_Y) + 'px';
-    label.textContent = text;
+
+    const textNode = document.createElement('span');
+    textNode.className = 'tm-gantt-bar-label-text';
+    textNode.textContent = text;
+    label.appendChild(textNode);
+
+    const pillsHtml = createTagPillsHtml(tags, tagColorsMap);
+    if (pillsHtml) {
+      const pills = document.createElement('span');
+      pills.className = 'tm-gantt-bar-label-tags';
+      pills.innerHTML = pillsHtml;
+      label.appendChild(pills);
+    }
+
     return label;
   }
 
