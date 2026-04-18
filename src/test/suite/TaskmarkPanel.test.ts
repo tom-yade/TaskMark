@@ -101,6 +101,11 @@ suite('toggleCheckboxInLine', () => {
     );
   });
 
+  test('preserves extra spaces inside brackets (matches ITEM_REGEX split)', () => {
+    assert.strictEqual(toggleCheckboxInLine('- [  ] foo'), '- [ x] foo');
+    assert.strictEqual(toggleCheckboxInLine('- [  x  ] foo'), '- [     ] foo');
+  });
+
   test('returns null for indented task lines (parser does not accept them)', () => {
     assert.strictEqual(toggleCheckboxInLine('  - [ ] indented'), null);
     assert.strictEqual(toggleCheckboxInLine('  > - [ ] indented group'), null);

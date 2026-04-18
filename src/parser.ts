@@ -41,6 +41,8 @@ const DATE_REGEX = /^#\s+(\d{4}-\d{1,2}-\d{1,2})(?:\s*:\s*(\d{4}-\d{1,2}-\d{1,2}
 const GROUP_REGEX = /^>\s*([^-\s].+)$/;
 // Shared with messages.ts toggleCheckboxInLine — modify both together.
 export const TASK_LINE_PREFIX_SRC = '(>\\s*)?(-)?';
+/** Non-capturing form of TASK_LINE_PREFIX_SRC for toggle / search helpers. */
+export const TASK_LINE_PREFIX_NC = '(?:>\\s*)?(?:-)?';
 const ITEM_REGEX = new RegExp(
   `^${TASK_LINE_PREFIX_SRC}\\s*(\\[\\s*([xX\\s])\\s*\\])?\\s*((\\d{1,2}:\\d{1,2})(?:-(\\d{1,2}:\\d{1,2}))?)?\\s*(.*)$`
 );
