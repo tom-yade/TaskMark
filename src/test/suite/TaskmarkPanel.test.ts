@@ -64,11 +64,16 @@ suite('toggleCheckboxInLine', () => {
     assert.strictEqual(toggleCheckboxInLine('- [X] foo'), '- [ ] foo');
   });
 
-  test('preserves leading indent and group marker', () => {
+  test('preserves group marker without indentation', () => {
     assert.strictEqual(
-      toggleCheckboxInLine('  > - [ ] nested'),
-      '  > - [x] nested'
+      toggleCheckboxInLine('> - [ ] grouped'),
+      '> - [x] grouped'
     );
+  });
+
+  test('returns null for indented task lines (parser does not accept them)', () => {
+    assert.strictEqual(toggleCheckboxInLine('  - [ ] indented'), null);
+    assert.strictEqual(toggleCheckboxInLine('  > - [ ] indented group'), null);
   });
 
   test('preserves content after checkbox including time and tags', () => {

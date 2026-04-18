@@ -22,9 +22,9 @@ export interface ToggleTaskMessage {
 
 // Anchored to the start of the line and built from the same
 // TASK_LINE_PREFIX_SRC as parser.ts ITEM_REGEX, so that only the leading
-// status checkbox is ever matched — never a bracketed token that happens
-// to appear inside the task text — and the prefix definition stays in
-// sync with the parser.
+// status checkbox of a line that parser would recognise as a task is
+// ever matched. Leading indentation is intentionally rejected because
+// parser.ts ITEM_REGEX does not accept indented task lines either.
 // Capture layout:
 //   1: full prefix up to and including '[' and optional inner space
 //   2: group marker '>\s*' (nested within group 1)
@@ -32,7 +32,7 @@ export interface ToggleTaskMessage {
 //   4: the checkbox character (' ' | 'x' | 'X')
 //   5: optional inner space + ']'
 const CHECKBOX_REGEX = new RegExp(
-  `^(\\s*${TASK_LINE_PREFIX_SRC}\\s*\\[\\s*)([ xX])(\\s*\\])`
+  `^(${TASK_LINE_PREFIX_SRC}\\s*\\[\\s*)([ xX])(\\s*\\])`
 );
 
 export function toggleCheckboxInLine(line: string): string | null {
