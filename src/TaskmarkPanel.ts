@@ -138,6 +138,7 @@ export class TaskmarkPanel {
       edit.replace(uri, line.range, toggled);
       const applied = await vscode.workspace.applyEdit(edit);
       if (applied) {
+        this._debouncedUpdateFromDocument.cancel();
         this.updateFromDocument(document);
       } else {
         vscode.window.showErrorMessage(
