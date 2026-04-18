@@ -351,6 +351,7 @@ body {
 
 .clickable-date {
   cursor: pointer;
+  user-select: none;
 }
 
 .clickable-date:hover .tm-cal-date {
