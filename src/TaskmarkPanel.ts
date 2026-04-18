@@ -7,15 +7,9 @@ import {
   TaskMarkUpdateMessage,
   TaskMarkErrorMessage,
   ToggleTaskMessage,
-  toggleCheckboxInLine
+  toggleCheckboxInLine,
+  resolveToggleTargetLineIndex
 } from './messages';
-
-export {
-  TaskMarkUpdateMessage,
-  TaskMarkErrorMessage,
-  ToggleTaskMessage,
-  toggleCheckboxInLine
-};
 
 export class TaskmarkPanel {
   public static currentPanel: TaskmarkPanel | undefined;
@@ -115,21 +109,38 @@ export class TaskmarkPanel {
     const msg = message as { type?: unknown };
     if (msg.type === 'toggleTask') {
       const toggle = message as ToggleTaskMessage;
-      if (typeof toggle.uri !== 'string' || typeof toggle.rawLine !== 'number') {
+      if (
+        typeof toggle.uri !== 'string' ||
+        typeof toggle.rawLine !== 'number' ||
+        typeof toggle.sourceLine !== 'string'
+      ) {
         return;
       }
-      void this.toggleTaskInDocument(toggle.uri, toggle.rawLine);
+      void this.toggleTaskInDocument(toggle.uri, toggle.rawLine, toggle.sourceLine);
     }
   }
 
-  private async toggleTaskInDocument(uriString: string, rawLine: number): Promise<void> {
+  private async toggleTaskInDocument(
+    uriString: string,
+    rawLine: number,
+    sourceLine: string
+  ): Promise<void> {
     try {
       const uri = vscode.Uri.parse(uriString);
       const document = await vscode.workspace.openTextDocument(uri);
-      if (rawLine < 0 || rawLine >= document.lineCount) {
+      const resolved = resolveToggleTargetLineIndex(
+        document.lineCount,
+        i => document.lineAt(i).text,
+        rawLine,
+        sourceLine
+      );
+      if (resolved === null) {
+        vscode.window.showInformationMessage(
+          'TaskMark: That task no longer matches the file (it may have been edited). Open TaskMark again or toggle from the editor.'
+        );
         return;
       }
-      const line = document.lineAt(rawLine);
+      const line = document.lineAt(resolved);
       const toggled = toggleCheckboxInLine(line.text);
       if (toggled === null || toggled === line.text) {
         return;

@@ -28,9 +28,11 @@ suite('Parser Test Suite', () => {
     assert.strictEqual(items[0].type, 'task');
     assert.strictEqual(items[0].status, 'todo');
     assert.strictEqual(items[0].text, 'Meeting');
+    assert.strictEqual(items[0].sourceLine, '- [ ] 09:00-10:00 Meeting');
 
     assert.strictEqual(items[1].type, 'schedule');
     assert.strictEqual(items[1].text, 'Schedule item');
+    assert.strictEqual(items[1].sourceLine, '- Schedule item');
   });
 
   test('parseTmd parses @tags block', () => {

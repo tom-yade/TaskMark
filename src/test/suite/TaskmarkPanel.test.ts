@@ -3,7 +3,8 @@ import {
   TaskMarkUpdateMessage,
   TaskMarkErrorMessage,
   ToggleTaskMessage,
-  toggleCheckboxInLine
+  toggleCheckboxInLine,
+  resolveToggleTargetLineIndex
 } from '../../messages';
 
 suite('TaskmarkPanel message types', () => {
@@ -39,15 +40,44 @@ suite('TaskmarkPanel message types', () => {
     assert.strictEqual(msg.message, 'unexpected token at line 3');
   });
 
-  test('ToggleTaskMessage has type "toggleTask" with uri and rawLine', () => {
+  test('ToggleTaskMessage has type "toggleTask" with uri, rawLine, and sourceLine', () => {
     const msg: ToggleTaskMessage = {
       type: 'toggleTask',
       uri: 'file:///test.tmd',
-      rawLine: 4
+      rawLine: 4,
+      sourceLine: '- [ ] task'
     };
     assert.strictEqual(msg.type, 'toggleTask');
     assert.strictEqual(msg.uri, 'file:///test.tmd');
     assert.strictEqual(msg.rawLine, 4);
+    assert.strictEqual(msg.sourceLine, '- [ ] task');
+  });
+});
+
+suite('resolveToggleTargetLineIndex', () => {
+  const lines = ['# 2026-01-01', '- [ ] a', '- [ ] b', '- [ ] c'];
+  const get = (i: number) => lines[i];
+
+  test('returns rawLine when the line still matches', () => {
+    assert.strictEqual(resolveToggleTargetLineIndex(lines.length, get, 2, '- [ ] b'), 2);
+  });
+
+  test('relocates when content moved but source line text is unchanged', () => {
+    const shifted = ['intro', '# 2026-01-01', '- [ ] a', '- [ ] b', '- [ ] c'];
+    const g = (i: number) => shifted[i];
+    assert.strictEqual(resolveToggleTargetLineIndex(shifted.length, g, 2, '- [ ] b'), 3);
+  });
+
+  test('returns null when no line matches sourceLine', () => {
+    assert.strictEqual(resolveToggleTargetLineIndex(lines.length, get, 2, '- [ ] gone'), null);
+  });
+
+  test('picks closest index among duplicate matching lines', () => {
+    const dup = ['- [ ] same', 'x', '- [ ] same'];
+    const g = (i: number) => dup[i];
+    assert.strictEqual(resolveToggleTargetLineIndex(dup.length, g, 0, '- [ ] same'), 0);
+    assert.strictEqual(resolveToggleTargetLineIndex(dup.length, g, 1, '- [ ] same'), 0);
+    assert.strictEqual(resolveToggleTargetLineIndex(dup.length, g, 2, '- [ ] same'), 2);
   });
 });
 

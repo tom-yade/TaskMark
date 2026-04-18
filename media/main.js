@@ -219,7 +219,9 @@
     if (!cb || !currentUri) return;
     const rawLine = Number(cb.dataset.rawLine);
     if (!Number.isInteger(rawLine) || rawLine < 0) return;
-    vscode.postMessage({ type: 'toggleTask', uri: currentUri, rawLine });
+    const sourceLine = cb.dataset.sourceLine;
+    if (typeof sourceLine !== 'string') return;
+    vscode.postMessage({ type: 'toggleTask', uri: currentUri, rawLine, sourceLine });
   });
 
   // ─── UI State Management ─────────────────────────────────────
@@ -420,7 +422,7 @@
       const tagsHtml = createTagPillsHtml(item.tags, tagColorsMap);
 
       const cbHtml = item.type === 'task'
-        ? `<span class="tm-checkbox" data-raw-line="${item.rawLine}"></span>`
+        ? `<span class="tm-checkbox" data-raw-line="${item.rawLine}" data-source-line="${escapeHtml(item.sourceLine)}"></span>`
         : '';
       const timeHtml = itemHasTime(item) ? `<span class="tm-time">${item.time}</span>` : '';
       const compactClass = isMonthly ? ' compact' : '';
