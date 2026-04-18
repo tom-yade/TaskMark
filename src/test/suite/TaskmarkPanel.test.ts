@@ -4,7 +4,8 @@ import {
   TaskMarkErrorMessage,
   ToggleTaskMessage,
   toggleCheckboxInLine,
-  resolveToggleTargetLineIndex
+  resolveToggleTargetLineIndex,
+  resolveFontSize
 } from '../../messages';
 
 suite('TaskmarkPanel message types', () => {
@@ -14,7 +15,8 @@ suite('TaskmarkPanel message types', () => {
       uri: 'file:///test.tmd',
       data: { tagColors: {}, groupTags: {}, days: {} },
       ganttData: { entities: [], lastDateStr: '' },
-      warnings: []
+      warnings: [],
+      fontSize: 14
     };
     assert.strictEqual(msg.type, 'update');
   });
@@ -25,10 +27,24 @@ suite('TaskmarkPanel message types', () => {
       uri: 'file:///test.tmd',
       data: { tagColors: {}, groupTags: {}, days: {} },
       ganttData: { entities: [], lastDateStr: '' },
-      warnings: ["Line 5: invalid date '2026-99-99', skipped"]
+      warnings: ["Line 5: invalid date '2026-99-99', skipped"],
+      fontSize: 14
     };
     assert.strictEqual(msg.warnings.length, 1);
     assert.ok(msg.warnings[0].includes('2026-99-99'));
+  });
+
+  test('TaskMarkUpdateMessage carries a numeric fontSize', () => {
+    const msg: TaskMarkUpdateMessage = {
+      type: 'update',
+      uri: 'file:///test.tmd',
+      data: { tagColors: {}, groupTags: {}, days: {} },
+      ganttData: { entities: [], lastDateStr: '' },
+      warnings: [],
+      fontSize: 18
+    };
+    assert.strictEqual(typeof msg.fontSize, 'number');
+    assert.strictEqual(msg.fontSize, 18);
   });
 
   test('TaskMarkErrorMessage has type "parseError" and a message field', () => {
@@ -150,5 +166,56 @@ suite('toggleCheckboxInLine', () => {
 
   test('returns null when non-bullet text precedes the checkbox', () => {
     assert.strictEqual(toggleCheckboxInLine('foo - [ ] bar'), null);
+  });
+});
+
+suite('resolveFontSize', () => {
+  test('returns default (14) when value is undefined', () => {
+    assert.strictEqual(resolveFontSize(undefined), 14);
+  });
+
+  test('returns default (14) when value is null', () => {
+    assert.strictEqual(resolveFontSize(null), 14);
+  });
+
+  test('returns the value unchanged when within allowed range', () => {
+    assert.strictEqual(resolveFontSize(16), 16);
+    assert.strictEqual(resolveFontSize(10), 10);
+    assert.strictEqual(resolveFontSize(24), 24);
+  });
+
+  test('clamps below-minimum values up to 10', () => {
+    assert.strictEqual(resolveFontSize(4), 10);
+    assert.strictEqual(resolveFontSize(0), 10);
+    assert.strictEqual(resolveFontSize(-5), 10);
+  });
+
+  test('clamps above-maximum values down to 24', () => {
+    assert.strictEqual(resolveFontSize(99), 24);
+    assert.strictEqual(resolveFontSize(25), 24);
+  });
+
+  test('returns fallback when value is a non-number string', () => {
+    assert.strictEqual(resolveFontSize('big'), 14);
+    assert.strictEqual(resolveFontSize('16'), 14);
+  });
+
+  test('returns fallback for NaN', () => {
+    assert.strictEqual(resolveFontSize(NaN), 14);
+  });
+
+  test('clamps Infinity to the max bound', () => {
+    assert.strictEqual(resolveFontSize(Infinity), 24);
+    assert.strictEqual(resolveFontSize(-Infinity), 10);
+  });
+
+  test('respects a custom fallback', () => {
+    assert.strictEqual(resolveFontSize(undefined, 18), 18);
+    assert.strictEqual(resolveFontSize('nope', 20), 20);
+  });
+
+  test('floors fractional values before clamping', () => {
+    assert.strictEqual(resolveFontSize(14.7), 14);
+    assert.strictEqual(resolveFontSize(10.9), 10);
   });
 });

@@ -68,6 +68,13 @@
           "type": "object",
           "default": {},
           "description": "Custom color mapping for tags (e.g. {\"meeting\": \"#ff0000\"})"
+        },
+        "taskmark.fontSize": {
+          "type": "number",
+          "default": 14,
+          "minimum": 10,
+          "maximum": 24,
+          "description": "Font size (in px) applied to the calendar views (Monthly/Weekly/Daily) and Gantt timeline labels. Values outside 10–24 are clamped."
         }
       }
     }

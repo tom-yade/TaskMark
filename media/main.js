@@ -11,6 +11,7 @@
   const GANTT_LABEL_OFFSET_Y = 4;
   const GANTT_ZOOM_IN_FACTOR = 1.25;
   const GANTT_ZOOM_OUT_FACTOR = 0.8;
+  const GANTT_DEFAULT_ZOOM = Math.pow(GANTT_ZOOM_IN_FACTOR, 5); // ≈3.05, five zoom-in steps
 
   // ─── State ───────────────────────────────────────────────────
   let baseView = 'calendar'; // 'calendar' | 'timeline'
@@ -20,7 +21,7 @@
   let currentTaskMarkData = null;
   let currentGanttData = null;
   let rangeItemIndex = null; // Pre-built index: date string -> range items spanning that date
-  let ganttZoom = 1; // 1 = 100px per day
+  let ganttZoom = GANTT_DEFAULT_ZOOM; // 1 = 100px per day
   let expandedGroups = new Set();
   let isPanning = false;
   let hasDragged = false;
@@ -177,7 +178,7 @@
       if (message.uri && message.uri !== currentUri) {
         currentUri = message.uri;
         expandedGroups = new Set();
-        ganttZoom = 1;
+        ganttZoom = GANTT_DEFAULT_ZOOM;
         if (viewTimeline) {
           viewTimeline.scrollLeft = 0;
           viewTimeline.scrollTop = 0;
@@ -186,6 +187,9 @@
       currentTaskMarkData = message.data;
       currentGanttData = message.ganttData;
       rangeItemIndex = buildRangeItemIndex(currentTaskMarkData);
+      if (typeof message.fontSize === 'number') {
+        document.documentElement.style.setProperty('--tm-font-size', `${message.fontSize}px`);
+      }
       if (errorBanner) {
         errorBanner.textContent = '';
         errorBanner.classList.add('hidden');

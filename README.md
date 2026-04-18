@@ -223,6 +223,14 @@ You can also define global tag colors in your VS Code `settings.json` to reuse t
 
 *Note: Tags defined within a `.tmd` file via the `@tags` block will take precedence over global settings.*
 
+- `taskmark.fontSize`: Font size (in px) applied to the calendar views (Monthly/Weekly/Daily) and Gantt timeline labels. Default: `14`. Values outside the range `10`–`24` are clamped.
+
+```json
+{
+  "taskmark.fontSize": 16
+}
+```
+
 ---
 
 ## Feedback & Support

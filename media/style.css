@@ -19,6 +19,7 @@
   --tm-radius: 8px;
   --tm-transition: all 0.2s ease-in-out;
   --tm-font: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif);
+  --tm-font-size: 14px;
   --tm-sat-color: #3498db;
   --tm-sun-color: #e74c3c;
   --tm-sat-bg: rgba(52, 152, 219, 0.08);
@@ -213,6 +214,11 @@ body {
   overflow: hidden;
 }
 
+.tm-calendar-grid.monthly {
+  grid-template-rows: max-content;
+  grid-auto-rows: 1fr;
+}
+
 .tm-calendar-grid.weekly {
   grid-template-rows: max-content 1fr;
 }
@@ -220,7 +226,7 @@ body {
 .tm-calendar-grid.monthly .tm-day-header,
 .tm-calendar-grid.weekly .tm-day-header {
   background-color: var(--tm-bg);
-  padding: 10px 0 8px;
+  padding: 4px 0 3px;
 }
 
 .tm-calendar-grid.monthly .tm-cal-cell,
@@ -254,9 +260,9 @@ body {
 }
 
 .tm-cell-band {
-  height: 20px;
-  line-height: 20px;
-  font-size: 11px;
+  height: calc(var(--tm-font-size) + 6px);
+  line-height: calc(var(--tm-font-size) + 6px);
+  font-size: calc(var(--tm-font-size) - 3px);
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -284,7 +290,7 @@ body {
 }
 
 .tm-cell-band-spacer {
-  height: 20px;
+  height: calc(var(--tm-font-size) + 6px);
 }
 
 .tm-calendar-grid.daily {
@@ -295,12 +301,12 @@ body {
 /* ─── Day Headers ───────────────────────────────────────────── */
 .tm-day-header {
   text-align: center;
-  font-size: 14px;
+  font-size: var(--tm-font-size);
   font-weight: 600;
   text-transform: uppercase;
   color: var(--tm-fg);
   opacity: 0.7;
-  padding-bottom: 8px;
+  padding-bottom: 3px;
 }
 
 .tm-day-header.sat {
@@ -365,19 +371,19 @@ body {
   background: var(--tm-bg);
   width: 100%;
   box-sizing: border-box;
-  padding: 8px;
-  margin-bottom: 4px;
+  padding: 3px 6px;
+  margin-bottom: 2px;
   border-bottom: 1px solid var(--tm-separator);
   flex-shrink: 0;
 }
 
 .tm-cal-date {
-  font-size: 16px;
+  font-size: calc(var(--tm-font-size) + 2px);
   font-weight: 600;
   display: inline-block;
-  width: 28px;
-  height: 28px;
-  line-height: 28px;
+  width: 1.5em;
+  height: 1.5em;
+  line-height: 1.5em;
   text-align: center;
   border-radius: 50%;
   transition: var(--tm-transition);
@@ -437,7 +443,7 @@ body {
 }
 
 .tm-group-title {
-  font-size: 13px;
+  font-size: calc(var(--tm-font-size) - 1px);
   font-weight: bold;
   opacity: 0.7;
   margin-bottom: 6px;
@@ -445,7 +451,7 @@ body {
 }
 
 .tm-item {
-  font-size: 14px;
+  font-size: var(--tm-font-size);
   padding: 8px 10px;
   border-radius: 4px;
   background: var(--tm-item-bg);
@@ -495,7 +501,7 @@ body {
   display: inline-block;
   padding: 2px 6px;
   border-radius: 10px;
-  font-size: 11px;
+  font-size: calc(var(--tm-font-size) - 3px);
   font-weight: 600;
   margin-left: 4px;
   color: #fff;
@@ -504,7 +510,7 @@ body {
 
 /* ─── Compact Items (Monthly View) ──────────────────────────── */
 .tm-item.compact {
-  font-size: 12px;
+  font-size: calc(var(--tm-font-size) - 2px);
   padding: 2px 6px;
   gap: 4px;
   align-items: center;
@@ -528,14 +534,14 @@ body {
 }
 
 .tm-item.compact .tm-time {
-  font-size: 11px;
+  font-size: calc(var(--tm-font-size) - 3px);
   flex-shrink: 0;
 }
 
 .tm-item.compact .tm-tag {
   flex-shrink: 0;
   padding: 1px 5px;
-  font-size: 10px;
+  font-size: max(9px, calc(var(--tm-font-size) - 4px));
   margin-left: 0;
 }
 
@@ -561,7 +567,7 @@ body {
 }
 
 .tm-calendar-grid.monthly .tm-group-title {
-  font-size: 11px;
+  font-size: calc(var(--tm-font-size) - 3px);
   margin-bottom: 2px;
 }
 
@@ -602,6 +608,7 @@ body {
   box-sizing: border-box;
   padding: 4px;
   color: var(--tm-fg);
+  font-size: var(--tm-font-size);
 }
 
 .tm-gantt-axis-day.sat-text strong {
@@ -618,7 +625,7 @@ body {
   left: 0;
   width: 100%;
   height: 20px;
-  font-size: 10px;
+  font-size: max(9px, calc(var(--tm-font-size) - 4px));
   opacity: 0.5;
   border-top: 1px dashed var(--tm-axis-line);
 }
@@ -706,7 +713,7 @@ body {
   position: absolute;
   z-index: 7;
   padding: 0 8px;
-  font-size: 13px;
+  font-size: calc(var(--tm-font-size) - 1px);
   line-height: 32px;
   color: var(--tm-fg);
   font-weight: bold;
