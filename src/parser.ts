@@ -37,7 +37,11 @@ const TAG_COLOR_REGEX = /^#([^\s:]+)\s*:\s*(.+)$/;
 export const VALID_CSS_COLOR_REGEX = /^(?:#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(?:rgb|hsl)a?\(\s*\d[\d.]*%?(?:\s*[,/\s]\s*\d[\d.]*%?){2,3}\s*\)|[a-zA-Z]{1,30})$/;
 const DATE_REGEX = /^#\s+(\d{4}-\d{1,2}-\d{1,2})(?:\s*:\s*(\d{4}-\d{1,2}-\d{1,2}))?/;
 const GROUP_REGEX = /^>\s*([^-\s].+)$/;
-const ITEM_REGEX = /^(>\s*)?(-)?\s*(\[\s*([xX\s])\s*\])?\s*((\d{1,2}:\d{1,2})(?:-(\d{1,2}:\d{1,2}))?)?\s*(.*)$/;
+// Shared with messages.ts toggleCheckboxInLine — modify both together.
+export const TASK_LINE_PREFIX_SRC = '(>\\s*)?(-)?';
+const ITEM_REGEX = new RegExp(
+  `^${TASK_LINE_PREFIX_SRC}\\s*(\\[\\s*([xX\\s])\\s*\\])?\\s*((\\d{1,2}:\\d{1,2})(?:-(\\d{1,2}:\\d{1,2}))?)?\\s*(.*)$`
+);
 const REPEAT_REGEX = /@repeat\(([^)]+)\)/;
 const TAG_SPLIT_REGEX = /#([^\s#]+)/g;
 const EVERY_REGEX = /^(\d+)(days?|weeks?|months?)$/;

@@ -1,4 +1,4 @@
-import { TaskMarkData } from './parser';
+import { TaskMarkData, TASK_LINE_PREFIX_SRC } from './parser';
 import { GanttData } from './gantt';
 
 export interface TaskMarkUpdateMessage {
@@ -20,17 +20,26 @@ export interface ToggleTaskMessage {
   rawLine: number;
 }
 
-// Anchored to the start of the line, matching the same prefix shape as
-// parser.ts ITEM_REGEX (optional indent, optional group marker, optional
-// bullet) so only the status checkbox is touched — never a bracketed token
-// that appears inside the task text.
-const CHECKBOX_REGEX = /^(\s*(?:>\s*)?(?:-\s*)?\[\s*)([ xX])(\s*\])/;
+// Anchored to the start of the line and built from the same
+// TASK_LINE_PREFIX_SRC as parser.ts ITEM_REGEX, so that only the leading
+// status checkbox is ever matched — never a bracketed token that happens
+// to appear inside the task text — and the prefix definition stays in
+// sync with the parser.
+// Capture layout:
+//   1: full prefix up to and including '[' and optional inner space
+//   2: group marker '>\s*' (nested within group 1)
+//   3: bullet '-'         (nested within group 1)
+//   4: the checkbox character (' ' | 'x' | 'X')
+//   5: optional inner space + ']'
+const CHECKBOX_REGEX = new RegExp(
+  `^(\\s*${TASK_LINE_PREFIX_SRC}\\s*\\[\\s*)([ xX])(\\s*\\])`
+);
 
 export function toggleCheckboxInLine(line: string): string | null {
   const match = CHECKBOX_REGEX.exec(line);
   if (!match) {
     return null;
   }
-  const toggled = match[2] === ' ' ? 'x' : ' ';
-  return line.replace(CHECKBOX_REGEX, `$1${toggled}$3`);
+  const toggled = match[4] === ' ' ? 'x' : ' ';
+  return line.replace(CHECKBOX_REGEX, `$1${toggled}$5`);
 }
