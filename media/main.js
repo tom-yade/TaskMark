@@ -446,7 +446,7 @@
 
         outHtml += `<div class="${classNames}" style="border-left-color: ${borderColor}">
           <span class="tm-checkbox"></span>
-          <div class="tm-item-body"><span class="tm-item-text"><strong>${doneCount}/${totalCount}</strong> ${titleFallback}</span></div>
+          <div class="tm-item-body"><span class="tm-time">${doneCount}/${totalCount}</span> <span class="tm-item-text">${titleFallback}</span></div>
         </div>`;
       }
       return outHtml;
