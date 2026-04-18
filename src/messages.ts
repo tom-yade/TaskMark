@@ -7,6 +7,31 @@ export interface TaskMarkUpdateMessage {
   data: TaskMarkData;
   ganttData: GanttData;
   warnings: string[];
+  fontSize: number;
+}
+
+export const FONT_SIZE_MIN = 10;
+export const FONT_SIZE_MAX = 24;
+export const FONT_SIZE_DEFAULT = 14;
+
+export function resolveFontSize(value: unknown, fallback: number = FONT_SIZE_DEFAULT): number {
+  if (typeof value !== 'number' || Number.isNaN(value)) {
+    return fallback;
+  }
+  if (value === Infinity) {
+    return FONT_SIZE_MAX;
+  }
+  if (value === -Infinity) {
+    return FONT_SIZE_MIN;
+  }
+  const floored = Math.floor(value);
+  if (floored < FONT_SIZE_MIN) {
+    return FONT_SIZE_MIN;
+  }
+  if (floored > FONT_SIZE_MAX) {
+    return FONT_SIZE_MAX;
+  }
+  return floored;
 }
 
 export interface TaskMarkErrorMessage {

@@ -8,7 +8,8 @@ import {
   TaskMarkErrorMessage,
   ToggleTaskMessage,
   toggleCheckboxInLine,
-  resolveToggleTargetLineIndex
+  resolveToggleTargetLineIndex,
+  resolveFontSize
 } from './messages';
 
 export class TaskmarkPanel {
@@ -87,7 +88,10 @@ export class TaskmarkPanel {
 
     vscode.workspace.onDidChangeConfiguration(
       e => {
-        if (e.affectsConfiguration('taskmark.tagColors')) {
+        if (
+          e.affectsConfiguration('taskmark.tagColors') ||
+          e.affectsConfiguration('taskmark.fontSize')
+        ) {
           this.updateFromActiveEditor();
         }
       },
@@ -174,7 +178,8 @@ export class TaskmarkPanel {
     try {
       const text = document.getText();
       const { data: parsedData, warnings } = parseTmd(text);
-      const configColors = vscode.workspace.getConfiguration('taskmark').get<Record<string, string>>('tagColors', {});
+      const config = vscode.workspace.getConfiguration('taskmark');
+      const configColors = config.get<Record<string, string>>('tagColors', {});
       for (const [tag, color] of Object.entries(configColors)) {
         if (VALID_CSS_COLOR_REGEX.test(color)) {
           if (!parsedData.tagColors[tag]) {
@@ -184,12 +189,14 @@ export class TaskmarkPanel {
           warnings.push(`Setting tagColors: invalid color '${color}' for tag '${tag}', skipped`);
         }
       }
+      const fontSize = resolveFontSize(config.get<number>('fontSize'));
       const message: TaskMarkUpdateMessage = {
         type: 'update',
         uri: document.uri.toString(),
         data: parsedData,
         ganttData: buildGanttEntities(parsedData),
-        warnings: [...new Set(warnings)]
+        warnings: [...new Set(warnings)],
+        fontSize
       };
       this._panel.webview.postMessage(message);
     } catch (e) {
