@@ -29,6 +29,9 @@
   let initialScrollL = 0;
   let initialScrollT = 0;
 
+  // ─── VS Code API ─────────────────────────────────────────────
+  const vscode = acquireVsCodeApi();
+
   // ─── DOM References ──────────────────────────────────────────
   const errorBanner = document.getElementById('tm-parse-error-banner');
   const warningBanner = document.getElementById('tm-warning-banner');
@@ -209,6 +212,18 @@
     }
   });
 
+  // ─── Checkbox Toggle ─────────────────────────────────────────
+
+  document.addEventListener('click', event => {
+    const cb = event.target.closest('.tm-checkbox[data-raw-line]');
+    if (!cb || !currentUri) return;
+    const rawLine = Number(cb.dataset.rawLine);
+    if (!Number.isInteger(rawLine) || rawLine < 0) return;
+    const sourceLine = cb.dataset.sourceLine;
+    if (typeof sourceLine !== 'string') return;
+    vscode.postMessage({ type: 'toggleTask', uri: currentUri, rawLine, sourceLine });
+  });
+
   // ─── UI State Management ─────────────────────────────────────
 
   function updateActiveButtons() {
@@ -255,6 +270,7 @@
   });
 
   viewCalendar?.addEventListener('click', (e) => {
+    if (e.target.closest('.tm-checkbox[data-raw-line]')) return;
     const wrap = e.target.closest('.clickable-date');
     if (wrap && wrap.dataset.date) {
       currentDate = parseLocalDate(wrap.dataset.date);
@@ -405,7 +421,9 @@
     const renderItem = (item) => {
       const tagsHtml = createTagPillsHtml(item.tags, tagColorsMap);
 
-      const cbHtml = item.type === 'task' ? '<span class="tm-checkbox"></span>' : '';
+      const cbHtml = item.type === 'task'
+        ? `<span class="tm-checkbox" data-raw-line="${item.rawLine}" data-source-line="${escapeHtml(item.sourceLine)}"></span>`
+        : '';
       const timeHtml = itemHasTime(item) ? `<span class="tm-time">${item.time}</span>` : '';
       const compactClass = isMonthly ? ' compact' : '';
       const classNames = `tm-item ${item.type} ${item.status || ''}${compactClass}`;

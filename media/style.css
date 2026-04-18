@@ -472,6 +472,10 @@ body {
   position: relative;
 }
 
+.tm-checkbox[data-raw-line] {
+  cursor: pointer;
+}
+
 .tm-item.task.done .tm-checkbox::after {
   content: '✓';
   position: absolute;

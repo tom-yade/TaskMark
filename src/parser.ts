@@ -21,6 +21,8 @@ export interface MarkItem {
   id: string;
   type: ItemType;
   text: string;
+  /** Exact document line text at parse time; used to verify toggles after edits. */
+  sourceLine: string;
   time?: string;
   tags: string[];
   status?: TaskStatus;
@@ -37,7 +39,13 @@ const TAG_COLOR_REGEX = /^#([^\s:]+)\s*:\s*(.+)$/;
 export const VALID_CSS_COLOR_REGEX = /^(?:#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(?:rgb|hsl)a?\(\s*\d[\d.]*%?(?:\s*[,/\s]\s*\d[\d.]*%?){2,3}\s*\)|[a-zA-Z]{1,30})$/;
 const DATE_REGEX = /^#\s+(\d{4}-\d{1,2}-\d{1,2})(?:\s*:\s*(\d{4}-\d{1,2}-\d{1,2}))?/;
 const GROUP_REGEX = /^>\s*([^-\s].+)$/;
-const ITEM_REGEX = /^(>\s*)?(-)?\s*(\[\s*([xX\s])\s*\])?\s*((\d{1,2}:\d{1,2})(?:-(\d{1,2}:\d{1,2}))?)?\s*(.*)$/;
+// Shared with messages.ts toggleCheckboxInLine — modify both together.
+export const TASK_LINE_PREFIX_SRC = '(>\\s*)?(-)?';
+/** Non-capturing form of TASK_LINE_PREFIX_SRC for toggle / search helpers. */
+export const TASK_LINE_PREFIX_NC = '(?:>\\s*)?(?:-)?';
+const ITEM_REGEX = new RegExp(
+  `^${TASK_LINE_PREFIX_SRC}\\s*(\\[\\s*([xX\\s])\\s*\\])?\\s*((\\d{1,2}:\\d{1,2})(?:-(\\d{1,2}:\\d{1,2}))?)?\\s*(.*)$`
+);
 const REPEAT_REGEX = /@repeat\(([^)]+)\)/;
 const TAG_SPLIT_REGEX = /#([^\s#]+)/g;
 const EVERY_REGEX = /^(\d+)(days?|weeks?|months?)$/;
@@ -248,7 +256,7 @@ export function parseTmd(text: string): ParseResult {
     // 4. Item (schedule or task)
     const itemMatch = rawLine.match(ITEM_REGEX);
     if (itemMatch && itemMatch[2]) {
-      const result = createMarkItem(itemMatch, i, currentDate, currentGroup, currentEndDate);
+      const result = createMarkItem(itemMatch, i, rawLine, currentDate, currentGroup, currentEndDate);
       if (result) {
         data.days[currentDate].items.push(result.item);
         currentGroup = result.newGroup;
@@ -262,6 +270,7 @@ export function parseTmd(text: string): ParseResult {
 function createMarkItem(
   itemMatch: RegExpMatchArray,
   lineIndex: number,
+  sourceLine: string,
   currentDate: string,
   currentGroup: string,
   endDate = '',
@@ -298,6 +307,7 @@ function createMarkItem(
     id: `item-${lineIndex}-${currentDate}`,
     type,
     text: cleaned,
+    sourceLine,
     time: timeString,
     tags,
     status,
