@@ -54,7 +54,10 @@
 
   // ─── Utility Functions ───────────────────────────────────────
 
-  /** Format date parts into 'YYYY-MM-DD' string */
+  /** Format date parts into 'YYYY-MM-DD' string.
+   *  Intentionally separate from src/parser.ts#toLocaleDateStr: this one takes
+   *  (y, m, d) numbers so loops like buildRangeItemIndex can avoid repeated
+   *  Date allocations, while the parser variant takes a Date instance. */
   function formatDateStr(year, month, day) {
     return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
   }
@@ -78,8 +81,9 @@
     return '';
   }
 
-  // Keep in sync with VALID_CSS_COLOR_REGEX in src/parser.ts
-  const VALID_CSS_COLOR_RE = /^(?:#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(?:rgb|hsl)a?\(\s*\d[\d.]*%?(?:\s*[,/\s]\s*\d[\d.]*%?){2,3}\s*\)|[a-zA-Z]{1,30})$/;
+  // Built from the canonical VALID_CSS_COLOR_REGEX in src/parser.ts,
+  // injected into <body data-valid-css-color-re=...> by src/template.ts.
+  const VALID_CSS_COLOR_RE = new RegExp(document.body.dataset.validCssColorRe);
 
   /** Deterministic color from tag name, or explicit color from map */
   function getTagColor(tagName, tagColorsMap) {

@@ -86,6 +86,17 @@ Categorize schedules and tasks visually with tags.
 
 Define tag colors inside the `@tags` block. Undefined tags automatically receive a deterministic, generated color based on the tag name.
 
+Any of the following CSS color formats are accepted:
+
+| Format | Example |
+|------|------|
+| Hex (3 / 4 / 6 / 8 digits) | `#fff`, `#ffff`, `#e74c3c`, `#e74c3cff` |
+| `rgb()` / `rgba()` | `rgb(255, 0, 128)`, `rgba(0, 0, 0, 0.5)` |
+| `hsl()` / `hsla()` | `hsl(120, 50%, 50%)`, `hsla(120, 50%, 50%, 0.8)` |
+| Named color | `steelblue`, `crimson` |
+
+Values that do not match any of these formats are rejected with a warning and the tag falls back to the deterministic generated color.
+
 ### 🔁 Recurring Schedules
 
 Automatically expand recurring schedules. Tasks (`- [ ]` / `- [x]`) manage independent completion states and are ignored by repeat modifiers.
@@ -185,7 +196,7 @@ Use `# YYYY-MM-DD : YYYY-MM-DD` to define events or tasks that span multiple day
 - [ ] Prepare conference materials #Dev
 ```
 
-> **Note:** If the end date is invalid or earlier than the start date, the range is silently ignored and the header is treated as a single date.
+> **Note:** If the end date is invalid or earlier than the start date, the range is ignored (a warning is shown) and the header is treated as a single date.
 >
 > **Note:** Date range items are always treated as all-day — any time specification (`HH:mm`) is ignored in the Timeline view.
 >
@@ -209,7 +220,7 @@ Use `# YYYY-MM-DD : YYYY-MM-DD` to define events or tasks that span multiple day
 
 You can also define global tag colors in your VS Code `settings.json` to reuse them across multiple `.tmd` files.
 
-- `taskmark.tagColors`: A JSON object mapping tag names (without `#`) to hex color codes.
+- `taskmark.tagColors`: A JSON object mapping tag names (without `#`) to CSS color values. The same formats accepted inside the `@tags` block are supported here (hex, `rgb()`/`rgba()`, `hsl()`/`hsla()`, named colors).
 
 ```json
 {
@@ -244,21 +255,31 @@ Found a bug or have a feature request? Please feel free to open an issue on our 
 ```
 TaskMark/
 ├── src/
-│   ├── extension.ts       # Extension entry point
-│   ├── TaskmarkPanel.ts   # Webview panel management
-│   ├── parser.ts          # .tmd file parser
+│   ├── extension.ts         # Extension entry point
+│   ├── TaskmarkPanel.ts     # Webview panel management
+│   ├── parser.ts            # .tmd file parser
+│   ├── gantt.ts             # Gantt entity builder for the Timeline view
+│   ├── messages.ts          # Webview message types and shared helpers
+│   ├── template.ts          # Webview HTML template
+│   ├── utils/
+│   │   └── debounce.ts      # Generic debounce utility
 │   └── test/
-│       ├── runTest.ts     # Integration test runner
+│       ├── runTest.ts       # Integration test runner
 │       └── suite/
-│           ├── index.ts             # Test suite entry point
-│           ├── parser.test.ts       # Unit tests for the parser
-│           └── extension.test.ts    # Integration tests for the extension
+│           ├── index.ts               # Test suite entry point
+│           ├── parser.test.ts         # Unit tests for the parser
+│           ├── gantt.test.ts          # Unit tests for Gantt entity building
+│           ├── TaskmarkPanel.test.ts  # Unit tests for panel messages and helpers
+│           ├── template.test.ts       # Unit tests for the HTML template
+│           ├── debounce.test.ts       # Unit tests for the debounce utility
+│           └── extension.test.ts      # Integration tests for the extension
 ├── media/
-│   ├── main.js            # Webview frontend logic
-│   └── style.css          # Webview frontend styling
+│   ├── main.js              # Webview frontend logic
+│   ├── style.css            # Webview frontend styling
+│   └── screenshots/         # Images used in README
 ├── syntaxes/
 │   └── tmd.tmLanguage.json  # Syntax highlighting definitions
-├── sample.tmd             # Sample file
+├── sample.tmd               # Sample file
 └── package.json
 ```
 
