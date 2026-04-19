@@ -185,7 +185,7 @@ Use `# YYYY-MM-DD : YYYY-MM-DD` to define events or tasks that span multiple day
 - [ ] Prepare conference materials #Dev
 ```
 
-> **Note:** If the end date is invalid or earlier than the start date, the range is silently ignored and the header is treated as a single date.
+> **Note:** If the end date is invalid or earlier than the start date, the range is ignored (a warning is shown) and the header is treated as a single date.
 >
 > **Note:** Date range items are always treated as all-day — any time specification (`HH:mm`) is ignored in the Timeline view.
 >
@@ -244,21 +244,31 @@ Found a bug or have a feature request? Please feel free to open an issue on our 
 ```
 TaskMark/
 ├── src/
-│   ├── extension.ts       # Extension entry point
-│   ├── TaskmarkPanel.ts   # Webview panel management
-│   ├── parser.ts          # .tmd file parser
+│   ├── extension.ts         # Extension entry point
+│   ├── TaskmarkPanel.ts     # Webview panel management
+│   ├── parser.ts            # .tmd file parser
+│   ├── gantt.ts             # Gantt entity builder for the Timeline view
+│   ├── messages.ts          # Webview message types and shared helpers
+│   ├── template.ts          # Webview HTML template
+│   ├── utils/
+│   │   └── debounce.ts      # Generic debounce utility
 │   └── test/
-│       ├── runTest.ts     # Integration test runner
+│       ├── runTest.ts       # Integration test runner
 │       └── suite/
-│           ├── index.ts             # Test suite entry point
-│           ├── parser.test.ts       # Unit tests for the parser
-│           └── extension.test.ts    # Integration tests for the extension
+│           ├── index.ts               # Test suite entry point
+│           ├── parser.test.ts         # Unit tests for the parser
+│           ├── gantt.test.ts          # Unit tests for Gantt entity building
+│           ├── TaskmarkPanel.test.ts  # Unit tests for panel messages and helpers
+│           ├── template.test.ts       # Unit tests for the HTML template
+│           ├── debounce.test.ts       # Unit tests for the debounce utility
+│           └── extension.test.ts      # Integration tests for the extension
 ├── media/
-│   ├── main.js            # Webview frontend logic
-│   └── style.css          # Webview frontend styling
+│   ├── main.js              # Webview frontend logic
+│   ├── style.css            # Webview frontend styling
+│   └── screenshots/         # Images used in README
 ├── syntaxes/
 │   └── tmd.tmLanguage.json  # Syntax highlighting definitions
-├── sample.tmd             # Sample file
+├── sample.tmd               # Sample file
 └── package.json
 ```
 
