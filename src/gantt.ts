@@ -13,7 +13,9 @@ export interface GanttChildItem {
 }
 
 export interface GanttEntity {
+  id: string;
   name: string;
+  lane: string;
   isGroup: boolean;
   minTime: number;
   maxTime: number;
@@ -78,14 +80,21 @@ export function buildGanttEntities(data: TaskMarkData): GanttData {
       }
 
       const bucket = item.group ? groupEntities : standaloneEntities;
-      const key = item.group ?? item.text;
+      const displayName = item.group ?? item.text;
+      const typePrefix = item.group ? 'g' : 's';
+      const key = `${typePrefix}::${dStr}::${displayName}`;
       if (!bucket[key]) {
+        const groupHeaderTags = item.group ? (data.groupTags[`${item.startDate}::${displayName}`] ?? null) : null;
         bucket[key] = {
-          name: key,
+          id: key,
+          name: displayName,
+          lane: displayName,
           isGroup: !!item.group,
           minTime: startMs,
           maxTime: endMs,
-          tags: [...item.tags],
+          tags: item.group
+            ? (groupHeaderTags ? [...groupHeaderTags] : [])
+            : [...item.tags],
           tasksTotal: 0,
           tasksDone: 0,
           children: []

@@ -4,6 +4,27 @@ All notable changes to the "TaskMark" extension will be documented in this file.
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.4.0] - 2026-04-19
+
+### Added
+- Toggle task completion by clicking the checkbox directly in Calendar views; updates the underlying `.tmd` file (#32).
+- Configurable `taskmark.fontSize` setting (10–24 px) that scales Calendar views and Gantt timeline labels (#79).
+- Zoom in / zoom out buttons in the Gantt timeline header, in addition to `Ctrl + Mouse Wheel` (#51).
+- Group header tags now set the group display color in both Calendar and Gantt views (#66).
+- Monthly calendar items are now rendered as compact bands with ellipsis to fit more per cell (#75).
+
+### Fixed
+- Gantt standalone bars and Monthly standalone tasks now use their own tags for color resolution (#66).
+- Same-named groups in different date sections are treated as separate entities in the Gantt chart (#68).
+- Calendar now merges group range items into a single continuous band across the range (#65).
+- Monthly day-header row no longer stretches to fill extra vertical space.
+- Checkbox toggle regex is anchored to the start of a line to avoid matching brackets appearing in item text.
+- Cell band height, date badge, and minimum readable sizes scale correctly with `taskmark.fontSize`.
+
+### Changed
+- Default Gantt zoom level raised to reduce label overlap on first open.
+- Minimum supported VS Code engine version is `1.109.1`.
+
 ## [1.3.2] - 2026-04-12
 
 ### Fixed

@@ -1,21 +1,16 @@
 import * as vscode from 'vscode';
-import { parseTmd, TaskMarkData, VALID_CSS_COLOR_REGEX } from './parser';
-import { buildGanttEntities, GanttData } from './gantt';
+import { parseTmd, VALID_CSS_COLOR_REGEX } from './parser';
+import { buildGanttEntities } from './gantt';
 import { getWebviewHtml } from './template';
 import { debounce, DebouncedFn } from './utils/debounce';
-
-export interface TaskMarkUpdateMessage {
-  type: 'update';
-  uri: string;
-  data: TaskMarkData;
-  ganttData: GanttData;
-  warnings: string[];
-}
-
-export interface TaskMarkErrorMessage {
-  type: 'parseError';
-  message: string;
-}
+import {
+  TaskMarkUpdateMessage,
+  TaskMarkErrorMessage,
+  ToggleTaskMessage,
+  toggleCheckboxInLine,
+  resolveToggleTargetLineIndex,
+  resolveFontSize
+} from './messages';
 
 export class TaskmarkPanel {
   public static currentPanel: TaskmarkPanel | undefined;
@@ -93,13 +88,83 @@ export class TaskmarkPanel {
 
     vscode.workspace.onDidChangeConfiguration(
       e => {
-        if (e.affectsConfiguration('taskmark.tagColors')) {
+        if (
+          e.affectsConfiguration('taskmark.tagColors') ||
+          e.affectsConfiguration('taskmark.fontSize')
+        ) {
           this.updateFromActiveEditor();
         }
       },
       null,
       this._disposables
     );
+
+    this._panel.webview.onDidReceiveMessage(
+      msg => this.handleWebviewMessage(msg),
+      null,
+      this._disposables
+    );
+  }
+
+  private handleWebviewMessage(message: unknown): void {
+    if (!message || typeof message !== 'object') {
+      return;
+    }
+    const msg = message as { type?: unknown };
+    if (msg.type === 'toggleTask') {
+      const toggle = message as ToggleTaskMessage;
+      if (
+        typeof toggle.uri !== 'string' ||
+        typeof toggle.rawLine !== 'number' ||
+        typeof toggle.sourceLine !== 'string'
+      ) {
+        return;
+      }
+      void this.toggleTaskInDocument(toggle.uri, toggle.rawLine, toggle.sourceLine);
+    }
+  }
+
+  private async toggleTaskInDocument(
+    uriString: string,
+    rawLine: number,
+    sourceLine: string
+  ): Promise<void> {
+    try {
+      const uri = vscode.Uri.parse(uriString);
+      const document = await vscode.workspace.openTextDocument(uri);
+      const resolved = resolveToggleTargetLineIndex(
+        document.lineCount,
+        i => document.lineAt(i).text,
+        rawLine,
+        sourceLine
+      );
+      if (resolved === null) {
+        vscode.window.showInformationMessage(
+          'TaskMark: That task no longer matches the file (it may have been edited). Open TaskMark again or toggle from the editor.'
+        );
+        return;
+      }
+      const line = document.lineAt(resolved);
+      const toggled = toggleCheckboxInLine(line.text);
+      if (toggled === null || toggled === line.text) {
+        return;
+      }
+      const edit = new vscode.WorkspaceEdit();
+      edit.replace(uri, line.range, toggled);
+      const applied = await vscode.workspace.applyEdit(edit);
+      if (applied) {
+        this._debouncedUpdateFromDocument.cancel();
+        this.updateFromDocument(document);
+      } else {
+        vscode.window.showErrorMessage(
+          'TaskMark: Failed to toggle task. The file may be read-only or locked by another process.'
+        );
+      }
+    } catch (e) {
+      console.error('TaskMark toggleTask error', e);
+      const detail = e instanceof Error ? e.message : String(e);
+      vscode.window.showErrorMessage(`TaskMark: Failed to toggle task. ${detail}`);
+    }
   }
 
   private updateFromActiveEditor() {
@@ -113,7 +178,8 @@ export class TaskmarkPanel {
     try {
       const text = document.getText();
       const { data: parsedData, warnings } = parseTmd(text);
-      const configColors = vscode.workspace.getConfiguration('taskmark').get<Record<string, string>>('tagColors', {});
+      const config = vscode.workspace.getConfiguration('taskmark');
+      const configColors = config.get<Record<string, string>>('tagColors', {});
       for (const [tag, color] of Object.entries(configColors)) {
         if (VALID_CSS_COLOR_REGEX.test(color)) {
           if (!parsedData.tagColors[tag]) {
@@ -123,12 +189,14 @@ export class TaskmarkPanel {
           warnings.push(`Setting tagColors: invalid color '${color}' for tag '${tag}', skipped`);
         }
       }
+      const fontSize = resolveFontSize(config.get<number>('fontSize'));
       const message: TaskMarkUpdateMessage = {
         type: 'update',
         uri: document.uri.toString(),
         data: parsedData,
         ganttData: buildGanttEntities(parsedData),
-        warnings: [...new Set(warnings)]
+        warnings: [...new Set(warnings)],
+        fontSize
       };
       this._panel.webview.postMessage(message);
     } catch (e) {

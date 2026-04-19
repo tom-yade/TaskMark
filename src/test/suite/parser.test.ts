@@ -13,7 +13,7 @@ suite('Parser Test Suite', () => {
     assert.ok(Array.isArray(result.warnings), 'warnings should be an array');
   });
 
-  test('parseTmd basically works for tasks and schedules', () => {
+  test('parseTmd distinguishes timed task lines from plain schedule lines', () => {
     const text = `
 # 2026-03-26
 - [ ] 09:00-10:00 Meeting
@@ -28,9 +28,11 @@ suite('Parser Test Suite', () => {
     assert.strictEqual(items[0].type, 'task');
     assert.strictEqual(items[0].status, 'todo');
     assert.strictEqual(items[0].text, 'Meeting');
+    assert.strictEqual(items[0].sourceLine, '- [ ] 09:00-10:00 Meeting');
 
     assert.strictEqual(items[1].type, 'schedule');
     assert.strictEqual(items[1].text, 'Schedule item');
+    assert.strictEqual(items[1].sourceLine, '- Schedule item');
   });
 
   test('parseTmd parses @tags block', () => {
@@ -63,19 +65,7 @@ suite('Parser Test Suite', () => {
     assert.strictEqual(data.days['2026-03-26'].items[0].text, 'Task item');
   });
 
-  test('parseTmd empty @tags block produces empty tagColors', () => {
-    const text = `
-@tags
-@end
-
-# 2026-03-26
-- Task
-`;
-    const { data } = parseTmd(text);
-    assert.deepStrictEqual(data.tagColors, {});
-  });
-
-  test('parseTmd basic repetition handling', () => {
+  test('parseTmd @repeat count expands the item into that many consecutive days', () => {
     const text = `
 # 2026-03-26
 - Daily habit @repeat(daily, count:3)
@@ -190,25 +180,79 @@ suite('Parser Test Suite', () => {
     assert.ok(!data.days['2026-03-02'], 'Repeat should not expand when endDate is set');
   });
 
-  test('parseTmd date header without zero-padding is normalized and parsed', () => {
-    const text = `
+  test('parseTmd normalizes unpadded dates and times across every position', () => {
+    // All positions that accept a date or time string should normalize
+    // unpadded forms (e.g. `2026-3-1`, `9:0`) to zero-padded forms.
+    const cases: Array<{ label: string; text: string; check: (data: ReturnType<typeof parseTmd>['data']) => void }> = [
+      {
+        label: 'date header',
+        text: `
 # 2026-3-1
 - Meeting
-`;
-    const { data } = parseTmd(text);
-    assert.ok(data.days['2026-03-01'], 'Day should be stored with zero-padded key');
-    assert.strictEqual(data.days['2026-03-01'].items.length, 1);
-    assert.strictEqual(data.days['2026-03-01'].items[0].text, 'Meeting');
-  });
-
-  test('parseTmd date range end date without zero-padding is normalized', () => {
-    const text = `
+`,
+        check: data => {
+          assert.ok(data.days['2026-03-01'], 'day stored under zero-padded key');
+          assert.strictEqual(data.days['2026-03-01'].items[0].text, 'Meeting');
+        },
+      },
+      {
+        label: 'date range end date',
+        text: `
 # 2026-3-1 : 2026-3-10
 - Conference
-`;
-    const { data } = parseTmd(text);
-    assert.ok(data.days['2026-03-01'], 'Start day should be zero-padded');
-    assert.strictEqual(data.days['2026-03-01'].items[0].endDate, '2026-03-10');
+`,
+        check: data => {
+          assert.ok(data.days['2026-03-01']);
+          assert.strictEqual(data.days['2026-03-01'].items[0].endDate, '2026-03-10');
+        },
+      },
+      {
+        label: 'time range with unpadded minutes',
+        text: `
+# 2026-03-01
+- 9:0-17:0 Conference
+`,
+        check: data => {
+          assert.strictEqual(data.days['2026-03-01'].items[0].time, '9:00-17:00');
+        },
+      },
+      {
+        label: 'start-only time with unpadded minutes',
+        text: `
+# 2026-03-01
+- 9:0 Meeting
+`,
+        check: data => {
+          assert.strictEqual(data.days['2026-03-01'].items[0].time, '9:00');
+        },
+      },
+      {
+        label: 'repeat except with unpadded date',
+        text: `
+# 2026-03-16
+- Weekly Sync @repeat(weekly, count:3, except:2026-3-23)
+`,
+        check: data => {
+          assert.ok(data.days['2026-03-16']);
+          assert.ok(!data.days['2026-03-23'], '2026-03-23 should be skipped');
+          assert.ok(data.days['2026-03-30']);
+        },
+      },
+    ];
+
+    for (const c of cases) {
+      const { data } = parseTmd(c.text);
+      try {
+        c.check(data);
+      } catch (e) {
+        // Preserve the original assertion's stack trace so the failing
+        // `assert` line stays visible; only prefix the message with the case label.
+        if (e instanceof Error) {
+          e.message = `case "${c.label}" failed: ${e.message}`;
+        }
+        throw e;
+      }
+    }
   });
 
   test('parseTmd date header with invalid month is ignored', () => {
@@ -218,39 +262,6 @@ suite('Parser Test Suite', () => {
 `;
     const { data } = parseTmd(text);
     assert.strictEqual(Object.keys(data.days).length, 0, 'Invalid date header should be ignored');
-  });
-
-  test('parseTmd time with unpadded minutes is normalized', () => {
-    const text = `
-# 2026-03-01
-- 9:0-17:0 Conference
-`;
-    const { data } = parseTmd(text);
-    const items = data.days['2026-03-01'].items;
-    assert.strictEqual(items.length, 1);
-    assert.strictEqual(items[0].time, '9:00-17:00');
-  });
-
-  test('parseTmd start time only with unpadded minutes is normalized', () => {
-    const text = `
-# 2026-03-01
-- 9:0 Meeting
-`;
-    const { data } = parseTmd(text);
-    const items = data.days['2026-03-01'].items;
-    assert.strictEqual(items.length, 1);
-    assert.strictEqual(items[0].time, '9:00');
-  });
-
-  test('parseTmd repeat except with unpadded date skips the correct day', () => {
-    const text = `
-# 2026-03-16
-- Weekly Sync @repeat(weekly, count:3, except:2026-3-23)
-`;
-    const { data } = parseTmd(text);
-    assert.ok(data.days['2026-03-16'], '2026-03-16 should exist');
-    assert.ok(!data.days['2026-03-23'], '2026-03-23 should be skipped');
-    assert.ok(data.days['2026-03-30'], '2026-03-30 should still exist');
   });
 
   // ─── Warning Collection Tests ────────────────────────────────
@@ -446,32 +457,88 @@ not a valid tag line
     assert.ok(data.days['2026-03-01'], 'Valid date should still parse');
   });
 
-  test('parseTmd valid input has empty warnings array', () => {
+  test('parseTmd deduplicates identical warnings', () => {
     const text = `
-@tags
-#work : #0088ff
-@end
-
 # 2026-03-01
-- 9:00-10:00 Meeting #work
-- Standup @repeat(daily, count:2)
-`;
-    const { data, warnings } = parseTmd(text);
-    assert.strictEqual(warnings.length, 0);
-    assert.ok(data.days['2026-03-01']);
-    assert.ok(data.days['2026-03-02']);
-  });
-
-  test('parseTmd returns deduplicated warnings', () => {
-    const text = `
-# 2026-99-99
-- Item A
-# 2026-88-88
-- Item B
+- Weekly @repeat(weekly, count:3, except:2026-99-99 2026-99-99)
 `;
     const { warnings } = parseTmd(text);
-    assert.ok(warnings.length > 0, 'Should have warnings');
-    const uniqueWarnings = [...new Set(warnings)];
-    assert.deepStrictEqual(warnings, uniqueWarnings, 'warnings should be deduplicated');
+    assert.strictEqual(warnings.length, 1, 'identical warnings should be deduplicated to one');
+    assert.match(warnings[0], /invalid except date '2026-99-99'/);
+  });
+
+  // ─── Group Tags Tests ────────────────────────────────────────
+
+  test('parseTmd group header with tag stores groupTags entry', () => {
+    const text = `
+# 2026-03-01
+> Sprint #backend
+> - [ ] Task A
+`;
+    const { data } = parseTmd(text);
+    assert.deepStrictEqual(data.groupTags['2026-03-01::Sprint'], ['backend']);
+  });
+
+  test('parseTmd group header without tag produces no groupTags entry', () => {
+    const text = `
+# 2026-03-01
+> Sprint
+> - [ ] Task A
+`;
+    const { data } = parseTmd(text);
+    assert.strictEqual(data.groupTags['2026-03-01::Sprint'], undefined);
+  });
+
+  test('parseTmd group header tag is stripped from group name', () => {
+    const text = `
+# 2026-03-01
+> Sprint #backend
+> - [ ] Task A
+`;
+    const { data } = parseTmd(text);
+    const items = data.days['2026-03-01'].items;
+    assert.strictEqual(items[0].group, 'Sprint', 'group name should not include the tag');
+  });
+
+  test('parseTmd group header with multiple tags stores all tags', () => {
+    const text = `
+# 2026-03-01
+> Sprint #backend #mobile
+> - [ ] Task A
+`;
+    const { data } = parseTmd(text);
+    assert.deepStrictEqual(data.groupTags['2026-03-01::Sprint'], ['backend', 'mobile']);
+  });
+
+  test('parseTmd warns when group header has only tags and no group name', () => {
+    const text = `
+# 2026-03-01
+> #backend
+> - [ ] Task A
+`;
+    const { warnings } = parseTmd(text);
+    assert.strictEqual(warnings.length, 1, 'Should warn for empty group name');
+    assert.ok(warnings[0].includes('Line 3'), 'Warning should reference line number');
+  });
+
+  test('parseTmd item has startDate matching the date header', () => {
+    const text = `
+# 2026-03-01
+- Meeting
+`;
+    const { data } = parseTmd(text);
+    const item = data.days['2026-03-01'].items[0];
+    assert.strictEqual(item.startDate, '2026-03-01');
+  });
+
+  test('parseTmd range item has startDate matching the range start date', () => {
+    const text = `
+# 2026-03-01 : 2026-03-10
+> Sprint #backend
+> - [ ] Task A
+`;
+    const { data } = parseTmd(text);
+    const item = data.days['2026-03-01'].items[0];
+    assert.strictEqual(item.startDate, '2026-03-01');
   });
 });

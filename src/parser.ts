@@ -1,5 +1,6 @@
 export interface TaskMarkData {
   tagColors: Record<string, string>;
+  groupTags: Record<string, string[]>; // Key is "YYYY-MM-DD::groupName"
   days: Record<string, DayData>; // Key is YYYY-MM-DD
 }
 
@@ -20,12 +21,15 @@ export interface MarkItem {
   id: string;
   type: ItemType;
   text: string;
+  /** Exact document line text at parse time; used to verify toggles after edits. */
+  sourceLine: string;
   time?: string;
   tags: string[];
   status?: TaskStatus;
   repeat?: string;
   group?: string;
   rawLine: number;
+  startDate: string;
   endDate?: string;
 }
 
@@ -35,7 +39,14 @@ const TAG_COLOR_REGEX = /^#([^\s:]+)\s*:\s*(.+)$/;
 export const VALID_CSS_COLOR_REGEX = /^(?:#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(?:rgb|hsl)a?\(\s*\d[\d.]*%?(?:\s*[,/\s]\s*\d[\d.]*%?){2,3}\s*\)|[a-zA-Z]{1,30})$/;
 const DATE_REGEX = /^#\s+(\d{4}-\d{1,2}-\d{1,2})(?:\s*:\s*(\d{4}-\d{1,2}-\d{1,2}))?/;
 const GROUP_REGEX = /^>\s*([^-\s].+)$/;
-const ITEM_REGEX = /^(>\s*)?(-)?\s*(\[\s*([xX\s])\s*\])?\s*((\d{1,2}:\d{1,2})(?:-(\d{1,2}:\d{1,2}))?)?\s*(.*)$/;
+// Capturing form, used locally to build ITEM_REGEX.
+const TASK_LINE_PREFIX_SRC = '(>\\s*)?(-)?';
+/** Non-capturing form of the same prefix — shared with messages.ts
+ *  toggleCheckboxInLine. Keep the two regex shapes in sync. */
+export const TASK_LINE_PREFIX_NC = '(?:>\\s*)?(?:-)?';
+const ITEM_REGEX = new RegExp(
+  `^${TASK_LINE_PREFIX_SRC}\\s*(\\[\\s*([xX\\s])\\s*\\])?\\s*((\\d{1,2}:\\d{1,2})(?:-(\\d{1,2}:\\d{1,2}))?)?\\s*(.*)$`
+);
 const REPEAT_REGEX = /@repeat\(([^)]+)\)/;
 const TAG_SPLIT_REGEX = /#([^\s#]+)/g;
 const EVERY_REGEX = /^(\d+)(days?|weeks?|months?)$/;
@@ -167,7 +178,7 @@ function parseRepeatOptions(repeatStr: string, lineNum: number, warnings: string
 
 export function parseTmd(text: string): ParseResult {
   const lines = text.split(/\r?\n/);
-  const data: TaskMarkData = { tagColors: {}, days: {} };
+  const data: TaskMarkData = { tagColors: {}, groupTags: {}, days: {} };
   const warnings: string[] = [];
 
   let inTagsBlock = false;
@@ -231,14 +242,22 @@ export function parseTmd(text: string): ParseResult {
     // 3. Group header
     const groupMatch = line.match(GROUP_REGEX);
     if (groupMatch) {
-      currentGroup = groupMatch[1].trim();
+      const { tags: gTags, cleaned: gName } = extractTags(groupMatch[1].trim());
+      if (!gName) {
+        warnings.push(`Line ${i + 1}: group header has no name, skipped`);
+        continue;
+      }
+      currentGroup = gName;
+      if (gTags.length > 0 && currentDate) {
+        data.groupTags[`${currentDate}::${currentGroup}`] = gTags;
+      }
       continue;
     }
 
     // 4. Item (schedule or task)
     const itemMatch = rawLine.match(ITEM_REGEX);
     if (itemMatch && itemMatch[2]) {
-      const result = createMarkItem(itemMatch, i, currentDate, currentGroup, currentEndDate);
+      const result = createMarkItem(itemMatch, i, rawLine, currentDate, currentGroup, currentEndDate);
       if (result) {
         data.days[currentDate].items.push(result.item);
         currentGroup = result.newGroup;
@@ -252,6 +271,7 @@ export function parseTmd(text: string): ParseResult {
 function createMarkItem(
   itemMatch: RegExpMatchArray,
   lineIndex: number,
+  sourceLine: string,
   currentDate: string,
   currentGroup: string,
   endDate = '',
@@ -288,12 +308,14 @@ function createMarkItem(
     id: `item-${lineIndex}-${currentDate}`,
     type,
     text: cleaned,
+    sourceLine,
     time: timeString,
     tags,
     status,
     repeat: repeatStr,
     group: newGroup || undefined,
     rawLine: lineIndex,
+    startDate: currentDate,
     endDate: endDate || undefined,
   };
 

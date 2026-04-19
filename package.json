@@ -2,7 +2,7 @@
   "name": "taskmark",
   "displayName": "TaskMark",
   "description": "Schedule and Task Management with Markdown and Calendar/Timeline Views",
-  "version": "1.3.2",
+  "version": "1.4.0",
   "icon": "media/icon.png",
   "publisher": "Yadecode",
   "repository": {
@@ -10,7 +10,7 @@
     "url": "https://github.com/tom-yade/taskmark.git"
   },
   "engines": {
-    "vscode": "^1.115.0"
+    "vscode": "^1.109.1"
   },
   "categories": [
     "Other"
@@ -68,6 +68,13 @@
           "type": "object",
           "default": {},
           "description": "Custom color mapping for tags (e.g. {\"meeting\": \"#ff0000\"})"
+        },
+        "taskmark.fontSize": {
+          "type": "number",
+          "default": 14,
+          "minimum": 10,
+          "maximum": 24,
+          "description": "Font size (in px) applied to the calendar views (Monthly/Weekly/Daily) and Gantt timeline labels. Values outside 10–24 are clamped."
         }
       }
     }
@@ -84,7 +91,7 @@
   "devDependencies": {
     "@types/mocha": "^10.0.10",
     "@types/node": "25.x",
-    "@types/vscode": "^1.115.0",
+    "@types/vscode": "^1.109.1",
     "@typescript-eslint/eslint-plugin": "^7.11.0",
     "@typescript-eslint/parser": "^7.11.0",
     "@vscode/test-electron": "^2.5.2",

@@ -9,6 +9,9 @@
   const GANTT_MIN_BAR_WIDTH = 12;
   const GANTT_LABEL_OFFSET_X = 6;
   const GANTT_LABEL_OFFSET_Y = 4;
+  const GANTT_ZOOM_IN_FACTOR = 1.25;
+  const GANTT_ZOOM_OUT_FACTOR = 0.8;
+  const GANTT_DEFAULT_ZOOM = Math.pow(GANTT_ZOOM_IN_FACTOR, 5); // ≈3.05, five zoom-in steps
 
   // ─── State ───────────────────────────────────────────────────
   let baseView = 'calendar'; // 'calendar' | 'timeline'
@@ -18,7 +21,7 @@
   let currentTaskMarkData = null;
   let currentGanttData = null;
   let rangeItemIndex = null; // Pre-built index: date string -> range items spanning that date
-  let ganttZoom = 1; // 1 = 100px per day
+  let ganttZoom = GANTT_DEFAULT_ZOOM; // 1 = 100px per day
   let expandedGroups = new Set();
   let isPanning = false;
   let hasDragged = false;
@@ -26,6 +29,9 @@
   let startPanY = 0;
   let initialScrollL = 0;
   let initialScrollT = 0;
+
+  // ─── VS Code API ─────────────────────────────────────────────
+  const vscode = acquireVsCodeApi();
 
   // ─── DOM References ──────────────────────────────────────────
   const errorBanner = document.getElementById('tm-parse-error-banner');
@@ -42,10 +48,16 @@
   const viewTimeline = document.getElementById('tm-timeline');
   const monthNav = document.querySelector('.tm-month-nav');
   const monthDisplay = document.getElementById('current-month-display');
+  const zoomControls = document.getElementById('tm-zoom-controls');
+  const btnZoomIn = document.getElementById('btn-zoom-in');
+  const btnZoomOut = document.getElementById('btn-zoom-out');
 
   // ─── Utility Functions ───────────────────────────────────────
 
-  /** Format date parts into 'YYYY-MM-DD' string */
+  /** Format date parts into 'YYYY-MM-DD' string.
+   *  Intentionally separate from src/parser.ts#toLocaleDateStr: this one takes
+   *  (y, m, d) numbers so loops like buildRangeItemIndex can avoid repeated
+   *  Date allocations, while the parser variant takes a Date instance. */
   function formatDateStr(year, month, day) {
     return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
   }
@@ -69,8 +81,9 @@
     return '';
   }
 
-  // Keep in sync with VALID_CSS_COLOR_REGEX in src/parser.ts
-  const VALID_CSS_COLOR_RE = /^(?:#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(?:rgb|hsl)a?\(\s*\d[\d.]*%?(?:\s*[,/\s]\s*\d[\d.]*%?){2,3}\s*\)|[a-zA-Z]{1,30})$/;
+  // Built from the canonical VALID_CSS_COLOR_REGEX in src/parser.ts,
+  // injected into <body data-valid-css-color-re=...> by src/template.ts.
+  const VALID_CSS_COLOR_RE = new RegExp(document.body.dataset.validCssColorRe);
 
   /** Deterministic color from tag name, or explicit color from map */
   function getTagColor(tagName, tagColorsMap) {
@@ -97,6 +110,15 @@
       return getTagColor(tags[0], tagColorsMap);
     }
     return 'var(--tm-accent)';
+  }
+
+  /** Build HTML for a list of tag pills */
+  function createTagPillsHtml(tags, tagColorsMap) {
+    if (!tags || tags.length === 0) return '';
+    return tags.map(t => {
+      const color = getTagColor(t, tagColorsMap);
+      return `<span class="tm-tag" style="background-color: ${color}">${escapeHtml(t)}</span>`;
+    }).join('');
   }
 
   /** Escape special HTML characters to prevent XSS when embedding user content */
@@ -160,7 +182,7 @@
       if (message.uri && message.uri !== currentUri) {
         currentUri = message.uri;
         expandedGroups = new Set();
-        ganttZoom = 1;
+        ganttZoom = GANTT_DEFAULT_ZOOM;
         if (viewTimeline) {
           viewTimeline.scrollLeft = 0;
           viewTimeline.scrollTop = 0;
@@ -169,6 +191,9 @@
       currentTaskMarkData = message.data;
       currentGanttData = message.ganttData;
       rangeItemIndex = buildRangeItemIndex(currentTaskMarkData);
+      if (typeof message.fontSize === 'number') {
+        document.documentElement.style.setProperty('--tm-font-size', `${message.fontSize}px`);
+      }
       if (errorBanner) {
         errorBanner.textContent = '';
         errorBanner.classList.add('hidden');
@@ -195,6 +220,18 @@
     }
   });
 
+  // ─── Checkbox Toggle ─────────────────────────────────────────
+
+  document.addEventListener('click', event => {
+    const cb = event.target.closest('.tm-checkbox[data-raw-line]');
+    if (!cb || !currentUri) return;
+    const rawLine = Number(cb.dataset.rawLine);
+    if (!Number.isInteger(rawLine) || rawLine < 0) return;
+    const sourceLine = cb.dataset.sourceLine;
+    if (typeof sourceLine !== 'string') return;
+    vscode.postMessage({ type: 'toggleTask', uri: currentUri, rawLine, sourceLine });
+  });
+
   // ─── UI State Management ─────────────────────────────────────
 
   function updateActiveButtons() {
@@ -211,10 +248,12 @@
       viewTimeline.classList.remove('hidden');
       viewCalendar.classList.add('hidden');
       monthNav?.classList.add('hidden');
+      zoomControls.classList.remove('hidden');
     } else {
       viewTimeline.classList.add('hidden');
       viewCalendar.classList.remove('hidden');
       monthNav?.classList.remove('hidden');
+      zoomControls.classList.add('hidden');
     }
   }
 
@@ -239,6 +278,7 @@
   });
 
   viewCalendar?.addEventListener('click', (e) => {
+    if (e.target.closest('.tm-checkbox[data-raw-line]')) return;
     const wrap = e.target.closest('.clickable-date');
     if (wrap && wrap.dataset.date) {
       currentDate = parseLocalDate(wrap.dataset.date);
@@ -286,13 +326,20 @@
   window.addEventListener('blur', stopPanning);
 
   // Gantt zoom
-  viewTimeline?.addEventListener('wheel', (e) => {
+  function applyZoom(factor) {
+    ganttZoom *= factor;
+    renderTimeline();
+  }
+
+  viewTimeline.addEventListener('wheel', (e) => {
     if (e.ctrlKey) {
       e.preventDefault();
-      ganttZoom *= (e.deltaY < 0 ? 1.2 : 0.8);
-      renderTimeline();
+      applyZoom(e.deltaY < 0 ? GANTT_ZOOM_IN_FACTOR : GANTT_ZOOM_OUT_FACTOR);
     }
   });
+
+  btnZoomIn.addEventListener('click', () => applyZoom(GANTT_ZOOM_IN_FACTOR));
+  btnZoomOut.addEventListener('click', () => applyZoom(GANTT_ZOOM_OUT_FACTOR));
 
   // Date navigation
   function navigateDate(direction) {
@@ -351,7 +398,7 @@
 
   // ─── Calendar Items HTML ─────────────────────────────────────
 
-  function createItemsHtml(items, tagColorsMap, isMonthly = false) {
+  function createItemsHtml(items, tagColorsMap, isMonthly = false, dateStr = '') {
     if (!items || items.length === 0) return '';
 
     const sortedItems = [...items].sort((a, b) => {
@@ -380,25 +427,38 @@
     });
 
     const renderItem = (item) => {
-      const tagsHtml = (item.tags && item.tags.length > 0)
-        ? item.tags.map(t => {
-          const color = getTagColor(t, tagColorsMap);
-          return `<span class="tm-tag" style="background-color: ${color}">${escapeHtml(t)}</span>`;
-        }).join('')
-        : '';
+      const tagsHtml = createTagPillsHtml(item.tags, tagColorsMap);
 
-      const cbHtml = item.type === 'task' ? '<span class="tm-checkbox"></span>' : '';
+      const cbHtml = item.type === 'task'
+        ? `<span class="tm-checkbox" data-raw-line="${item.rawLine}" data-source-line="${escapeHtml(item.sourceLine)}"></span>`
+        : '';
       const timeHtml = itemHasTime(item) ? `<span class="tm-time">${item.time}</span>` : '';
-      const classNames = `tm-item ${item.type} ${item.status || ''}`;
+      const compactClass = isMonthly ? ' compact' : '';
+      const classNames = `tm-item ${item.type} ${item.status || ''}${compactClass}`;
       const borderColor = getItemBorderColor(item.tags, tagColorsMap);
 
       return `<div class="${classNames}" style="border-left-color: ${borderColor}">
         ${cbHtml}
-        <div>${timeHtml} ${escapeHtml(item.text)} ${tagsHtml}</div>
+        <div class="tm-item-body">${timeHtml} <span class="tm-item-text">${escapeHtml(item.text)}</span> ${tagsHtml}</div>
       </div>`;
     };
 
-    const renderTaskSummary = (itemList, titleFallback) => {
+    const getGroupBorderColor = (gName, itemList) => {
+      if (gName && currentTaskMarkData.groupTags) {
+        const lookupDates = new Set();
+        if (dateStr) lookupDates.add(dateStr);
+        itemList.forEach(i => { if (i.startDate) lookupDates.add(i.startDate); });
+        for (const d of lookupDates) {
+          const gTags = currentTaskMarkData.groupTags[`${d}::${gName}`];
+          if (gTags && gTags.length > 0) return getTagColor(gTags[0], tagColorsMap);
+        }
+        return 'var(--tm-accent)';
+      }
+      const firstTagItem = itemList.find(i => i.tags && i.tags.length > 0);
+      return firstTagItem ? getTagColor(firstTagItem.tags[0], tagColorsMap) : 'var(--tm-accent)';
+    };
+
+    const renderTaskSummary = (itemList, titleFallback, gName = '') => {
       const tasks = itemList.filter(i => i.type === 'task');
       const schedules = itemList.filter(i => i.type === 'schedule');
       let outHtml = schedules.map(renderItem).join('');
@@ -407,15 +467,12 @@
         const doneCount = tasks.filter(t => t.status === 'done').length;
         const totalCount = tasks.length;
         const isAllDone = doneCount === totalCount;
-        const firstTagTask = tasks.find(t => t.tags && t.tags.length > 0);
-        const borderColor = firstTagTask
-          ? getTagColor(firstTagTask.tags[0], tagColorsMap)
-          : 'var(--tm-accent)';
-        const classNames = `tm-item task ${isAllDone ? 'done' : ''}`;
+        const borderColor = getGroupBorderColor(gName, itemList);
+        const classNames = `tm-item task compact ${isAllDone ? 'done' : ''}`;
 
         outHtml += `<div class="${classNames}" style="border-left-color: ${borderColor}">
           <span class="tm-checkbox"></span>
-          <div><strong>${doneCount}/${totalCount}</strong> ${titleFallback}</div>
+          <div class="tm-item-body"><span class="tm-time">${doneCount}/${totalCount}</span> <span class="tm-item-text">${titleFallback}</span></div>
         </div>`;
       }
       return outHtml;
@@ -424,20 +481,17 @@
     let html = '<div class="tm-items-list">';
 
     Object.keys(grouped).forEach(gName => {
+      const groupBorderColor = getGroupBorderColor(gName, grouped[gName]);
       const groupContent = isMonthly
-        ? renderTaskSummary(grouped[gName], 'Tasks')
+        ? renderTaskSummary(grouped[gName], 'Tasks', gName)
         : grouped[gName].map(renderItem).join('');
-      html += `<div class="tm-group-box">
+      html += `<div class="tm-group-box" style="border-left-color: ${groupBorderColor}">
         <div class="tm-group-title">${escapeHtml(gName)}</div>
         ${groupContent}
       </div>`;
     });
 
-    if (isMonthly) {
-      html += renderTaskSummary(standalone, 'Tasks');
-    } else {
-      html += standalone.map(renderItem).join('');
-    }
+    html += standalone.map(renderItem).join('');
 
     html += '</div>';
     return html;
@@ -483,14 +537,32 @@
 
   // ─── Multi-Day Band Rendering ────────────────────────────────
 
-  /** Collect all range items from the dataset (items with endDate). */
+  /** Collect all range items from the dataset (items with endDate).
+   *  Children of a grouped range are collapsed into a single representative entry
+   *  keyed by `${date}::${group}`, so same-named groups in different date sections
+   *  remain distinct. */
   function collectAllRangeItems() {
     const rangeItems = [];
+    const groupMerged = Object.create(null);
+
     Object.entries(currentTaskMarkData.days).forEach(([date, dayData]) => {
       dayData.items.forEach(item => {
-        if (item.endDate) rangeItems.push({ date, item });
+        if (!item.endDate) return;
+
+        if (item.group) {
+          const key = `${date}::${item.group}`;
+          if (!groupMerged[key]) {
+            const groupTags = currentTaskMarkData.groupTags && currentTaskMarkData.groupTags[key];
+            const tags = groupTags || [];
+            groupMerged[key] = { date, item: { ...item, text: item.group, tags } };
+          }
+        } else {
+          rangeItems.push({ date, item });
+        }
       });
     });
+
+    Object.values(groupMerged).forEach(({ date, item }) => rangeItems.push({ date, item }));
     return rangeItems;
   }
 
@@ -669,7 +741,7 @@
         const regularItems = dayItems.filter(item => !item.endDate);
         const el = createCell(cell.dayNo, cell.isOtherMonth, cell.isToday, cell.dayOfWeek, cell.dStr);
         el.innerHTML += createCellBandsHtml(bandMap[colIndex], maxRow, tagColors);
-        el.innerHTML += createItemsHtml(regularItems, tagColors, true);
+        el.innerHTML += createItemsHtml(regularItems, tagColors, true, cell.dStr);
         viewCalendar.appendChild(el);
       });
     }
@@ -703,7 +775,7 @@
       const cell = createCell(d.getDate(), false, dStr === todayStr, dayOfWeek, dStr);
       cell.style.flex = '1';
       cell.innerHTML += createCellBandsHtml(bandMap[colIndex], maxRow, tagColors);
-      cell.innerHTML += createItemsHtml(regularItems, tagColors);
+      cell.innerHTML += createItemsHtml(regularItems, tagColors, false, dStr);
       viewCalendar.appendChild(cell);
       d.setDate(d.getDate() + 1);
     }
@@ -726,7 +798,7 @@
     const dayData = getDayData(dStr);
     const cell = createCell('', false, dStr === todayStr, dayOfWeek);
     cell.style.flex = '1';
-    cell.innerHTML += createItemsHtml(dayData.items, currentTaskMarkData.tagColors);
+    cell.innerHTML += createItemsHtml(dayData.items, currentTaskMarkData.tagColors, false, dStr);
     viewCalendar.appendChild(cell);
   }
 
@@ -779,13 +851,14 @@
   }
 
   /** Render a single Gantt bar (group or standalone) */
-  function renderGanttEntityBar(container, entity, startDate, pxPerMs, yOffset, totalWidth) {
-    // Row background
-    const rowBg = document.createElement('div');
-    rowBg.className = 'tm-gantt-row-bg';
-    rowBg.style.top = yOffset + 'px';
-    rowBg.style.width = totalWidth + 'px';
-    container.appendChild(rowBg);
+  function renderGanttEntityBar(container, entity, startDate, pxPerMs, yOffset, totalWidth, skipRowBg) {
+    if (!skipRowBg) {
+      const rowBg = document.createElement('div');
+      rowBg.className = 'tm-gantt-row-bg';
+      rowBg.style.top = yOffset + 'px';
+      rowBg.style.width = totalWidth + 'px';
+      container.appendChild(rowBg);
+    }
 
     const bgColor = getItemBorderColor(entity.tags, currentTaskMarkData.tagColors);
 
@@ -820,16 +893,16 @@
 
     const indicator = document.createElement('span');
     indicator.className = 'tm-gantt-group-indicator';
-    indicator.textContent = expandedGroups.has(entity.name) ? '▼' : '▶';
+    indicator.textContent = expandedGroups.has(entity.id) ? '▼' : '▶';
     bar.appendChild(indicator);
 
     bar.addEventListener('click', (e) => {
       e.stopPropagation();
       if (hasDragged) return;
-      if (expandedGroups.has(entity.name)) {
-        expandedGroups.delete(entity.name);
+      if (expandedGroups.has(entity.id)) {
+        expandedGroups.delete(entity.id);
       } else {
-        expandedGroups.add(entity.name);
+        expandedGroups.add(entity.id);
       }
       renderTimeline();
     });
@@ -864,17 +937,21 @@
     });
   }
 
-  /** Render child task rows below the group bar */
+  /** Render row backgrounds for the child area below a lane (called once per lane). */
+  function renderGroupChildRowBgs(container, childCount, groupYOffset, totalWidth) {
+    for (let i = 0; i < childCount; i++) {
+      const rowBg = document.createElement('div');
+      rowBg.className = 'tm-gantt-row-bg tm-gantt-child-row-bg';
+      rowBg.style.top = (groupYOffset + (GANTT_ROW_HEIGHT + 4) * (i + 1)) + 'px';
+      rowBg.style.width = totalWidth + 'px';
+      container.appendChild(rowBg);
+    }
+  }
+
+  /** Render child task bars below the group bar (row backgrounds are rendered separately). */
   function renderGroupChildren(container, entity, startDate, pxPerMs, groupYOffset, totalWidth) {
     entity.children.forEach((child, i) => {
       const childYOffset = groupYOffset + (GANTT_ROW_HEIGHT + 4) * (i + 1);
-
-      // Child row background
-      const rowBg = document.createElement('div');
-      rowBg.className = 'tm-gantt-row-bg tm-gantt-child-row-bg';
-      rowBg.style.top = childYOffset + 'px';
-      rowBg.style.width = totalWidth + 'px';
-      container.appendChild(rowBg);
 
       const childColor = getItemBorderColor(child.tags, currentTaskMarkData.tagColors);
       const left = (child.startMs - startDate.getTime()) * pxPerMs;
@@ -954,28 +1031,56 @@
     const totalWidth = totalMs * pxPerMs;
     const totalRenderDays = Math.ceil(totalMs / MS_PER_DAY);
 
+    // Group entities by lane while preserving order of first occurrence
+    const laneGroups = [];
+    const seenLanes = new Map();
+    entityArray.forEach(entity => {
+      if (!seenLanes.has(entity.lane)) {
+        seenLanes.set(entity.lane, laneGroups.length);
+        laneGroups.push([entity]);
+      } else {
+        laneGroups[seenLanes.get(entity.lane)].push(entity);
+      }
+    });
+
+    // Precompute max expanded child count per lane (reused for height and rendering)
+    const laneMaxChildCounts = laneGroups.map(laneEntities =>
+      laneEntities.reduce((max, e) =>
+        e.isGroup && expandedGroups.has(e.id) ? Math.max(max, e.children.length) : max, 0)
+    );
+
     // Build container
     const ganttContainer = document.createElement('div');
     ganttContainer.className = 'tm-gantt-container';
     ganttContainer.style.width = totalWidth + 'px';
-    const totalRowCount = entityArray.reduce((sum, e) => {
-      const childCount = e.isGroup && expandedGroups.has(e.name) ? e.children.length : 0;
-      return sum + 1 + childCount;
-    }, 0);
+    const totalRowCount = laneGroups.reduce((sum, _, i) => sum + 1 + laneMaxChildCounts[i], 0);
     ganttContainer.style.height = (totalRowCount * (GANTT_ROW_HEIGHT + 4) + GANTT_HEADER_HEIGHT + 10) + 'px';
 
     // Render axis and column backgrounds
     renderGanttAxis(ganttContainer, startDate, totalRenderDays, pxPerMs);
 
-    // Render entity bars
+    // Render entity bars grouped by lane (same lane = same row)
     let yOffset = GANTT_HEADER_HEIGHT;
-    entityArray.forEach(entity => {
-      const entityYOffset = yOffset;
-      renderGanttEntityBar(ganttContainer, entity, startDate, pxPerMs, entityYOffset, totalWidth);
+    laneGroups.forEach((laneEntities, laneIdx) => {
+      const laneYOffset = yOffset;
       yOffset += GANTT_ROW_HEIGHT + 4;
-      if (entity.isGroup && expandedGroups.has(entity.name)) {
-        renderGroupChildren(ganttContainer, entity, startDate, pxPerMs, entityYOffset, totalWidth);
-        yOffset += (GANTT_ROW_HEIGHT + 4) * entity.children.length;
+
+      // Render all bars for this lane first
+      laneEntities.forEach((entity, i) => {
+        renderGanttEntityBar(ganttContainer, entity, startDate, pxPerMs, laneYOffset, totalWidth, i > 0);
+      });
+
+      // Render children of each expanded entity relative to laneYOffset.
+      // Row backgrounds are rendered once for the full child area depth.
+      const maxChildCount = laneMaxChildCounts[laneIdx];
+      if (maxChildCount > 0) {
+        renderGroupChildRowBgs(ganttContainer, maxChildCount, laneYOffset, totalWidth);
+        laneEntities.forEach(entity => {
+          if (entity.isGroup && expandedGroups.has(entity.id)) {
+            renderGroupChildren(ganttContainer, entity, startDate, pxPerMs, laneYOffset, totalWidth);
+          }
+        });
+        yOffset += (GANTT_ROW_HEIGHT + 4) * maxChildCount;
       }
     });
 
