@@ -86,6 +86,17 @@ Categorize schedules and tasks visually with tags.
 
 Define tag colors inside the `@tags` block. Undefined tags automatically receive a deterministic, generated color based on the tag name.
 
+Any of the following CSS color formats are accepted:
+
+| Format | Example |
+|------|------|
+| Hex (3 / 4 / 6 / 8 digits) | `#fff`, `#ffff`, `#e74c3c`, `#e74c3cff` |
+| `rgb()` / `rgba()` | `rgb(255, 0, 128)`, `rgba(0, 0, 0, 0.5)` |
+| `hsl()` / `hsla()` | `hsl(120, 50%, 50%)`, `hsla(120, 50%, 50%, 0.8)` |
+| Named color | `steelblue`, `crimson` |
+
+Values that do not match any of these formats are rejected with a warning and the tag falls back to the deterministic generated color.
+
 ### 🔁 Recurring Schedules
 
 Automatically expand recurring schedules. Tasks (`- [ ]` / `- [x]`) manage independent completion states and are ignored by repeat modifiers.
@@ -209,7 +220,7 @@ Use `# YYYY-MM-DD : YYYY-MM-DD` to define events or tasks that span multiple day
 
 You can also define global tag colors in your VS Code `settings.json` to reuse them across multiple `.tmd` files.
 
-- `taskmark.tagColors`: A JSON object mapping tag names (without `#`) to hex color codes.
+- `taskmark.tagColors`: A JSON object mapping tag names (without `#`) to CSS color values. The same formats accepted inside the `@tags` block are supported here (hex, `rgb()`/`rgba()`, `hsl()`/`hsla()`, named colors).
 
 ```json
 {
