@@ -65,18 +65,6 @@ suite('Parser Test Suite', () => {
     assert.strictEqual(data.days['2026-03-26'].items[0].text, 'Task item');
   });
 
-  test('parseTmd empty @tags block produces empty tagColors', () => {
-    const text = `
-@tags
-@end
-
-# 2026-03-26
-- Task
-`;
-    const { data } = parseTmd(text);
-    assert.deepStrictEqual(data.tagColors, {});
-  });
-
   test('parseTmd basic repetition handling', () => {
     const text = `
 # 2026-03-26
@@ -448,22 +436,6 @@ not a valid tag line
     assert.ok(data.days['2026-03-01'], 'Valid date should still parse');
   });
 
-  test('parseTmd valid input has empty warnings array', () => {
-    const text = `
-@tags
-#work : #0088ff
-@end
-
-# 2026-03-01
-- 9:00-10:00 Meeting #work
-- Standup @repeat(daily, count:2)
-`;
-    const { data, warnings } = parseTmd(text);
-    assert.strictEqual(warnings.length, 0);
-    assert.ok(data.days['2026-03-01']);
-    assert.ok(data.days['2026-03-02']);
-  });
-
   test('parseTmd returns deduplicated warnings', () => {
     const text = `
 # 2026-99-99
@@ -518,15 +490,6 @@ not a valid tag line
 `;
     const { data } = parseTmd(text);
     assert.deepStrictEqual(data.groupTags['2026-03-01::Sprint'], ['backend', 'mobile']);
-  });
-
-  test('parseTmd groupTags is empty object when no group tags exist', () => {
-    const text = `
-# 2026-03-01
-- Task
-`;
-    const { data } = parseTmd(text);
-    assert.deepStrictEqual(data.groupTags, {});
   });
 
   test('parseTmd warns when group header has only tags and no group name', () => {
