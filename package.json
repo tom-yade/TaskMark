@@ -10,7 +10,7 @@
     "url": "https://github.com/tom-yade/taskmark.git"
   },
   "engines": {
-    "vscode": "^1.74.0"
+    "vscode": "^1.109.1"
   },
   "categories": [
     "Other"
@@ -91,7 +91,7 @@
   "devDependencies": {
     "@types/mocha": "^10.0.10",
     "@types/node": "25.x",
-    "@types/vscode": "^1.116.0",
+    "@types/vscode": "^1.109.1",
     "@typescript-eslint/eslint-plugin": "^7.11.0",
     "@typescript-eslint/parser": "^7.11.0",
     "@vscode/test-electron": "^2.5.2",
