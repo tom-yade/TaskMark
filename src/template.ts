@@ -1,6 +1,15 @@
 import * as vscode from 'vscode';
+import { VALID_CSS_COLOR_REGEX } from './parser';
+
+function escapeHtmlAttr(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
 
 export function getWebviewHtml(scriptUri: vscode.Uri, stylesUri: vscode.Uri, cspSource: string): string {
+  // Expose the canonical color validation regex to the webview so main.js
+  // does not duplicate it. Embedded via a data-* attribute (no inline script)
+  // to keep the strict CSP intact.
+  const colorReAttr = escapeHtmlAttr(VALID_CSS_COLOR_REGEX.source);
   return `<!DOCTYPE html>
       <html lang="en">
       <head>
@@ -10,7 +19,7 @@ export function getWebviewHtml(scriptUri: vscode.Uri, stylesUri: vscode.Uri, csp
         <title>TaskMark</title>
         <link href="${stylesUri}" rel="stylesheet">
       </head>
-      <body>
+      <body data-valid-css-color-re="${colorReAttr}">
         <div id="tm-parse-error-banner" class="tm-error-banner hidden"></div>
         <div id="tm-warning-banner" class="tm-warning-banner hidden"></div>
         <div class="tm-header">

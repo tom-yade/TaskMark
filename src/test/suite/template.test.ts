@@ -1,5 +1,6 @@
 import * as assert from 'assert';
 import { getWebviewHtml } from '../../template';
+import { VALID_CSS_COLOR_REGEX } from '../../parser';
 
 suite('Template Test Suite', () => {
   function getHtml(): string {
@@ -41,5 +42,15 @@ suite('Template Test Suite', () => {
     assert.ok(zoomOutIdx !== -1, 'btn-zoom-out should exist');
     const snippet = html.slice(zoomOutIdx, zoomOutIdx + 60);
     assert.ok(snippet.includes('-'), 'zoom-out button should have - label');
+  });
+
+  test('body carries the canonical color regex for the webview', () => {
+    const html = getHtml();
+    const match = html.match(/<body\s+data-valid-css-color-re="([^"]+)"/);
+    assert.ok(match, 'body should expose data-valid-css-color-re');
+    // The attribute value is HTML-escaped; & is the only char in the regex
+    // source that needs unescaping for this comparison.
+    const decoded = match![1].replace(/&amp;/g, '&');
+    assert.strictEqual(decoded, VALID_CSS_COLOR_REGEX.source);
   });
 });
