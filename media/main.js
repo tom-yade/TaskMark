@@ -538,8 +538,9 @@
   // ─── Multi-Day Band Rendering ────────────────────────────────
 
   /** Collect all range items from the dataset (items with endDate).
-   *  Grouped range items are merged into one representative entry per group,
-   *  using the group name as the label and the widest date span across the group. */
+   *  Children of a grouped range are collapsed into a single representative entry
+   *  keyed by `${date}::${group}`, so same-named groups in different date sections
+   *  remain distinct. */
   function collectAllRangeItems() {
     const rangeItems = [];
     const groupMerged = Object.create(null);
@@ -549,15 +550,11 @@
         if (!item.endDate) return;
 
         if (item.group) {
-          const key = item.group;
+          const key = `${date}::${item.group}`;
           if (!groupMerged[key]) {
-            const groupTags = currentTaskMarkData.groupTags && currentTaskMarkData.groupTags[`${date}::${item.group}`];
+            const groupTags = currentTaskMarkData.groupTags && currentTaskMarkData.groupTags[key];
             const tags = groupTags || [];
             groupMerged[key] = { date, item: { ...item, text: item.group, tags } };
-          } else {
-            const existing = groupMerged[key];
-            if (date < existing.date) { existing.date = date; }
-            if (item.endDate > existing.item.endDate) { existing.item.endDate = item.endDate; }
           }
         } else {
           rangeItems.push({ date, item });
