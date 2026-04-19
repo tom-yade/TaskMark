@@ -39,11 +39,6 @@ suite('Extension Test Suite', () => {
     await extension?.activate();
   });
 
-  test('Sample test', () => {
-    assert.strictEqual(-1, [1, 2, 3].indexOf(5));
-    assert.strictEqual(-1, [1, 2, 3].indexOf(0));
-  });
-
   test('taskmark.openView command is registered', async () => {
     const commands = await vscode.commands.getCommands(true);
     assert.ok(commands.includes('taskmark.openView'), 'taskmark.openView command should be registered');

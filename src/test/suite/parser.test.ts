@@ -13,7 +13,7 @@ suite('Parser Test Suite', () => {
     assert.ok(Array.isArray(result.warnings), 'warnings should be an array');
   });
 
-  test('parseTmd basically works for tasks and schedules', () => {
+  test('parseTmd distinguishes timed task lines from plain schedule lines', () => {
     const text = `
 # 2026-03-26
 - [ ] 09:00-10:00 Meeting
@@ -65,7 +65,7 @@ suite('Parser Test Suite', () => {
     assert.strictEqual(data.days['2026-03-26'].items[0].text, 'Task item');
   });
 
-  test('parseTmd basic repetition handling', () => {
+  test('parseTmd @repeat count expands the item into that many consecutive days', () => {
     const text = `
 # 2026-03-26
 - Daily habit @repeat(daily, count:3)
@@ -452,7 +452,7 @@ not a valid tag line
     assert.ok(data.days['2026-03-01'], 'Valid date should still parse');
   });
 
-  test('parseTmd returns deduplicated warnings', () => {
+  test('parseTmd deduplicates identical warnings across multiple invalid headers', () => {
     const text = `
 # 2026-99-99
 - Item A
