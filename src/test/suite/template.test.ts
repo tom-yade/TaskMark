@@ -48,14 +48,6 @@ suite('Template Test Suite', () => {
     const html = getHtml();
     const match = html.match(/<body\s+data-valid-css-color-re="([^"]+)"/);
     assert.ok(match, 'body should expose data-valid-css-color-re');
-    // Decode every character that escapeHtmlAttr encodes so the comparison
-    // stays correct if the regex source later contains any of them.
-    const decoded = match![1]
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'")
-      .replace(/&amp;/g, '&');
-    assert.strictEqual(decoded, VALID_CSS_COLOR_REGEX.source);
+    assert.strictEqual(match![1], VALID_CSS_COLOR_REGEX.source);
   });
 });
