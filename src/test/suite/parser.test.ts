@@ -457,17 +457,14 @@ not a valid tag line
     assert.ok(data.days['2026-03-01'], 'Valid date should still parse');
   });
 
-  test('parseTmd deduplicates identical warnings across multiple invalid headers', () => {
+  test('parseTmd deduplicates identical warnings', () => {
     const text = `
-# 2026-99-99
-- Item A
-# 2026-88-88
-- Item B
+# 2026-03-01
+- Weekly @repeat(weekly, count:3, except:2026-99-99 2026-99-99)
 `;
     const { warnings } = parseTmd(text);
-    assert.ok(warnings.length > 0, 'Should have warnings');
-    const uniqueWarnings = [...new Set(warnings)];
-    assert.deepStrictEqual(warnings, uniqueWarnings, 'warnings should be deduplicated');
+    assert.strictEqual(warnings.length, 1, 'identical warnings should be deduplicated to one');
+    assert.match(warnings[0], /invalid except date '2026-99-99'/);
   });
 
   // ─── Group Tags Tests ────────────────────────────────────────
