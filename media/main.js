@@ -54,7 +54,10 @@
 
   // ─── Utility Functions ───────────────────────────────────────
 
-  /** Format date parts into 'YYYY-MM-DD' string */
+  /** Format date parts into 'YYYY-MM-DD' string.
+   *  Intentionally separate from src/parser.ts#toLocaleDateStr: this one takes
+   *  (y, m, d) numbers so loops like buildRangeItemIndex can avoid repeated
+   *  Date allocations, while the parser variant takes a Date instance. */
   function formatDateStr(year, month, day) {
     return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
   }
