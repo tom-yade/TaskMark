@@ -245,7 +245,12 @@ suite('Parser Test Suite', () => {
       try {
         c.check(data);
       } catch (e) {
-        throw new Error(`case "${c.label}" failed: ${(e as Error).message}`);
+        // Preserve the original assertion's stack trace so the failing
+        // `assert` line stays visible; only prefix the message with the case label.
+        if (e instanceof Error) {
+          e.message = `case "${c.label}" failed: ${e.message}`;
+        }
+        throw e;
       }
     }
   });
