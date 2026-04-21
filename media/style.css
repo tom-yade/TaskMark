@@ -129,7 +129,7 @@ body {
   color: var(--tm-accent-fg);
 }
 
-.tm-nav-group {
+.tm-header-right {
   display: flex;
   align-items: center;
   gap: 16px;
