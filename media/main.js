@@ -345,6 +345,17 @@
   btnZoomIn.addEventListener('click', () => applyZoom(GANTT_ZOOM_IN_FACTOR));
   btnZoomOut.addEventListener('click', () => applyZoom(GANTT_ZOOM_OUT_FACTOR));
 
+  // Delegated task-bar toggle: one listener handles every task bar in the gantt.
+  viewTimeline?.addEventListener('click', (e) => {
+    const bar = e.target.closest('.tm-gantt-task-bar[data-raw-line]');
+    if (!bar || hasDragged || !currentUri) return;
+    const rawLine = Number(bar.dataset.rawLine);
+    if (!Number.isInteger(rawLine) || rawLine < 0) return;
+    const sourceLine = bar.dataset.sourceLine;
+    if (typeof sourceLine !== 'string') return;
+    vscode.postMessage({ type: 'toggleTask', uri: currentUri, rawLine, sourceLine });
+  });
+
   // Date navigation
   function navigateDate(direction) {
     if (baseView === 'timeline' || activeView === 'monthly') {
@@ -1006,21 +1017,11 @@
     });
   }
 
-  /** Wire a gantt bar to toggle its backing task when clicked (ignored during panning). */
+  /** Tag a gantt bar as a toggleable task. Click handling is delegated on viewTimeline. */
   function attachTaskToggle(bar, child) {
     bar.classList.add('tm-gantt-task-bar');
     bar.dataset.rawLine = String(child.rawLine);
     bar.dataset.sourceLine = child.sourceLine;
-    bar.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (hasDragged || !currentUri) return;
-      vscode.postMessage({
-        type: 'toggleTask',
-        uri: currentUri,
-        rawLine: child.rawLine,
-        sourceLine: child.sourceLine
-      });
-    });
   }
 
   /** Create a positioned Gantt bar element */
