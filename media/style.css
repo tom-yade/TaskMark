@@ -129,6 +129,12 @@ body {
   color: var(--tm-accent-fg);
 }
 
+.tm-nav-group {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
 .tm-month-nav {
   display: flex;
   align-items: center;
