@@ -323,4 +323,41 @@ suite('Gantt Test Suite', () => {
     const { entities } = buildGanttEntities(data);
     assert.deepStrictEqual(entities[0].tags, ['urgent'], 'standalone entity should use its own tags');
   });
+
+  test('task children expose rawLine and sourceLine for toggling', () => {
+    const { data } = parseTmd(`# 2026-03-01
+- [ ] Standalone Task
+`);
+    const { entities } = buildGanttEntities(data);
+    const entity = entities[0];
+    const child = entity.children[0];
+    assert.strictEqual(child.isTask, true);
+    assert.strictEqual(child.rawLine, 1);
+    assert.strictEqual(child.sourceLine, '- [ ] Standalone Task');
+  });
+
+  test('grouped task children expose rawLine and sourceLine for toggling', () => {
+    const { data } = parseTmd(`# 2026-03-01
+> Sprint
+> - [ ] Task A
+> - [x] Task B
+`);
+    const { entities } = buildGanttEntities(data);
+    const group = entities[0];
+    assert.strictEqual(group.children[0].rawLine, 2);
+    assert.strictEqual(group.children[0].sourceLine, '> - [ ] Task A');
+    assert.strictEqual(group.children[1].rawLine, 3);
+    assert.strictEqual(group.children[1].sourceLine, '> - [x] Task B');
+  });
+
+  test('schedule children also carry rawLine and sourceLine from source item', () => {
+    const { data } = parseTmd(`# 2026-03-01
+- 9:00-10:00 Meeting
+`);
+    const { entities } = buildGanttEntities(data);
+    const child = entities[0].children[0];
+    assert.strictEqual(child.isTask, false);
+    assert.strictEqual(child.rawLine, 1);
+    assert.strictEqual(child.sourceLine, '- 9:00-10:00 Meeting');
+  });
 });
