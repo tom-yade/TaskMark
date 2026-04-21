@@ -872,12 +872,6 @@
     line.style.left = left + 'px';
     line.style.height = '100%';
     container.appendChild(line);
-
-    const label = document.createElement('div');
-    label.className = 'tm-gantt-today-label';
-    label.style.left = left + 'px';
-    label.textContent = 'Today';
-    container.appendChild(label);
   }
 
   /** Render a single Gantt bar (group or standalone) */

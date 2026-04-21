@@ -737,21 +737,6 @@ body {
   pointer-events: none;
 }
 
-.tm-gantt-today-label {
-  position: absolute;
-  top: 2px;
-  z-index: 9;
-  padding: 1px 4px;
-  font-size: max(9px, calc(var(--tm-font-size) - 4px));
-  font-weight: bold;
-  color: #fff;
-  background: #e53935;
-  border-radius: 2px;
-  transform: translateX(-50%);
-  pointer-events: none;
-  white-space: nowrap;
-}
-
 /* Child rows (group task members) */
 .tm-gantt-child-row-bg {
   border-left: 2px solid var(--tm-card-border);
