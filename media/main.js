@@ -22,6 +22,7 @@
   let currentGanttData = null;
   let rangeItemIndex = null; // Pre-built index: date string -> range items spanning that date
   let ganttZoom = GANTT_DEFAULT_ZOOM; // 1 = 100px per day
+  let ganttTodayLeft = null; // px offset of the today marker, or null if out of range
   let expandedGroups = new Set();
   let isPanning = false;
   let hasDragged = false;
@@ -275,6 +276,9 @@
   btnToday?.addEventListener('click', () => {
     currentDate = new Date();
     render();
+    if (baseView === 'timeline' && ganttTodayLeft !== null) {
+      viewTimeline.scrollLeft = Math.max(0, ganttTodayLeft - viewTimeline.clientWidth / 2);
+    }
   });
 
   viewCalendar?.addEventListener('click', (e) => {
@@ -855,9 +859,13 @@
     const nowMs = Date.now();
     const offsetMs = nowMs - startDate.getTime();
     const endMs = totalRenderDays * MS_PER_DAY;
-    if (offsetMs < 0 || offsetMs > endMs) return;
+    if (offsetMs < 0 || offsetMs > endMs) {
+      ganttTodayLeft = null;
+      return;
+    }
 
     const left = offsetMs * pxPerMs;
+    ganttTodayLeft = left;
 
     const line = document.createElement('div');
     line.className = 'tm-gantt-today-line';
