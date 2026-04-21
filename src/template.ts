@@ -23,8 +23,8 @@ export function getWebviewHtml(scriptUri: vscode.Uri, stylesUri: vscode.Uri, csp
             <button class="tm-view-toggle active" id="btn-calendar">Calendar</button>
             <button class="tm-view-toggle" id="btn-timeline">Timeline</button>
           </div>
+          <button class="tm-view-toggle" id="btn-today">Today</button>
           <div class="tm-month-nav">
-             <button class="tm-view-toggle" id="btn-today">Today</button>
              <div class="tm-toggle-container" id="calendar-granularity-toggles">
                 <button class="tm-view-toggle active" id="btn-monthly">Monthly</button>
                 <button class="tm-view-toggle" id="btn-weekly">Weekly</button>
