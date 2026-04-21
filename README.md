@@ -71,6 +71,7 @@ Visualize schedule durations and project spans as a Gantt chart.
 - **Progress Bars** — Group task completion rates are displayed visually on the bars
 - **Weekend Colors** — Colored backgrounds corresponding to the calendar view
 - **Sub-rows** — Tasks inside a group are displayed as individual sub-rows beneath the group bar; click the group bar to collapse or expand them
+- **Toggle Tasks** — Click a task bar to toggle completion (`- [ ]` / `- [x]`) directly in the `.tmd` file
 - Grouped schedules appear as a single connected bar, while standalone items with the same name appear as separate blocks on the same row
 
 ### 🏷️ Tags & Colors
