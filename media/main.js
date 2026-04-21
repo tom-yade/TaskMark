@@ -850,6 +850,28 @@
     container.appendChild(axisRow);
   }
 
+  /** Render a vertical line marking the current date on the Gantt container */
+  function renderGanttTodayMarker(container, startDate, totalRenderDays, pxPerMs) {
+    const nowMs = Date.now();
+    const offsetMs = nowMs - startDate.getTime();
+    const endMs = totalRenderDays * MS_PER_DAY;
+    if (offsetMs < 0 || offsetMs > endMs) return;
+
+    const left = offsetMs * pxPerMs;
+
+    const line = document.createElement('div');
+    line.className = 'tm-gantt-today-line';
+    line.style.left = left + 'px';
+    line.style.height = '100%';
+    container.appendChild(line);
+
+    const label = document.createElement('div');
+    label.className = 'tm-gantt-today-label';
+    label.style.left = left + 'px';
+    label.textContent = 'Today';
+    container.appendChild(label);
+  }
+
   /** Render a single Gantt bar (group or standalone) */
   function renderGanttEntityBar(container, entity, startDate, pxPerMs, yOffset, totalWidth, skipRowBg) {
     if (!skipRowBg) {
@@ -1058,6 +1080,7 @@
 
     // Render axis and column backgrounds
     renderGanttAxis(ganttContainer, startDate, totalRenderDays, pxPerMs);
+    renderGanttTodayMarker(ganttContainer, startDate, totalRenderDays, pxPerMs);
 
     // Render entity bars grouped by lane (same lane = same row)
     let yOffset = GANTT_HEADER_HEIGHT;
