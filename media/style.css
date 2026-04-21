@@ -733,7 +733,7 @@ body {
   top: 0;
   width: 2px;
   background: #e53935;
-  z-index: 8;
+  z-index: 0;
   pointer-events: none;
 }
 
