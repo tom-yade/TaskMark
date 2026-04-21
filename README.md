@@ -67,6 +67,7 @@ Visualize schedule durations and project spans as a Gantt chart.
 
 - **Pan** — Move smoothly in any direction by clicking and dragging
 - **Zoom** — Zoom in/out (from days to hours) with `Ctrl + Mouse Wheel`, or the zoom buttons in the view header
+- **Today Marker** — A red vertical line indicates the current date; click the `Today` button to scroll to it
 - **Progress Bars** — Group task completion rates are displayed visually on the bars
 - **Weekend Colors** — Colored backgrounds corresponding to the calendar view
 - **Sub-rows** — Tasks inside a group are displayed as individual sub-rows beneath the group bar; click the group bar to collapse or expand them
