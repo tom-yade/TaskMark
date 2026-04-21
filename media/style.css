@@ -129,6 +129,12 @@ body {
   color: var(--tm-accent-fg);
 }
 
+.tm-header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
 .tm-month-nav {
   display: flex;
   align-items: center;
@@ -718,6 +724,16 @@ body {
   color: var(--tm-fg);
   font-weight: bold;
   white-space: nowrap;
+  pointer-events: none;
+}
+
+/* Today marker */
+.tm-gantt-today-line {
+  position: absolute;
+  top: 0;
+  width: 2px;
+  background: #e53935;
+  z-index: 8;
   pointer-events: none;
 }
 

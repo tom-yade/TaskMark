@@ -23,20 +23,22 @@ export function getWebviewHtml(scriptUri: vscode.Uri, stylesUri: vscode.Uri, csp
             <button class="tm-view-toggle active" id="btn-calendar">Calendar</button>
             <button class="tm-view-toggle" id="btn-timeline">Timeline</button>
           </div>
-          <div class="tm-month-nav">
-             <button class="tm-view-toggle" id="btn-today">Today</button>
-             <div class="tm-toggle-container" id="calendar-granularity-toggles">
-                <button class="tm-view-toggle active" id="btn-monthly">Monthly</button>
-                <button class="tm-view-toggle" id="btn-weekly">Weekly</button>
-                <button class="tm-view-toggle" id="btn-daily">Daily</button>
-             </div>
-             <button id="btn-prev-month">&lt;</button>
-             <h2 id="current-month-display"></h2>
-             <button id="btn-next-month">&gt;</button>
-          </div>
-          <div class="tm-zoom-controls hidden" id="tm-zoom-controls">
-            <button id="btn-zoom-out" title="Zoom Out">-</button>
-            <button id="btn-zoom-in" title="Zoom In">+</button>
+          <div class="tm-header-right">
+            <button class="tm-view-toggle" id="btn-today">Today</button>
+            <div class="tm-month-nav">
+               <div class="tm-toggle-container" id="calendar-granularity-toggles">
+                  <button class="tm-view-toggle active" id="btn-monthly">Monthly</button>
+                  <button class="tm-view-toggle" id="btn-weekly">Weekly</button>
+                  <button class="tm-view-toggle" id="btn-daily">Daily</button>
+               </div>
+               <button id="btn-prev-month">&lt;</button>
+               <h2 id="current-month-display"></h2>
+               <button id="btn-next-month">&gt;</button>
+            </div>
+            <div class="tm-zoom-controls hidden" id="tm-zoom-controls">
+              <button id="btn-zoom-out" title="Zoom Out">-</button>
+              <button id="btn-zoom-in" title="Zoom In">+</button>
+            </div>
           </div>
         </div>
         <div class="tm-content" id="tm-content-area">
