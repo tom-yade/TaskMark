@@ -954,6 +954,9 @@
       }
       pBar.style.backgroundColor = bgColor;
       bar.appendChild(pBar);
+      if (child.isTask) {
+        attachTaskToggle(bar, child);
+      }
       container.appendChild(bar);
 
       // Label (outside bar, to the right)
@@ -993,10 +996,30 @@
       }
       pBar.style.backgroundColor = childColor;
       bar.appendChild(pBar);
+      if (child.isTask) {
+        attachTaskToggle(bar, child);
+      }
       container.appendChild(bar);
 
       // Label (outside bar, to the right)
       container.appendChild(createGanttLabel(child.text, left + width, childYOffset));
+    });
+  }
+
+  /** Wire a gantt bar to toggle its backing task when clicked (ignored during panning). */
+  function attachTaskToggle(bar, child) {
+    bar.classList.add('tm-gantt-task-bar');
+    bar.dataset.rawLine = String(child.rawLine);
+    bar.dataset.sourceLine = child.sourceLine;
+    bar.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (hasDragged || !currentUri) return;
+      vscode.postMessage({
+        type: 'toggleTask',
+        uri: currentUri,
+        rawLine: child.rawLine,
+        sourceLine: child.sourceLine
+      });
     });
   }
 

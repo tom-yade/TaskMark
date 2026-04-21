@@ -692,6 +692,10 @@ body {
   cursor: pointer;
 }
 
+.tm-gantt-task-bar {
+  cursor: pointer;
+}
+
 .tm-gantt-group-indicator {
   position: relative;
   z-index: 2;
