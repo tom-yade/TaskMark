@@ -22,6 +22,7 @@
   let currentGanttData = null;
   let rangeItemIndex = null; // Pre-built index: date string -> range items spanning that date
   let ganttZoom = GANTT_DEFAULT_ZOOM; // 1 = 100px per day
+  let ganttTodayLeft = null; // px offset of the today marker, or null if out of range
   let expandedGroups = new Set();
   let isPanning = false;
   let hasDragged = false;
@@ -275,6 +276,9 @@
   btnToday?.addEventListener('click', () => {
     currentDate = new Date();
     render();
+    if (baseView === 'timeline' && ganttTodayLeft !== null) {
+      viewTimeline.scrollLeft = Math.max(0, ganttTodayLeft - viewTimeline.clientWidth / 2);
+    }
   });
 
   viewCalendar?.addEventListener('click', (e) => {
@@ -340,6 +344,17 @@
 
   btnZoomIn.addEventListener('click', () => applyZoom(GANTT_ZOOM_IN_FACTOR));
   btnZoomOut.addEventListener('click', () => applyZoom(GANTT_ZOOM_OUT_FACTOR));
+
+  // Delegated task-bar toggle: one listener handles every task bar in the gantt.
+  viewTimeline?.addEventListener('click', (e) => {
+    const bar = e.target.closest('.tm-gantt-task-bar[data-raw-line]');
+    if (!bar || hasDragged || !currentUri) return;
+    const rawLine = Number(bar.dataset.rawLine);
+    if (!Number.isInteger(rawLine) || rawLine < 0) return;
+    const sourceLine = bar.dataset.sourceLine;
+    if (typeof sourceLine !== 'string') return;
+    vscode.postMessage({ type: 'toggleTask', uri: currentUri, rawLine, sourceLine });
+  });
 
   // Date navigation
   function navigateDate(direction) {
@@ -850,6 +865,26 @@
     container.appendChild(axisRow);
   }
 
+  /** Render a vertical line marking the current date on the Gantt container */
+  function renderGanttTodayMarker(container, startDate, totalRenderDays, pxPerMs) {
+    const nowMs = Date.now();
+    const offsetMs = nowMs - startDate.getTime();
+    const endMs = totalRenderDays * MS_PER_DAY;
+    if (offsetMs < 0 || offsetMs > endMs) {
+      ganttTodayLeft = null;
+      return;
+    }
+
+    const left = offsetMs * pxPerMs;
+    ganttTodayLeft = left;
+
+    const line = document.createElement('div');
+    line.className = 'tm-gantt-today-line';
+    line.style.left = left + 'px';
+    line.style.height = '100%';
+    container.appendChild(line);
+  }
+
   /** Render a single Gantt bar (group or standalone) */
   function renderGanttEntityBar(container, entity, startDate, pxPerMs, yOffset, totalWidth, skipRowBg) {
     if (!skipRowBg) {
@@ -930,6 +965,9 @@
       }
       pBar.style.backgroundColor = bgColor;
       bar.appendChild(pBar);
+      if (child.isTask) {
+        attachTaskToggle(bar, child);
+      }
       container.appendChild(bar);
 
       // Label (outside bar, to the right)
@@ -969,11 +1007,21 @@
       }
       pBar.style.backgroundColor = childColor;
       bar.appendChild(pBar);
+      if (child.isTask) {
+        attachTaskToggle(bar, child);
+      }
       container.appendChild(bar);
 
       // Label (outside bar, to the right)
       container.appendChild(createGanttLabel(child.text, left + width, childYOffset));
     });
+  }
+
+  /** Tag a gantt bar as a toggleable task. Click handling is delegated on viewTimeline. */
+  function attachTaskToggle(bar, child) {
+    bar.classList.add('tm-gantt-task-bar');
+    bar.dataset.rawLine = String(child.rawLine);
+    bar.dataset.sourceLine = child.sourceLine;
   }
 
   /** Create a positioned Gantt bar element */
@@ -1058,6 +1106,7 @@
 
     // Render axis and column backgrounds
     renderGanttAxis(ganttContainer, startDate, totalRenderDays, pxPerMs);
+    renderGanttTodayMarker(ganttContainer, startDate, totalRenderDays, pxPerMs);
 
     // Render entity bars grouped by lane (same lane = same row)
     let yOffset = GANTT_HEADER_HEIGHT;

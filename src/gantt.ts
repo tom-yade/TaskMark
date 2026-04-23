@@ -10,6 +10,8 @@ export interface GanttChildItem {
   endMs: number;
   isTask: boolean;
   isDone: boolean;
+  rawLine: number;
+  sourceLine: string;
 }
 
 export interface GanttEntity {
@@ -110,7 +112,9 @@ export function buildGanttEntities(data: TaskMarkData): GanttData {
         startMs,
         endMs,
         isTask: item.type === 'task',
-        isDone: item.status === 'done'
+        isDone: item.status === 'done',
+        rawLine: item.rawLine,
+        sourceLine: item.sourceLine
       });
 
       if (item.type === 'task') {

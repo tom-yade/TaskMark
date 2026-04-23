@@ -24,6 +24,7 @@
   --tm-sun-color: #e74c3c;
   --tm-sat-bg: rgba(52, 152, 219, 0.08);
   --tm-sun-bg: rgba(231, 76, 60, 0.08);
+  --tm-today-line-color: #e53935;
 }
 
 /* ─── Light Theme Overrides ─────────────────────────────────── */
@@ -127,6 +128,12 @@ body {
 .tm-view-toggle.active {
   background: var(--tm-accent);
   color: var(--tm-accent-fg);
+}
+
+.tm-header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 
 .tm-month-nav {
@@ -686,6 +693,10 @@ body {
   cursor: pointer;
 }
 
+.tm-gantt-task-bar {
+  cursor: pointer;
+}
+
 .tm-gantt-group-indicator {
   position: relative;
   z-index: 2;
@@ -718,6 +729,16 @@ body {
   color: var(--tm-fg);
   font-weight: bold;
   white-space: nowrap;
+  pointer-events: none;
+}
+
+/* Today marker */
+.tm-gantt-today-line {
+  position: absolute;
+  top: 0;
+  width: 2px;
+  background: var(--tm-today-line-color);
+  z-index: 8;
   pointer-events: none;
 }
 

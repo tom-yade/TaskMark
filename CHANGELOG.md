@@ -4,6 +4,12 @@ All notable changes to the "TaskMark" extension will be documented in this file.
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.5.0] - 2026-04-23
+
+### Added
+- Today indicator line is rendered on the Gantt timeline view, and the Today button is now available in the Timeline view to scroll to the current date (#34).
+- Click a task bar in the Gantt chart to toggle its completion state; the change is written back to the underlying `.tmd` file (#84).
+
 ## [1.4.0] - 2026-04-19
 
 ### Added
