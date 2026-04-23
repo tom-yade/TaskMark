@@ -24,6 +24,7 @@
   --tm-sun-color: #e74c3c;
   --tm-sat-bg: rgba(52, 152, 219, 0.08);
   --tm-sun-bg: rgba(231, 76, 60, 0.08);
+  --tm-today-line-color: #e53935;
 }
 
 /* ─── Light Theme Overrides ─────────────────────────────────── */
@@ -736,7 +737,7 @@ body {
   position: absolute;
   top: 0;
   width: 2px;
-  background: #e53935;
+  background: var(--tm-today-line-color);
   z-index: 8;
   pointer-events: none;
 }
