@@ -49,7 +49,8 @@ const ITEM_REGEX = new RegExp(
 );
 const REPEAT_REGEX = /@repeat\(([^)]+)\)/;
 const TAG_SPLIT_REGEX = /#([^\s#]+)/g;
-const EVERY_REGEX = /^(\d+)(days?|weeks?|months?)$/;
+const EVERY_REGEX = /^([1-9]\d*)(days?|weeks?|months?)$/;
+const INDENTED_ITEM_REGEX = /^\s+(?:>\s*)?-/;
 
 function toLocaleDateStr(d: Date): string {
   const y = d.getFullYear();
@@ -69,15 +70,23 @@ export function parseLocalDate(dateStr: string): Date {
   return date;
 }
 
-/** Normalize a time part like "9:0" to "9:00" */
-function normalizeTimePart(t: string): string {
-  const [h, m] = t.split(':');
-  return `${h}:${m.padStart(2, '0')}`;
-}
-
-/** Normalize a time string like "9:0-17:0" to "9:00-17:00" */
-function normalizeTimeStr(timeStr: string): string {
-  return timeStr.split('-').map(normalizeTimePart).join('-');
+/** Validate and normalize a time string like "9:0-17:0" to "9:00-17:00".
+ *  Returns undefined and emits a warning if any part is out of range
+ *  (h: 0-23, m: 0-59). */
+function parseTimeStr(timeStr: string, lineNum: number, warnings: string[]): string | undefined {
+  const parts = timeStr.split('-');
+  const normalized: string[] = [];
+  for (const p of parts) {
+    const [hStr, mStr] = p.split(':');
+    const h = parseInt(hStr, 10);
+    const m = parseInt(mStr, 10);
+    if (h < 0 || h > 23 || m < 0 || m > 59) {
+      warnings.push(`Line ${lineNum + 1}: invalid time '${timeStr}', skipped`);
+      return undefined;
+    }
+    normalized.push(`${hStr}:${mStr.padStart(2, '0')}`);
+  }
+  return normalized.join('-');
 }
 
 /** Parse and normalize a date string to 'YYYY-MM-DD'. Returns null if invalid. */
@@ -132,13 +141,16 @@ function parseRepeatOptions(repeatStr: string, lineNum: number, warnings: string
 
   for (const part of parts) {
     if (part.startsWith('every:')) {
-      const match = part.substring(6).match(EVERY_REGEX);
+      const rawInterval = part.substring(6);
+      const match = rawInterval.match(EVERY_REGEX);
       if (match) {
         const num = parseInt(match[1], 10);
         const unit = match[2].replace(/s$/, '');
         if (unit === 'day') { mode = 'days'; interval = num; }
         else if (unit === 'week') { mode = 'days'; interval = num * 7; }
         else if (unit === 'month') { mode = 'months'; interval = num; }
+      } else {
+        warnings.push(`Line ${lineNum + 1}: invalid @repeat interval '${rawInterval}', skipped`);
       }
     } else if (part === 'daily') {
       mode = 'days'; interval = 1;
@@ -155,8 +167,16 @@ function parseRepeatOptions(repeatStr: string, lineNum: number, warnings: string
         warnings.push(`Line ${lineNum + 1}: invalid until date '${dateStr}', skipped`);
       }
     } else if (part.startsWith('count:')) {
-      const parsedCount = parseInt(part.substring(6), 10);
-      if (!isNaN(parsedCount)) count = parsedCount;
+      const countStr = part.substring(6);
+      const parsedCount = parseInt(countStr, 10);
+      if (isNaN(parsedCount) || parsedCount < 0) {
+        warnings.push(`Line ${lineNum + 1}: invalid count '${countStr}', skipped`);
+      } else if (parsedCount > MAX_OCCURRENCES) {
+        warnings.push(`Line ${lineNum + 1}: count '${countStr}' exceeds maximum ${MAX_OCCURRENCES}, capped`);
+        count = MAX_OCCURRENCES;
+      } else {
+        count = parsedCount;
+      }
     } else if (part.startsWith('except:')) {
       for (const d of part.substring(7).trim().split(/\s+/).filter(Boolean)) {
         const normalized = tryNormalizeDate(d);
@@ -166,6 +186,8 @@ function parseRepeatOptions(repeatStr: string, lineNum: number, warnings: string
           warnings.push(`Line ${lineNum + 1}: invalid except date '${d}', skipped`);
         }
       }
+    } else if (part) {
+      warnings.push(`Line ${lineNum + 1}: unknown @repeat token '${part}', ignored`);
     }
   }
 
@@ -257,11 +279,13 @@ export function parseTmd(text: string): ParseResult {
     // 4. Item (schedule or task)
     const itemMatch = rawLine.match(ITEM_REGEX);
     if (itemMatch && itemMatch[2]) {
-      const result = createMarkItem(itemMatch, i, rawLine, currentDate, currentGroup, currentEndDate);
+      const result = createMarkItem(itemMatch, i, rawLine, currentDate, currentGroup, warnings, currentEndDate);
       if (result) {
         data.days[currentDate].items.push(result.item);
         currentGroup = result.newGroup;
       }
+    } else if (currentDate && INDENTED_ITEM_REGEX.test(rawLine)) {
+      warnings.push(`Line ${i + 1}: indented list items are not supported, skipped`);
     }
   }
 
@@ -274,6 +298,7 @@ function createMarkItem(
   sourceLine: string,
   currentDate: string,
   currentGroup: string,
+  warnings: string[],
   endDate = '',
 ): { item: MarkItem; newGroup: string } | null {
   if (!currentDate) {
@@ -285,7 +310,7 @@ function createMarkItem(
 
   const hasCheckbox = itemMatch[3];
   const checkMark = itemMatch[4];
-  const timeString = itemMatch[5] ? normalizeTimeStr(itemMatch[5]) : undefined;
+  const timeString = itemMatch[5] ? parseTimeStr(itemMatch[5], lineIndex, warnings) : undefined;
   let content = itemMatch[8] || '';
 
   const type: ItemType = hasCheckbox ? 'task' : 'schedule';
@@ -332,8 +357,11 @@ function expandRepeats(data: TaskMarkData, warnings: string[]): TaskMarkData {
 
   Object.values(data.days).forEach(day => {
     day.items.forEach(item => {
-      if (!item.repeat || item.type === 'task' || item.endDate) return;
-
+      if (!item.repeat || item.type === 'task') { return; }
+      if (item.endDate) {
+        warnings.push(`Line ${item.rawLine + 1}: @repeat is ignored because endDate is specified`);
+        return;
+      }
       generateRepeatedItems(item, day.date, expandedDays, warnings);
     });
   });

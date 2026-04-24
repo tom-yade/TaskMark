@@ -171,6 +171,8 @@ Options can be combined using commas. If a limit is not explicitly defined, recu
 | `> Group Name` | Group header (tags optional) | — |
 | `> - Item` | Items inside group | Both |
 
+> **Note:** Month, day, hour, and minute parts accept both zero-padded and unpadded forms — `2026-3-1` and `9:0` are parsed the same as `2026-03-01` and `09:00`. The zero-padded form is recommended for consistency.
+
 ### 🗂️ Group Colors
 
 Attach a tag directly to a group header to control its display color in both the Calendar and Timeline views.
