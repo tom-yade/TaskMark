@@ -154,7 +154,8 @@ async function pickDate(): Promise<string | undefined> {
 async function applyInsertion(editor: vscode.TextEditor, dateStr: string, itemLine: string): Promise<void> {
   const document = editor.document;
   const original = document.getText();
-  const { newText, insertedLineIndex } = insertItemForDate(original, dateStr, itemLine);
+  const eol = document.eol === vscode.EndOfLine.CRLF ? '\r\n' : '\n';
+  const { newText, insertedLineIndex } = insertItemForDate(original, dateStr, itemLine, eol);
 
   const fullRange = new vscode.Range(
     document.positionAt(0),

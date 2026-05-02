@@ -32,19 +32,33 @@ export interface InsertResult {
  *
  * `dateStr` is matched against the section header in normalized form so
  * a header like `# 2026-3-5` still matches `dateStr = '2026-03-05'`.
+ *
+ * `eol` controls the line separator used when joining the result. Pass
+ * the document's existing EOL (`\n` or `\r\n`) so line endings are not
+ * silently converted on Windows-style files.
  */
 export function insertItemForDate(
   documentText: string,
   dateStr: string,
-  itemLine: string
+  itemLine: string,
+  eol: string = '\n'
 ): InsertResult {
   const lines = documentText === '' ? [] : documentText.split(/\r?\n/);
   const sectionStart = findSectionStart(lines, dateStr);
 
-  if (sectionStart === -1) {
-    return appendNewSection(lines, dateStr, itemLine);
-  }
-  return appendToExistingSection(lines, sectionStart, itemLine);
+  const planned = sectionStart === -1
+    ? planNewSection(lines, dateStr, itemLine)
+    : planExistingSection(lines, sectionStart, itemLine);
+
+  return {
+    newText: planned.lines.join(eol),
+    insertedLineIndex: planned.insertedLineIndex,
+  };
+}
+
+interface InsertPlan {
+  lines: string[];
+  insertedLineIndex: number;
 }
 
 function findSectionStart(lines: string[], dateStr: string): number {
@@ -57,7 +71,7 @@ function findSectionStart(lines: string[], dateStr: string): number {
   return -1;
 }
 
-function appendNewSection(lines: string[], dateStr: string, itemLine: string): InsertResult {
+function planNewSection(lines: string[], dateStr: string, itemLine: string): InsertPlan {
   let trimEnd = lines.length;
   while (trimEnd > 0 && lines[trimEnd - 1].trim() === '') {
     trimEnd--;
@@ -72,12 +86,13 @@ function appendNewSection(lines: string[], dateStr: string, itemLine: string): I
   inserted.push(`# ${dateStr}`);
   inserted.push(itemLine);
 
-  const newLines = [...head, ...inserted, ...tail];
-  const insertedLineIndex = head.length + inserted.length - 1;
-  return { newText: newLines.join('\n'), insertedLineIndex };
+  return {
+    lines: [...head, ...inserted, ...tail],
+    insertedLineIndex: head.length + inserted.length - 1,
+  };
 }
 
-function appendToExistingSection(lines: string[], sectionStart: number, itemLine: string): InsertResult {
+function planExistingSection(lines: string[], sectionStart: number, itemLine: string): InsertPlan {
   let nextSection = lines.length;
   for (let i = sectionStart + 1; i < lines.length; i++) {
     if (DATE_HEADER_REGEX.test(lines[i])) {
@@ -93,12 +108,14 @@ function appendToExistingSection(lines: string[], sectionStart: number, itemLine
     }
   }
 
-  const newLines = [
-    ...lines.slice(0, insertAfter + 1),
-    itemLine,
-    ...lines.slice(insertAfter + 1),
-  ];
-  return { newText: newLines.join('\n'), insertedLineIndex: insertAfter + 1 };
+  return {
+    lines: [
+      ...lines.slice(0, insertAfter + 1),
+      itemLine,
+      ...lines.slice(insertAfter + 1),
+    ],
+    insertedLineIndex: insertAfter + 1,
+  };
 }
 
 function normalizeDate(raw: string): string {

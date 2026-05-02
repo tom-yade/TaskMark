@@ -101,6 +101,27 @@ suite('Quick Add Test Suite', () => {
     assert.strictEqual(newText, '# 2026-3-5\n- A\n- [ ] B');
   });
 
+  test('insertItemForDate preserves CRLF line endings when eol="\\r\\n"', () => {
+    const text = ['# 2026-03-26', '- A', '', '# 2026-03-27', '- B'].join('\r\n');
+    const { newText, insertedLineIndex } = insertItemForDate(text, '2026-03-26', '- [ ] New', '\r\n');
+
+    assert.strictEqual(insertedLineIndex, 2);
+    assert.strictEqual(
+      newText,
+      ['# 2026-03-26', '- A', '- [ ] New', '', '# 2026-03-27', '- B'].join('\r\n')
+    );
+    assert.ok(!/(?<!\r)\n/.test(newText), 'should not contain bare \\n');
+  });
+
+  test('insertItemForDate appends a new section using the given eol', () => {
+    const text = ['# 2026-03-26', '- A'].join('\r\n');
+    const { newText } = insertItemForDate(text, '2026-03-30', '- [ ] B', '\r\n');
+    assert.strictEqual(
+      newText,
+      ['# 2026-03-26', '- A', '', '# 2026-03-30', '- [ ] B'].join('\r\n')
+    );
+  });
+
   test('isValidDate accepts well-formed YYYY-MM-DD', () => {
     assert.strictEqual(isValidDate('2026-03-26'), true);
     assert.strictEqual(isValidDate('2026-12-31'), true);
