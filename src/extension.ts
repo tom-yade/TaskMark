@@ -1,5 +1,7 @@
 import * as vscode from 'vscode';
 import { TaskmarkPanel } from './TaskmarkPanel';
+import { registerQuickAddCommands } from './quickAddCommands';
+import { registerCompletionProviders } from './completionProvider';
 
 export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
@@ -7,6 +9,9 @@ export function activate(context: vscode.ExtensionContext) {
       TaskmarkPanel.createOrShow(context.extensionUri);
     })
   );
+
+  registerQuickAddCommands(context);
+  registerCompletionProviders(context);
 
   if (vscode.window.registerWebviewPanelSerializer) {
     vscode.window.registerWebviewPanelSerializer(TaskmarkPanel.viewType, {
