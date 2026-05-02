@@ -4,6 +4,11 @@ All notable changes to the "TaskMark" extension will be documented in this file.
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [Unreleased]
+
+### Added
+- Activity Bar TreeView ("TaskMark: Overview") that summarizes the active `.tmd` file by Today / This week / Overdue / Recently done. Clicking an item jumps to the corresponding line, and tasks expose an inline toggle action (#89).
+
 ## [1.5.0] - 2026-04-23
 
 ### Added

@@ -208,6 +208,19 @@ Use `# YYYY-MM-DD : YYYY-MM-DD` to define events or tasks that span multiple day
 
 ---
 
+### Activity Bar Sidebar
+
+A dedicated TaskMark icon appears in the Activity Bar. Clicking it opens the **Overview** TreeView, which summarizes the active `.tmd` file at a glance:
+
+- **Today** — schedules and tasks for the current day (including ranges that span today)
+- **This week** — items in the current Mon–Sun week, excluding today
+- **Overdue** — incomplete tasks dated before today
+- **Recently done** — the most recent completed tasks (up to 10)
+
+Click any item to jump to its line in the `.tmd` file. Use the inline check-mark action on a task to toggle `- [ ]` / `- [x]` without opening the editor. The view auto-refreshes when the file is edited or another `.tmd` becomes active, and the title bar provides a manual refresh button.
+
+---
+
 ### ✏️ Editing Helpers
 
 Reduce the typing cost of writing `.tmd` files with quick-add commands, snippets, and inline completion.
