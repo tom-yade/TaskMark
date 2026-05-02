@@ -208,6 +208,37 @@ Use `# YYYY-MM-DD : YYYY-MM-DD` to define events or tasks that span multiple day
 
 ---
 
+### ✏️ Editing Helpers
+
+Reduce the typing cost of writing `.tmd` files with quick-add commands, snippets, and inline completion.
+
+**Quick-Add Commands** — Open the Command Palette (`Ctrl+Shift+P`) and run:
+
+- **`TaskMark: Add Task`** — Prompts for the task body and target date, then inserts `- [ ] <body>` into the matching date section. The section is created at the end of the file if it does not exist.
+- **`TaskMark: Add Schedule`** — Prompts for the body, start time, optional end time, and target date, then inserts `- HH:mm[-HH:mm] <body>` into the matching date section.
+
+The date prompt offers `Today` / `Tomorrow` / a custom `YYYY-MM-DD`.
+
+**Snippets** — Type the prefix and press `Tab` while editing a `.tmd` file:
+
+| Prefix | Expands to |
+|------|------|
+| `task` | `- [ ] ` |
+| `event` | `- HH:mm-HH:mm ` |
+| `date` | `# YYYY-MM-DD` |
+| `range` | `# YYYY-MM-DD : YYYY-MM-DD` |
+| `group` | `> Group Name #Tag` |
+| `repeat` | `@repeat(daily|weekly|monthly)` (choice) |
+| `tags` | `@tags` ... `@end` block |
+
+**Inline Completion**
+
+- After `#`, completes from tags defined in the current file's `@tags` block and from `taskmark.tagColors` settings.
+- After `@`, completes the keywords `repeat(`, `tags`, and `end`.
+- Inside `@repeat(...)`, completes the modifiers `daily`, `weekly`, `monthly`, `every:`, `until:`, `count:`, `except:`.
+
+---
+
 ## Usage
 
 1. Open a `.tmd` extension file.
