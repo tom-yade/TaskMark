@@ -35,9 +35,15 @@ export function getWeekRange(dateStr: string): { start: string; end: string } {
   return { start: toDateStr(monday), end: toDateStr(sunday) };
 }
 
+function timeStartMinutes(time: string): number {
+  const start = time.split('-')[0];
+  const [h, m] = start.split(':').map(s => parseInt(s, 10));
+  return h * 60 + m;
+}
+
 function compareByTimeThenLine(a: MarkItem, b: MarkItem): number {
   if (a.time && b.time) {
-    return a.time.localeCompare(b.time) || a.rawLine - b.rawLine;
+    return timeStartMinutes(a.time) - timeStartMinutes(b.time) || a.rawLine - b.rawLine;
   }
   if (a.time) { return -1; }
   if (b.time) { return 1; }

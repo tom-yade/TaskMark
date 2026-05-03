@@ -123,6 +123,18 @@ suite('categorizeForTreeView', () => {
     assert.deepStrictEqual(texts, ['Morning', 'Afternoon', 'Untimed']);
   });
 
+  test('today sort handles unpadded hours numerically (9:00 < 10:00)', () => {
+    const text = `
+# 2026-05-02
+- 10:00 Ten
+- 9:00 Nine
+- 9:30-10:30 NineThirty
+`;
+    const result = getCategorized(text, '2026-05-02');
+    const texts = result.today.map(i => i.text);
+    assert.deepStrictEqual(texts, ['Nine', 'NineThirty', 'Ten']);
+  });
+
   test('week boundary: Monday is first day of week', () => {
     // 2026-05-04 is Monday.
     const text = `
