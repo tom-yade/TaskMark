@@ -151,6 +151,20 @@ suite('categorizeForTreeView', () => {
     assert.ok(!weekTexts.includes('Monday today'));
   });
 
+  test('repeat occurrences carry the occurrence date as startDate', () => {
+    // 2026-05-04 is Monday. Weekly repeat starting that day produces occurrences
+    // on 05-04, 05-11, 05-18, ... The week containing today (2026-05-12, Tue)
+    // is 05-11 .. 05-17, so only the 05-11 occurrence belongs to thisWeek.
+    const text = `
+# 2026-05-04
+- Weekly Sync @repeat(weekly, count:4)
+`;
+    const result = getCategorized(text, '2026-05-12');
+    assert.strictEqual(result.thisWeek.length, 1);
+    assert.strictEqual(result.thisWeek[0].startDate, '2026-05-11',
+      'thisWeek occurrence should carry the occurrence date, not the repeat origin');
+  });
+
   test('returns empty buckets for an empty document', () => {
     const result = getCategorized('', '2026-05-02');
     assert.deepStrictEqual(result.today, []);

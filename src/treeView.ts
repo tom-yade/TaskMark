@@ -75,6 +75,7 @@ export function categorizeForTreeView(
   const recentlyDoneOcc: Occurrence[] = [];
 
   for (const occ of occurrences) {
+    occ.item.startDate = occ.start;
     const inToday = todayStr >= occ.start && todayStr <= occ.end;
     if (inToday) {
       today.push(occ.item);

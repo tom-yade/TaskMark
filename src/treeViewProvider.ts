@@ -87,9 +87,9 @@ export class TaskmarkTreeDataProvider implements vscode.TreeDataProvider<TreeNod
     }
 
     const treeItem = new vscode.TreeItem(formatItemLabel(node.item), vscode.TreeItemCollapsibleState.None);
-    treeItem.description = node.item.tags.length > 0
-      ? node.item.tags.map(t => `#${t}`).join(' ')
-      : undefined;
+    const datePart = node.category !== 'today' ? `${node.item.startDate} ` : '';
+    const tagsPart = node.item.tags.map(t => `#${t}`).join(' ');
+    treeItem.description = (datePart + tagsPart).trim() || undefined;
     treeItem.tooltip = `${node.item.startDate}${node.item.endDate ? ` : ${node.item.endDate}` : ''}\n${node.item.sourceLine}`;
     treeItem.command = {
       command: 'taskmark.tree.revealItem',
