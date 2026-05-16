@@ -162,8 +162,9 @@ Options can be combined using commas. If a limit is not explicitly defined, recu
 | `# YYYY-MM-DD` | Date header | — |
 | `# YYYY-MM-DD : YYYY-MM-DD` | Date range header (start : end) | — |
 | `- Text` | Schedule (Event) | — |
-| `- [ ] Text` | Uncompleted task | — |
-| `- [x] Text` | Completed task | — |
+| `- [ ] Text` | Uncompleted task (= `- [0] Text`) | — |
+| `- [x] Text` | Completed task (= `- [100] Text`) | — |
+| `- [N] Text` | Task with progress rate (`N` = 0-100) | — |
 | `HH:mm-HH:mm` | Time range (Start-End) | Schedules |
 | `HH:mm` | Start time only | Schedules |
 | `#Tag` | Tags (Multiple allowed) | Both |
