@@ -636,6 +636,75 @@ not a valid tag line
     assert.strictEqual(data.days['2026-04-23'].items.length, 0, 'Indented items are not included');
   });
 
+  // ─── Progress Rate ([N] notation) Tests ──────────────────────
+
+  test('parseTmd [ ] task has progress=0 and status=todo', () => {
+    const { data } = parseTmd(`# 2026-03-01\n- [ ] Task\n`);
+    const item = data.days['2026-03-01'].items[0];
+    assert.strictEqual(item.status, 'todo');
+    assert.strictEqual(item.progress, 0);
+  });
+
+  test('parseTmd [x] task has progress=100 and status=done', () => {
+    const { data } = parseTmd(`# 2026-03-01\n- [x] Task\n`);
+    const item = data.days['2026-03-01'].items[0];
+    assert.strictEqual(item.status, 'done');
+    assert.strictEqual(item.progress, 100);
+  });
+
+  test('parseTmd [N] task carries the explicit progress value', () => {
+    const { data } = parseTmd(`# 2026-03-01\n- [30] Task\n`);
+    const item = data.days['2026-03-01'].items[0];
+    assert.strictEqual(item.progress, 30);
+    assert.strictEqual(item.status, 'todo', 'Intermediate values are not "done"');
+  });
+
+  test('parseTmd [0] is treated as todo with progress=0 (synonym of [ ])', () => {
+    const { data } = parseTmd(`# 2026-03-01\n- [0] Task\n`);
+    const item = data.days['2026-03-01'].items[0];
+    assert.strictEqual(item.status, 'todo');
+    assert.strictEqual(item.progress, 0);
+  });
+
+  test('parseTmd [100] is treated as done (synonym of [x])', () => {
+    const { data } = parseTmd(`# 2026-03-01\n- [100] Task\n`);
+    const item = data.days['2026-03-01'].items[0];
+    assert.strictEqual(item.status, 'done');
+    assert.strictEqual(item.progress, 100);
+  });
+
+  test('parseTmd [N] out of range warns and falls back to 0', () => {
+    const { data, warnings } = parseTmd(`# 2026-03-01\n- [150] Task\n`);
+    const item = data.days['2026-03-01'].items[0];
+    assert.strictEqual(item.progress, 0);
+    assert.strictEqual(item.status, 'todo');
+    assert.strictEqual(warnings.length, 1);
+    assert.match(warnings[0], /invalid progress '150'/);
+  });
+
+  test('parseTmd schedule items have no progress field', () => {
+    const { data } = parseTmd(`# 2026-03-01\n- Plain schedule\n`);
+    const item = data.days['2026-03-01'].items[0];
+    assert.strictEqual(item.progress, undefined);
+    assert.strictEqual(item.status, undefined);
+  });
+
+  test('parseTmd [N] with inner whitespace is accepted', () => {
+    const { data } = parseTmd(`# 2026-03-01\n- [ 60 ] Task\n`);
+    const item = data.days['2026-03-01'].items[0];
+    assert.strictEqual(item.progress, 60);
+    assert.strictEqual(item.status, 'todo');
+  });
+
+  test('parseTmd [N] preserves time and content parsing', () => {
+    const { data } = parseTmd(`# 2026-03-01\n- [45] 09:00-10:00 Meeting #work\n`);
+    const item = data.days['2026-03-01'].items[0];
+    assert.strictEqual(item.progress, 45);
+    assert.strictEqual(item.time, '09:00-10:00');
+    assert.strictEqual(item.text, 'Meeting');
+    assert.deepStrictEqual(item.tags, ['work']);
+  });
+
   test('parseTmd range item has startDate matching the range start date', () => {
     const text = `
 # 2026-03-01 : 2026-03-10
