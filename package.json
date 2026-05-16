@@ -17,6 +17,25 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "taskmark",
+          "title": "TaskMark",
+          "icon": "media/activitybar-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "taskmark": [
+        {
+          "id": "taskmarkOverview",
+          "name": "Overview",
+          "icon": "media/activitybar-icon.svg",
+          "contextualTitle": "TaskMark"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "taskmark.openView",
@@ -30,6 +49,16 @@
       {
         "command": "taskmark.addSchedule",
         "title": "TaskMark: Add Schedule"
+      },
+      {
+        "command": "taskmark.tree.refresh",
+        "title": "TaskMark: Refresh Overview",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "taskmark.tree.toggleItem",
+        "title": "TaskMark: Toggle Task",
+        "icon": "$(check)"
       }
     ],
     "keybindings": [
@@ -46,6 +75,26 @@
           "command": "taskmark.openView",
           "when": "editorLangId == tmd",
           "group": "navigation"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "taskmark.tree.refresh",
+          "when": "view == taskmarkOverview",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "taskmark.tree.toggleItem",
+          "when": "view == taskmarkOverview && viewItem == taskmarkTask",
+          "group": "inline"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "taskmark.tree.toggleItem",
+          "when": "false"
         }
       ]
     },
