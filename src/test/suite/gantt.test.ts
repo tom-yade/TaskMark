@@ -350,6 +350,32 @@ suite('Gantt Test Suite', () => {
     assert.strictEqual(group.children[1].sourceLine, '> - [x] Task B');
   });
 
+  test('group entity tasksProgressSum reflects intermediate [N] progress values', () => {
+    const { data } = parseTmd(`# 2026-03-01
+> Sprint
+> - [30] Task A
+> - [50] Task B
+> - [x] Task C
+`);
+    const { entities } = buildGanttEntities(data);
+    const group = entities[0];
+    assert.strictEqual(group.tasksTotal, 3);
+    assert.strictEqual(group.tasksProgressSum, 30 + 50 + 100);
+    // Average = 60
+  });
+
+  test('standalone task child exposes progress 0-100', () => {
+    const { data } = parseTmd(`# 2026-03-01\n- [40] Task\n`);
+    const { entities } = buildGanttEntities(data);
+    assert.strictEqual(entities[0].children[0].progress, 40);
+  });
+
+  test('schedule child progress is 100 (rendered as a full bar)', () => {
+    const { data } = parseTmd(`# 2026-03-01\n- Plain schedule\n`);
+    const { entities } = buildGanttEntities(data);
+    assert.strictEqual(entities[0].children[0].progress, 100);
+  });
+
   test('schedule children also carry rawLine and sourceLine from source item', () => {
     const { data } = parseTmd(`# 2026-03-01
 - 9:00-10:00 Meeting

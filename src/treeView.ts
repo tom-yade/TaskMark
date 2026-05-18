@@ -125,5 +125,9 @@ export function categoryLabel(id: CategoryId, todayStr: string): string {
 export function formatItemLabel(item: MarkItem): string {
   const checkbox = item.type === 'task' ? (item.status === 'done' ? '[x] ' : '[ ] ') : '';
   const time = item.time ? `${item.time} ` : '';
-  return `${checkbox}${time}${item.text}`.trim();
+  const progress =
+    item.type === 'task' && item.progress !== undefined && item.progress > 0 && item.progress < 100
+      ? ` (${item.progress}%)`
+      : '';
+  return `${checkbox}${time}${item.text}${progress}`.trim();
 }

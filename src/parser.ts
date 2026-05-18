@@ -26,6 +26,9 @@ export interface MarkItem {
   time?: string;
   tags: string[];
   status?: TaskStatus;
+  /** Progress rate in 0-100 for task items. Undefined for schedule items.
+   *  `[ ]` is 0, `[x]` is 100, `[N]` carries the explicit value. */
+  progress?: number;
   repeat?: string;
   group?: string;
   rawLine: number;
@@ -45,7 +48,7 @@ const TASK_LINE_PREFIX_SRC = '(>\\s*)?(-)?';
  *  toggleCheckboxInLine. Keep the two regex shapes in sync. */
 export const TASK_LINE_PREFIX_NC = '(?:>\\s*)?(?:-)?';
 const ITEM_REGEX = new RegExp(
-  `^${TASK_LINE_PREFIX_SRC}\\s*(\\[\\s*([xX\\s])\\s*\\])?\\s*((\\d{1,2}:\\d{1,2})(?:-(\\d{1,2}:\\d{1,2}))?)?\\s*(.*)$`
+  `^${TASK_LINE_PREFIX_SRC}\\s*(\\[\\s*([xX]|\\d{1,3}|\\s)\\s*\\])?\\s*((\\d{1,2}:\\d{1,2})(?:-(\\d{1,2}:\\d{1,2}))?)?\\s*(.*)$`
 );
 const REPEAT_REGEX = /@repeat\(([^)]+)\)/;
 const TAG_SPLIT_REGEX = /#([^\s#]+)/g;
@@ -314,9 +317,28 @@ function createMarkItem(
   let content = itemMatch[8] || '';
 
   const type: ItemType = hasCheckbox ? 'task' : 'schedule';
-  const status: TaskStatus | undefined = hasCheckbox
-    ? (checkMark.trim().toLowerCase() === 'x' ? 'done' : 'todo')
-    : undefined;
+  let status: TaskStatus | undefined;
+  let progress: number | undefined;
+  if (hasCheckbox) {
+    const trimmed = checkMark.trim();
+    if (trimmed === '') {
+      progress = 0;
+      status = 'todo';
+    } else if (trimmed.toLowerCase() === 'x') {
+      progress = 100;
+      status = 'done';
+    } else {
+      const n = parseInt(trimmed, 10);
+      if (n > 100) {
+        warnings.push(`Line ${lineIndex + 1}: invalid progress '${trimmed}' (must be 0-100), fallback to 0`);
+        progress = 0;
+        status = 'todo';
+      } else {
+        progress = n;
+        status = n === 100 ? 'done' : 'todo';
+      }
+    }
+  }
 
   // Extract repeat
   let repeatStr: string | undefined;
@@ -337,6 +359,7 @@ function createMarkItem(
     time: timeString,
     tags,
     status,
+    progress,
     repeat: repeatStr,
     group: newGroup || undefined,
     rawLine: lineIndex,

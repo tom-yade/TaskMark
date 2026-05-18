@@ -167,6 +167,20 @@ suite('toggleCheckboxInLine', () => {
   test('returns null when non-bullet text precedes the checkbox', () => {
     assert.strictEqual(toggleCheckboxInLine('foo - [ ] bar'), null);
   });
+
+  test('flips intermediate [N] task to [x] (treats N as not yet done)', () => {
+    assert.strictEqual(toggleCheckboxInLine('- [30] foo'), '- [x] foo');
+    assert.strictEqual(toggleCheckboxInLine('- [60] foo'), '- [x] foo');
+    assert.strictEqual(toggleCheckboxInLine('- [99] foo'), '- [x] foo');
+  });
+
+  test('treats [0] as todo and flips to [x]', () => {
+    assert.strictEqual(toggleCheckboxInLine('- [0] foo'), '- [x] foo');
+  });
+
+  test('treats [100] as done and flips to [ ]', () => {
+    assert.strictEqual(toggleCheckboxInLine('- [100] foo'), '- [ ] foo');
+  });
 });
 
 suite('resolveFontSize', () => {

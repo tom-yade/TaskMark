@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 import { parseTmd } from '../../parser';
-import { categorizeForTreeView, RECENTLY_DONE_LIMIT } from '../../treeView';
+import { categorizeForTreeView, formatItemLabel, RECENTLY_DONE_LIMIT } from '../../treeView';
 
 function getCategorized(text: string, today: string) {
   const { data } = parseTmd(text);
@@ -171,5 +171,33 @@ suite('categorizeForTreeView', () => {
     assert.deepStrictEqual(result.thisWeek, []);
     assert.deepStrictEqual(result.overdue, []);
     assert.deepStrictEqual(result.recentlyDone, []);
+  });
+});
+
+suite('formatItemLabel', () => {
+  function firstItem(text: string) {
+    const { data } = parseTmd(text);
+    const dateKey = Object.keys(data.days)[0];
+    return data.days[dateKey].items[0];
+  }
+
+  test('appends (N%) suffix for an intermediate-progress task', () => {
+    const item = firstItem(`# 2026-05-02\n- [60] Implement\n`);
+    assert.strictEqual(formatItemLabel(item), '[ ] Implement (60%)');
+  });
+
+  test('does not append a suffix for [ ] (0%)', () => {
+    const item = firstItem(`# 2026-05-02\n- [ ] Implement\n`);
+    assert.strictEqual(formatItemLabel(item), '[ ] Implement');
+  });
+
+  test('does not append a suffix for [x] (100%)', () => {
+    const item = firstItem(`# 2026-05-02\n- [x] Implement\n`);
+    assert.strictEqual(formatItemLabel(item), '[x] Implement');
+  });
+
+  test('keeps time prefix together with the (N%) suffix', () => {
+    const item = firstItem(`# 2026-05-02\n- [45] 09:00 Standup\n`);
+    assert.strictEqual(formatItemLabel(item), '[ ] 09:00 Standup (45%)');
   });
 });
