@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { TaskmarkPanel } from './TaskmarkPanel';
 import { registerQuickAddCommands } from './quickAddCommands';
+import { registerDuplicateTaskCommand } from './duplicateTaskCommand';
 import { registerCompletionProviders } from './completionProvider';
 import { TaskmarkTreeDataProvider } from './treeViewProvider';
 import { debounce } from './utils/debounce';
@@ -13,6 +14,7 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   registerQuickAddCommands(context);
+  registerDuplicateTaskCommand(context);
   registerCompletionProviders(context);
   registerTreeView(context);
 
