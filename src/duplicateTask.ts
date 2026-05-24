@@ -2,7 +2,7 @@
 // Kept free of vscode imports so the logic can be unit-tested without
 // the VS Code test runner.
 
-import { insertItemForDate, isValidDate, formatLocalDate } from './quickAdd';
+import { planInsertItemForDate, isValidDate, formatLocalDate } from './quickAdd';
 
 export interface DuplicatePattern {
   mode: 'days' | 'months';
@@ -109,8 +109,21 @@ export function generateDuplicateDates(
   return dates;
 }
 
+export interface DuplicateInsertion {
+  /** Character offset in the original document where `text` should be spliced. */
+  offset: number;
+  /** Text to splice into the original document at `offset`. */
+  text: string;
+}
+
 export interface DuplicateResult {
-  newText: string;
+  /**
+   * Sorted, merged list of insertions to apply to the original document.
+   * Offsets are relative to the original `documentText`, so callers can
+   * apply them directly with `TextEditorEdit.insert` (which evaluates
+   * positions against the pre-edit document).
+   */
+  insertions: DuplicateInsertion[];
   insertedDates: string[];
 }
 
@@ -123,11 +136,66 @@ export function duplicateTaskAcrossDates(
   eol: string = '\n'
 ): DuplicateResult {
   const dates = generateDuplicateDates(sourceDate, pattern, end);
-  let text = documentText;
-  for (const date of dates) {
-    text = insertItemForDate(text, date, taskLine, eol).newText;
+  if (dates.length === 0) {
+    return { insertions: [], insertedDates: dates };
   }
-  return { newText: text, insertedDates: dates };
+
+  const existing: DuplicateInsertion[] = [];
+  const newSectionDates: string[] = [];
+  for (const date of dates) {
+    const plan = planInsertItemForDate(documentText, date, taskLine, eol);
+    if (plan.createdNewSection) {
+      newSectionDates.push(date);
+    } else {
+      existing.push({ offset: plan.offset, text: plan.text });
+    }
+  }
+
+  const combined: DuplicateInsertion[] = [...existing];
+  if (newSectionDates.length > 0) {
+    combined.push(buildAppendedNewSections(documentText, newSectionDates, taskLine, eol));
+  }
+
+  combined.sort((a, b) => a.offset - b.offset);
+  const merged: DuplicateInsertion[] = [];
+  for (const ins of combined) {
+    const last = merged[merged.length - 1];
+    if (last && last.offset === ins.offset) {
+      last.text += ins.text;
+    } else {
+      merged.push({ ...ins });
+    }
+  }
+  return { insertions: merged, insertedDates: dates };
+}
+
+function buildAppendedNewSections(
+  documentText: string,
+  newDates: string[],
+  taskLine: string,
+  eol: string
+): DuplicateInsertion {
+  const lines = documentText === '' ? [] : documentText.split(/\r?\n/);
+  let trimEnd = lines.length;
+  while (trimEnd > 0 && lines[trimEnd - 1].trim() === '') {
+    trimEnd--;
+  }
+  const headExists = trimEnd > 0;
+  const hasTail = trimEnd < lines.length;
+  const sections = newDates.map(d => `# ${d}${eol}${taskLine}`);
+  const joined = sections.join(`${eol}${eol}`);
+
+  if (!headExists) {
+    return { offset: 0, text: hasTail ? `${joined}${eol}` : joined };
+  }
+  if (hasTail) {
+    let offset = 0;
+    for (let i = 0; i < trimEnd; i++) {
+      offset += lines[i].length + eol.length;
+    }
+    return { offset, text: `${eol}${joined}${eol}` };
+  }
+  return { offset: documentText.length, text: `${eol}${eol}${joined}` };
 }
 
 export function findSourceDateForLine(documentText: string, lineIndex: number): string | null {

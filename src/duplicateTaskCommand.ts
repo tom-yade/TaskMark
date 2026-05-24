@@ -52,7 +52,7 @@ async function runDuplicateTask(): Promise<void> {
   }
 
   const eol = document.eol === vscode.EndOfLine.CRLF ? '\r\n' : '\n';
-  const { newText, insertedDates } = duplicateTaskAcrossDates(
+  const { insertions, insertedDates } = duplicateTaskAcrossDates(
     fullText,
     sourceDate,
     lineText,
@@ -61,16 +61,16 @@ async function runDuplicateTask(): Promise<void> {
     eol,
   );
 
-  if (insertedDates.length === 0) {
+  if (insertedDates.length === 0 || insertions.length === 0) {
     vscode.window.showInformationMessage('TaskMark: No dates matched — nothing to duplicate.');
     return;
   }
 
-  const fullRange = new vscode.Range(
-    document.positionAt(0),
-    document.positionAt(fullText.length),
-  );
-  const ok = await editor.edit(eb => eb.replace(fullRange, newText));
+  const ok = await editor.edit(eb => {
+    for (const ins of insertions) {
+      eb.insert(document.positionAt(ins.offset), ins.text);
+    }
+  });
   if (!ok) {
     vscode.window.showErrorMessage('TaskMark: Failed to duplicate task.');
     return;

@@ -22,6 +22,39 @@ export interface InsertResult {
   insertedLineIndex: number;
 }
 
+export interface InsertionPlan {
+  /** Character offset in `documentText` where `text` should be spliced. */
+  offset: number;
+  /** Text to splice into `documentText` at `offset`. */
+  text: string;
+  /** Zero-based line index of the inserted item line in the resulting text. */
+  insertedLineIndex: number;
+  /** True when the plan also creates a new `# YYYY-MM-DD` section header. */
+  createdNewSection: boolean;
+}
+
+/**
+ * Plan how to insert `itemLine` into the section for `dateStr` without
+ * materializing the full new document. Useful when the caller wants to
+ * apply the change as a localized edit (e.g. `TextEditorEdit.insert`)
+ * rather than replacing the whole document text.
+ *
+ * Semantics match {@link insertItemForDate}.
+ */
+export function planInsertItemForDate(
+  documentText: string,
+  dateStr: string,
+  itemLine: string,
+  eol: string = '\n'
+): InsertionPlan {
+  const lines = documentText === '' ? [] : documentText.split(/\r?\n/);
+  const sectionStart = findSectionStart(lines, dateStr);
+  if (sectionStart === -1) {
+    return planNewSectionInsertion(documentText, lines, dateStr, itemLine, eol);
+  }
+  return planExistingSectionInsertion(documentText, lines, sectionStart, itemLine, eol);
+}
+
 /**
  * Insert `itemLine` into the section for `dateStr`.
  * - If a section header for the date exists, append the line after the
@@ -43,22 +76,11 @@ export function insertItemForDate(
   itemLine: string,
   eol: string = '\n'
 ): InsertResult {
-  const lines = documentText === '' ? [] : documentText.split(/\r?\n/);
-  const sectionStart = findSectionStart(lines, dateStr);
-
-  const planned = sectionStart === -1
-    ? planNewSection(lines, dateStr, itemLine)
-    : planExistingSection(lines, sectionStart, itemLine);
-
+  const plan = planInsertItemForDate(documentText, dateStr, itemLine, eol);
   return {
-    newText: planned.lines.join(eol),
-    insertedLineIndex: planned.insertedLineIndex,
+    newText: documentText.substring(0, plan.offset) + plan.text + documentText.substring(plan.offset),
+    insertedLineIndex: plan.insertedLineIndex,
   };
-}
-
-interface InsertPlan {
-  lines: string[];
-  insertedLineIndex: number;
 }
 
 function findSectionStart(lines: string[], dateStr: string): number {
@@ -71,28 +93,13 @@ function findSectionStart(lines: string[], dateStr: string): number {
   return -1;
 }
 
-function planNewSection(lines: string[], dateStr: string, itemLine: string): InsertPlan {
-  let trimEnd = lines.length;
-  while (trimEnd > 0 && lines[trimEnd - 1].trim() === '') {
-    trimEnd--;
-  }
-  const head = lines.slice(0, trimEnd);
-  const tail = lines.slice(trimEnd);
-
-  const inserted: string[] = [];
-  if (head.length > 0) {
-    inserted.push('');
-  }
-  inserted.push(`# ${dateStr}`);
-  inserted.push(itemLine);
-
-  return {
-    lines: [...head, ...inserted, ...tail],
-    insertedLineIndex: head.length + inserted.length - 1,
-  };
-}
-
-function planExistingSection(lines: string[], sectionStart: number, itemLine: string): InsertPlan {
+function planExistingSectionInsertion(
+  documentText: string,
+  lines: string[],
+  sectionStart: number,
+  itemLine: string,
+  eol: string
+): InsertionPlan {
   let nextSection = lines.length;
   for (let i = sectionStart + 1; i < lines.length; i++) {
     if (DATE_HEADER_REGEX.test(lines[i])) {
@@ -100,21 +107,66 @@ function planExistingSection(lines: string[], sectionStart: number, itemLine: st
       break;
     }
   }
-
   let insertAfter = sectionStart;
   for (let i = sectionStart + 1; i < nextSection; i++) {
     if (lines[i].trim() !== '') {
       insertAfter = i;
     }
   }
-
+  const insertedLineIndex = insertAfter + 1;
+  if (insertedLineIndex < lines.length) {
+    let offset = 0;
+    for (let i = 0; i <= insertAfter; i++) {
+      offset += lines[i].length + eol.length;
+    }
+    return { offset, text: `${itemLine}${eol}`, insertedLineIndex, createdNewSection: false };
+  }
   return {
-    lines: [
-      ...lines.slice(0, insertAfter + 1),
-      itemLine,
-      ...lines.slice(insertAfter + 1),
-    ],
-    insertedLineIndex: insertAfter + 1,
+    offset: documentText.length,
+    text: `${eol}${itemLine}`,
+    insertedLineIndex,
+    createdNewSection: false,
+  };
+}
+
+function planNewSectionInsertion(
+  documentText: string,
+  lines: string[],
+  dateStr: string,
+  itemLine: string,
+  eol: string
+): InsertionPlan {
+  let trimEnd = lines.length;
+  while (trimEnd > 0 && lines[trimEnd - 1].trim() === '') {
+    trimEnd--;
+  }
+  const headExists = trimEnd > 0;
+  const hasTail = trimEnd < lines.length;
+
+  if (!headExists) {
+    const text = hasTail
+      ? `# ${dateStr}${eol}${itemLine}${eol}`
+      : `# ${dateStr}${eol}${itemLine}`;
+    return { offset: 0, text, insertedLineIndex: 1, createdNewSection: true };
+  }
+
+  let offset = 0;
+  for (let i = 0; i < trimEnd; i++) {
+    offset += lines[i].length + eol.length;
+  }
+  if (hasTail) {
+    return {
+      offset,
+      text: `${eol}# ${dateStr}${eol}${itemLine}${eol}`,
+      insertedLineIndex: trimEnd + 2,
+      createdNewSection: true,
+    };
+  }
+  return {
+    offset: documentText.length,
+    text: `${eol}${eol}# ${dateStr}${eol}${itemLine}`,
+    insertedLineIndex: trimEnd + 2,
+    createdNewSection: true,
   };
 }
 

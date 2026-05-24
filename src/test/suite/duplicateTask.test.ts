@@ -5,7 +5,16 @@ import {
   generateDuplicateDates,
   duplicateTaskAcrossDates,
   findSourceDateForLine,
+  DuplicateInsertion,
 } from '../../duplicateTask';
+
+function applyInsertions(text: string, insertions: DuplicateInsertion[]): string {
+  let result = text;
+  for (const ins of [...insertions].sort((a, b) => b.offset - a.offset)) {
+    result = result.substring(0, ins.offset) + ins.text + result.substring(ins.offset);
+  }
+  return result;
+}
 
 suite('Duplicate Task Test Suite', () => {
   suite('parseDuplicatePattern', () => {
@@ -146,7 +155,7 @@ suite('Duplicate Task Test Suite', () => {
   suite('duplicateTaskAcrossDates', () => {
     test('inserts copies into new sections following the issue example', () => {
       const text = ['# 2026-04-27', '- [ ] Weekly Report'].join('\n');
-      const { newText, insertedDates } = duplicateTaskAcrossDates(
+      const { insertions, insertedDates } = duplicateTaskAcrossDates(
         text,
         '2026-04-27',
         '- [ ] Weekly Report',
@@ -156,7 +165,7 @@ suite('Duplicate Task Test Suite', () => {
 
       assert.deepStrictEqual(insertedDates, ['2026-05-04', '2026-05-11', '2026-05-18']);
       assert.strictEqual(
-        newText,
+        applyInsertions(text, insertions),
         [
           '# 2026-04-27',
           '- [ ] Weekly Report',
@@ -181,7 +190,7 @@ suite('Duplicate Task Test Suite', () => {
         '# 2026-05-04',
         '- 10:00 Other',
       ].join('\n');
-      const { newText } = duplicateTaskAcrossDates(
+      const { insertions } = duplicateTaskAcrossDates(
         text,
         '2026-04-27',
         '- [ ] Weekly Report',
@@ -190,7 +199,7 @@ suite('Duplicate Task Test Suite', () => {
       );
 
       assert.strictEqual(
-        newText,
+        applyInsertions(text, insertions),
         [
           '# 2026-04-27',
           '- [ ] Weekly Report',
@@ -204,7 +213,7 @@ suite('Duplicate Task Test Suite', () => {
 
     test('preserves CRLF line endings', () => {
       const text = ['# 2026-04-27', '- [ ] Weekly Report'].join('\r\n');
-      const { newText } = duplicateTaskAcrossDates(
+      const { insertions } = duplicateTaskAcrossDates(
         text,
         '2026-04-27',
         '- [ ] Weekly Report',
@@ -213,21 +222,43 @@ suite('Duplicate Task Test Suite', () => {
         '\r\n'
       );
 
-      assert.ok(!/(?<!\r)\n/.test(newText), 'should not contain bare \\n');
-      assert.ok(newText.includes('\r\n# 2026-05-04\r\n- [ ] Weekly Report'));
+      const result = applyInsertions(text, insertions);
+      assert.ok(!/(?<!\r)\n/.test(result), 'should not contain bare \\n');
+      assert.ok(result.includes('\r\n# 2026-05-04\r\n- [ ] Weekly Report'));
     });
 
-    test('returns the original text unchanged when count:1', () => {
+    test('returns no insertions when count:1', () => {
       const text = ['# 2026-04-27', '- [ ] Weekly Report'].join('\n');
-      const { newText, insertedDates } = duplicateTaskAcrossDates(
+      const { insertions, insertedDates } = duplicateTaskAcrossDates(
         text,
         '2026-04-27',
         '- [ ] Weekly Report',
         { mode: 'days', interval: 7 },
         { kind: 'count', count: 1 }
       );
-      assert.strictEqual(newText, text);
+      assert.deepStrictEqual(insertions, []);
       assert.deepStrictEqual(insertedDates, []);
+    });
+
+    test('emits a localized insertion rather than rewriting the whole document', () => {
+      const text = [
+        '# 2026-04-27',
+        '- [ ] Weekly Report',
+        '',
+        '# 2026-05-04',
+        '- 10:00 Other',
+      ].join('\n');
+      const { insertions } = duplicateTaskAcrossDates(
+        text,
+        '2026-04-27',
+        '- [ ] Weekly Report',
+        { mode: 'days', interval: 7 },
+        { kind: 'count', count: 2 }
+      );
+      // Only one localized insert at the end of the existing 2026-05-04 section.
+      assert.strictEqual(insertions.length, 1);
+      assert.strictEqual(insertions[0].offset, text.length);
+      assert.strictEqual(insertions[0].text, '\n- [ ] Weekly Report');
     });
   });
 
