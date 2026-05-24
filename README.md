@@ -230,8 +230,11 @@ Reduce the typing cost of writing `.tmd` files with quick-add commands, snippets
 
 - **`TaskMark: Add Task`** — Prompts for the task body and target date, then inserts `- [ ] <body>` into the matching date section. The section is created at the end of the file if it does not exist.
 - **`TaskMark: Add Schedule`** — Prompts for the body, start time, optional end time, and target date, then inserts `- HH:mm[-HH:mm] <body>` into the matching date section.
+- **`TaskMark: Duplicate Task`** — With the cursor on a task line, prompts for a repeat pattern (`daily` / `weekly` / `monthly` / `every:Ndays|Nweeks|Nmonths`) and an end condition (`count:N` or `until:YYYY-MM-DD`), then inserts copies of the task into the matching date sections. Missing date sections are created at the end of the file. Also available from the editor context menu on a `.tmd` file.
 
 The date prompt offers `Today` / `Tomorrow` / a custom `YYYY-MM-DD`.
+
+> **Note:** Unlike `@repeat`, which expands schedules in-place at parse time, `Duplicate Task` inserts independent `- [ ]` lines into the file. Each copy keeps its own completion state, so it works for recurring tasks (e.g. weekly reports).
 
 **Snippets** — Type the prefix and press `Tab` while editing a `.tmd` file:
 

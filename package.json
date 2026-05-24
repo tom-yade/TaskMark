@@ -51,6 +51,10 @@
         "title": "TaskMark: Add Schedule"
       },
       {
+        "command": "taskmark.duplicateTask",
+        "title": "TaskMark: Duplicate Task"
+      },
+      {
         "command": "taskmark.tree.refresh",
         "title": "TaskMark: Refresh Overview",
         "icon": "$(refresh)"
@@ -75,6 +79,13 @@
           "command": "taskmark.openView",
           "when": "editorLangId == tmd",
           "group": "navigation"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "taskmark.duplicateTask",
+          "when": "editorLangId == tmd",
+          "group": "taskmark@1"
         }
       ],
       "view/title": [
