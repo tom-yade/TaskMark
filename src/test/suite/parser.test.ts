@@ -531,6 +531,180 @@ not a valid tag line
     assert.strictEqual(item.startDate, '2026-03-01');
   });
 
+  // ─── Input Validation Tests ──────────────────────────────────
+
+  test('parseTmd @repeat every:0days is rejected with a warning and does not expand', () => {
+    const text = `
+# 2026-04-23
+- 09:00 Morning stretch @repeat(every:0days)
+`;
+    const { data, warnings } = parseTmd(text);
+    assert.strictEqual(warnings.length, 1, 'Should warn about the invalid interval');
+    assert.match(warnings[0], /invalid @repeat interval '0days'/);
+    // Falls back to default weekly (interval=7), not same-day duplication
+    assert.strictEqual(data.days['2026-04-23'].items.length, 1, 'No duplication on origin day');
+  });
+
+  test('parseTmd @repeat every:0weeks / every:0months are rejected', () => {
+    const text = `
+# 2026-04-23
+- A @repeat(every:0weeks)
+- B @repeat(every:0months)
+`;
+    const { warnings } = parseTmd(text);
+    assert.strictEqual(warnings.length, 2);
+    assert.ok(warnings.some(w => w.includes('0weeks')));
+    assert.ok(warnings.some(w => w.includes('0months')));
+  });
+
+  test('parseTmd @repeat count is capped at MAX_OCCURRENCES', () => {
+    const text = `
+# 2026-03-01
+- Daily @repeat(daily, count:1000000)
+`;
+    const { data, warnings } = parseTmd(text);
+    assert.strictEqual(warnings.length, 1);
+    assert.match(warnings[0], /count '1000000' exceeds maximum/);
+    assert.ok(Object.keys(data.days).length <= 3650, 'Day count must not exceed MAX_OCCURRENCES');
+  });
+
+  test('parseTmd @repeat negative count is rejected with a warning', () => {
+    const text = `
+# 2026-03-01
+- Stand-up @repeat(daily, count:-5)
+`;
+    const { data, warnings } = parseTmd(text);
+    assert.strictEqual(warnings.length, 1);
+    assert.match(warnings[0], /invalid count '-5'/);
+    // Rejected count falls back to MAX_OCCURRENCES (but only origin day has the item here)
+    assert.ok(data.days['2026-03-01']);
+  });
+
+  test('parseTmd @repeat unknown token emits a warning', () => {
+    const text = `
+# 2026-03-01
+- Sync @repeat(weekly, unti:2026-06-30)
+`;
+    const { warnings } = parseTmd(text);
+    assert.strictEqual(warnings.length, 1);
+    assert.match(warnings[0], /unknown @repeat token 'unti:2026-06-30'/);
+  });
+
+  test('parseTmd @repeat + endDate emits a warning and is not expanded', () => {
+    const text = `
+# 2026-04-01 : 2026-04-10
+- Conference @repeat(weekly)
+`;
+    const { data, warnings } = parseTmd(text);
+    assert.strictEqual(warnings.length, 1);
+    assert.match(warnings[0], /@repeat is ignored because endDate is specified/);
+    assert.strictEqual(Object.keys(data.days).length, 1);
+  });
+
+  test('parseTmd rejects out-of-range times and drops the time field', () => {
+    const text = `
+# 2026-04-23
+- 25:99 Overflow hour
+- 09:60 Overflow minute
+- 09:30 Valid event
+`;
+    const { data, warnings } = parseTmd(text);
+    assert.strictEqual(warnings.length, 2);
+    assert.ok(warnings.every(w => /invalid time/.test(w)));
+    const items = data.days['2026-04-23'].items;
+    assert.strictEqual(items.length, 3, 'Items are still created without time');
+    assert.strictEqual(items[0].time, undefined);
+    assert.strictEqual(items[1].time, undefined);
+    assert.strictEqual(items[2].time, '09:30');
+  });
+
+  test('parseTmd rejects out-of-range end times in a time range', () => {
+    const text = `
+# 2026-04-23
+- 09:00-25:00 Overflow end
+`;
+    const { data, warnings } = parseTmd(text);
+    assert.strictEqual(warnings.length, 1);
+    assert.strictEqual(data.days['2026-04-23'].items[0].time, undefined);
+  });
+
+  test('parseTmd warns on indented list items', () => {
+    const text = '\n# 2026-04-23\n  - [ ] Indented task\n\t- [ ] Tab-indented task\n';
+    const { data, warnings } = parseTmd(text);
+    assert.strictEqual(warnings.length, 2, 'Both indented lines should warn');
+    assert.ok(warnings.every(w => /indented list items are not supported/.test(w)));
+    assert.strictEqual(data.days['2026-04-23'].items.length, 0, 'Indented items are not included');
+  });
+
+  // ─── Progress Rate ([N] notation) Tests ──────────────────────
+
+  test('parseTmd [ ] task has progress=0 and status=todo', () => {
+    const { data } = parseTmd(`# 2026-03-01\n- [ ] Task\n`);
+    const item = data.days['2026-03-01'].items[0];
+    assert.strictEqual(item.status, 'todo');
+    assert.strictEqual(item.progress, 0);
+  });
+
+  test('parseTmd [x] task has progress=100 and status=done', () => {
+    const { data } = parseTmd(`# 2026-03-01\n- [x] Task\n`);
+    const item = data.days['2026-03-01'].items[0];
+    assert.strictEqual(item.status, 'done');
+    assert.strictEqual(item.progress, 100);
+  });
+
+  test('parseTmd [N] task carries the explicit progress value', () => {
+    const { data } = parseTmd(`# 2026-03-01\n- [30] Task\n`);
+    const item = data.days['2026-03-01'].items[0];
+    assert.strictEqual(item.progress, 30);
+    assert.strictEqual(item.status, 'todo', 'Intermediate values are not "done"');
+  });
+
+  test('parseTmd [0] is treated as todo with progress=0 (synonym of [ ])', () => {
+    const { data } = parseTmd(`# 2026-03-01\n- [0] Task\n`);
+    const item = data.days['2026-03-01'].items[0];
+    assert.strictEqual(item.status, 'todo');
+    assert.strictEqual(item.progress, 0);
+  });
+
+  test('parseTmd [100] is treated as done (synonym of [x])', () => {
+    const { data } = parseTmd(`# 2026-03-01\n- [100] Task\n`);
+    const item = data.days['2026-03-01'].items[0];
+    assert.strictEqual(item.status, 'done');
+    assert.strictEqual(item.progress, 100);
+  });
+
+  test('parseTmd [N] out of range warns and falls back to 0', () => {
+    const { data, warnings } = parseTmd(`# 2026-03-01\n- [150] Task\n`);
+    const item = data.days['2026-03-01'].items[0];
+    assert.strictEqual(item.progress, 0);
+    assert.strictEqual(item.status, 'todo');
+    assert.strictEqual(warnings.length, 1);
+    assert.match(warnings[0], /invalid progress '150'/);
+  });
+
+  test('parseTmd schedule items have no progress field', () => {
+    const { data } = parseTmd(`# 2026-03-01\n- Plain schedule\n`);
+    const item = data.days['2026-03-01'].items[0];
+    assert.strictEqual(item.progress, undefined);
+    assert.strictEqual(item.status, undefined);
+  });
+
+  test('parseTmd [N] with inner whitespace is accepted', () => {
+    const { data } = parseTmd(`# 2026-03-01\n- [ 60 ] Task\n`);
+    const item = data.days['2026-03-01'].items[0];
+    assert.strictEqual(item.progress, 60);
+    assert.strictEqual(item.status, 'todo');
+  });
+
+  test('parseTmd [N] preserves time and content parsing', () => {
+    const { data } = parseTmd(`# 2026-03-01\n- [45] 09:00-10:00 Meeting #work\n`);
+    const item = data.days['2026-03-01'].items[0];
+    assert.strictEqual(item.progress, 45);
+    assert.strictEqual(item.time, '09:00-10:00');
+    assert.strictEqual(item.text, 'Meeting');
+    assert.deepStrictEqual(item.tags, ['work']);
+  });
+
   test('parseTmd range item has startDate matching the range start date', () => {
     const text = `
 # 2026-03-01 : 2026-03-10

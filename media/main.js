@@ -911,11 +911,12 @@
     const bar = createGanttBar(left, yOffset, width, bgColor);
     bar.classList.add('tm-gantt-group-bar');
 
-    // Progress fill
+    // Progress fill — uses the average task progress across children
+    // (each task's progress is 0-100, [N] notation per Issue #90).
     const pBar = document.createElement('div');
     pBar.className = 'tm-gantt-progress';
     if (entity.tasksTotal > 0) {
-      const progress = (entity.tasksDone / entity.tasksTotal) * 100;
+      const progress = entity.tasksProgressSum / entity.tasksTotal;
       pBar.style.width = progress + '%';
       if (progress > 0 && progress < 100) {
         pBar.style.borderRight = '2px solid var(--tm-card-border)';
@@ -959,7 +960,7 @@
       const pBar = document.createElement('div');
       pBar.className = 'tm-gantt-progress';
       if (child.isTask) {
-        pBar.style.width = child.isDone ? '100%' : '0%';
+        pBar.style.width = child.progress + '%';
       } else {
         pBar.style.width = '100%';
       }
@@ -1001,7 +1002,7 @@
       const pBar = document.createElement('div');
       pBar.className = 'tm-gantt-progress';
       if (child.isTask) {
-        pBar.style.width = child.isDone ? '100%' : '0%';
+        pBar.style.width = child.progress + '%';
       } else {
         pBar.style.width = '100%';
       }

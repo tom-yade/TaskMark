@@ -36,11 +36,13 @@ export interface ToggleTaskMessage {
 }
 
 // Leading line prefix matches parser ITEM_REGEX (TASK_LINE_PREFIX_NC + \s*).
-// Bracket interior mirrors ITEM: \[\s*([xX\s])\s*\] — one mark character
-// with flexible inner whitespace. Only that mark is swapped ('x' todo→done,
-// ASCII space done→todo) so surrounding spaces inside the brackets are kept.
+// Bracket interior mirrors ITEM: \[\s*([xX]|\d{1,3}|\s)\s*\] — one mark token
+// (x/X, a 1-3 digit progress number, or a single whitespace) with flexible
+// inner whitespace around it. Toggle treats `[ ]` and `[0]` as todo, `[x]`
+// and `[100]` as done; intermediate `[N]` is treated as todo (becomes `[x]`
+// on click) per Issue #90.
 const CHECKBOX_LINE_REGEX = new RegExp(
-  `^(${TASK_LINE_PREFIX_NC}\\s*)(\\[)(\\s*)([xX\\s])(\\s*)(\\])`
+  `^(${TASK_LINE_PREFIX_NC}\\s*)(\\[)(\\s*)([xX]|\\d{1,3}|\\s)(\\s*)(\\])`
 );
 
 export function toggleCheckboxInLine(line: string): string | null {
@@ -49,7 +51,8 @@ export function toggleCheckboxInLine(line: string): string | null {
     return null;
   }
   const mark = match[4];
-  const isDone = mark.trim().toLowerCase() === 'x';
+  const trimmed = mark.trim();
+  const isDone = trimmed.toLowerCase() === 'x' || trimmed === '100';
   const newMark = isDone ? ' ' : 'x';
   return (
     match[1] +

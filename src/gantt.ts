@@ -10,6 +10,8 @@ export interface GanttChildItem {
   endMs: number;
   isTask: boolean;
   isDone: boolean;
+  /** Progress rate (0-100) for tasks. 100 for schedule items. */
+  progress: number;
   rawLine: number;
   sourceLine: string;
 }
@@ -24,6 +26,9 @@ export interface GanttEntity {
   tags: string[];
   tasksTotal: number;
   tasksDone: number;
+  /** Sum of progress (0-100) across all task children. Average is
+   *  tasksProgressSum / tasksTotal; falls back to full bar when no tasks. */
+  tasksProgressSum: number;
   children: GanttChildItem[];
 }
 
@@ -99,12 +104,15 @@ export function buildGanttEntities(data: TaskMarkData): GanttData {
             : [...item.tags],
           tasksTotal: 0,
           tasksDone: 0,
+          tasksProgressSum: 0,
           children: []
         };
       } else {
         if (startMs < bucket[key].minTime) { bucket[key].minTime = startMs; }
         if (endMs > bucket[key].maxTime) { bucket[key].maxTime = endMs; }
       }
+
+      const childProgress = item.type === 'task' ? (item.progress ?? 0) : 100;
 
       bucket[key].children.push({
         text: item.text,
@@ -113,6 +121,7 @@ export function buildGanttEntities(data: TaskMarkData): GanttData {
         endMs,
         isTask: item.type === 'task',
         isDone: item.status === 'done',
+        progress: childProgress,
         rawLine: item.rawLine,
         sourceLine: item.sourceLine
       });
@@ -122,6 +131,7 @@ export function buildGanttEntities(data: TaskMarkData): GanttData {
         if (item.status === 'done') {
           bucket[key].tasksDone++;
         }
+        bucket[key].tasksProgressSum += childProgress;
       }
     });
   });

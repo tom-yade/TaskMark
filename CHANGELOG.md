@@ -4,6 +4,20 @@ All notable changes to the "TaskMark" extension will be documented in this file.
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.6.0] - 2026-05-24
+
+### Added
+- `TaskMark: Quick Add` command that inserts an item into the current `.tmd` file with prompts for date, type, tag, and text, plus snippets and IntelliSense completion for tag names and repeat options (#88).
+- Activity Bar TreeView ("TaskMark: Overview") that summarizes the active `.tmd` file by Today / This week / Overdue / Recently done. Clicking an item jumps to the corresponding line, and tasks expose an inline toggle action (#89).
+- Task progress rate with the `[N]` checkbox notation (0-100). `[0]` is equivalent to `[ ]` and `[100]` is equivalent to `[x]`. Gantt task bars are filled by the progress rate, group bars use the average across child tasks, and the TreeView appends a `(N%)` suffix for intermediate values (#90).
+- `TaskMark: Duplicate Task` command (Command Palette / editor context menu) that copies the task on the current line into multiple date sections based on a repeat pattern (`daily` / `weekly` / `monthly` / `every:N{days|weeks|months}`) and an end condition (`count:N` or `until:YYYY-MM-DD`). Missing date sections are created automatically (#91).
+
+### Fixed
+- Parser input validation hardened to warn on invalid values.
+- Time sort now uses numeric comparison so unpadded times are ordered correctly.
+- Repeat items are categorized by their occurrence date in the TreeView, and non-Today categories show the date.
+- `insertItemForDate` preserves the document's line ending.
+
 ## [1.5.0] - 2026-04-23
 
 ### Added

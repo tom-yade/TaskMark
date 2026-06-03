@@ -162,14 +162,17 @@ Options can be combined using commas. If a limit is not explicitly defined, recu
 | `# YYYY-MM-DD` | Date header | — |
 | `# YYYY-MM-DD : YYYY-MM-DD` | Date range header (start : end) | — |
 | `- Text` | Schedule (Event) | — |
-| `- [ ] Text` | Uncompleted task | — |
-| `- [x] Text` | Completed task | — |
+| `- [ ] Text` | Uncompleted task (= `- [0] Text`) | — |
+| `- [x] Text` | Completed task (= `- [100] Text`) | — |
+| `- [N] Text` | Task with progress rate (`N` = 0-100) | — |
 | `HH:mm-HH:mm` | Time range (Start-End) | Schedules |
 | `HH:mm` | Start time only | Schedules |
 | `#Tag` | Tags (Multiple allowed) | Both |
 | `@repeat(...)` | Recurring items | Schedules only |
 | `> Group Name` | Group header (tags optional) | — |
 | `> - Item` | Items inside group | Both |
+
+> **Note:** Month, day, hour, and minute parts accept both zero-padded and unpadded forms — `2026-3-1` and `9:0` are parsed the same as `2026-03-01` and `09:00`. The zero-padded form is recommended for consistency.
 
 ### 🗂️ Group Colors
 
@@ -203,6 +206,53 @@ Use `# YYYY-MM-DD : YYYY-MM-DD` to define events or tasks that span multiple day
 > **Note:** Date range items are always treated as all-day — any time specification (`HH:mm`) is ignored in the Timeline view.
 >
 > **Note:** `@repeat` is ignored when used under a date range header. `endDate` takes priority.
+
+---
+
+### Activity Bar Sidebar
+
+A dedicated TaskMark icon appears in the Activity Bar. Clicking it opens the **Overview** TreeView, which summarizes the active `.tmd` file at a glance:
+
+- **Today** — schedules and tasks for the current day (including ranges that span today)
+- **This week** — items in the current Mon–Sun week, excluding today
+- **Overdue** — incomplete tasks dated before today
+- **Recently done** — the most recent completed tasks (up to 10)
+
+Click any item to jump to its line in the `.tmd` file. Use the inline check-mark action on a task to toggle `- [ ]` / `- [x]` without opening the editor. The view auto-refreshes when the file is edited or another `.tmd` becomes active, and the title bar provides a manual refresh button.
+
+---
+
+### ✏️ Editing Helpers
+
+Reduce the typing cost of writing `.tmd` files with quick-add commands, snippets, and inline completion.
+
+**Quick-Add Commands** — Open the Command Palette (`Ctrl+Shift+P`) and run:
+
+- **`TaskMark: Add Task`** — Prompts for the task body and target date, then inserts `- [ ] <body>` into the matching date section. The section is created at the end of the file if it does not exist.
+- **`TaskMark: Add Schedule`** — Prompts for the body, start time, optional end time, and target date, then inserts `- HH:mm[-HH:mm] <body>` into the matching date section.
+- **`TaskMark: Duplicate Task`** — With the cursor on a task line, prompts for a repeat pattern (`daily` / `weekly` / `monthly` / `every:Ndays|Nweeks|Nmonths`) and an end condition (`count:N` or `until:YYYY-MM-DD`), then inserts copies of the task into the matching date sections. Missing date sections are created at the end of the file. Also available from the editor context menu on a `.tmd` file.
+
+The date prompt offers `Today` / `Tomorrow` / a custom `YYYY-MM-DD`.
+
+> **Note:** Unlike `@repeat`, which expands schedules in-place at parse time, `Duplicate Task` inserts independent `- [ ]` lines into the file. Each copy keeps its own completion state, so it works for recurring tasks (e.g. weekly reports).
+
+**Snippets** — Type the prefix and press `Tab` while editing a `.tmd` file:
+
+| Prefix | Expands to |
+|------|------|
+| `task` | `- [ ] ` |
+| `event` | `- HH:mm-HH:mm ` |
+| `date` | `# YYYY-MM-DD` |
+| `range` | `# YYYY-MM-DD : YYYY-MM-DD` |
+| `group` | `> Group Name #Tag` |
+| `repeat` | `@repeat(daily|weekly|monthly)` (choice) |
+| `tags` | `@tags` ... `@end` block |
+
+**Inline Completion**
+
+- After `#`, completes from tags defined in the current file's `@tags` block and from `taskmark.tagColors` settings.
+- After `@`, completes the keywords `repeat(`, `tags`, and `end`.
+- Inside `@repeat(...)`, completes the modifiers `daily`, `weekly`, `monthly`, `every:`, `until:`, `count:`, `except:`.
 
 ---
 

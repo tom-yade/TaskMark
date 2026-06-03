@@ -1,0 +1,41 @@
+{
+  "Task": {
+    "prefix": "task",
+    "body": "- [ ] $0",
+    "description": "Insert a new task line"
+  },
+  "Event": {
+    "prefix": "event",
+    "body": "- ${1:HH:mm}-${2:HH:mm} $0",
+    "description": "Insert a new timed schedule line"
+  },
+  "Date": {
+    "prefix": "date",
+    "body": "# ${1:YYYY-MM-DD}",
+    "description": "Insert a new date section header"
+  },
+  "Date range": {
+    "prefix": "range",
+    "body": "# ${1:YYYY-MM-DD} : ${2:YYYY-MM-DD}",
+    "description": "Insert a date-range section header"
+  },
+  "Group": {
+    "prefix": "group",
+    "body": "> ${1:Group Name} #${2:Tag}",
+    "description": "Insert a group header"
+  },
+  "Repeat": {
+    "prefix": "repeat",
+    "body": "@repeat(${1|daily,weekly,monthly|})",
+    "description": "Insert an @repeat() modifier"
+  },
+  "Tags block": {
+    "prefix": "tags",
+    "body": [
+      "@tags",
+      "#${1:Tag} : ${2:#color}",
+      "@end"
+    ],
+    "description": "Insert a @tags...@end block"
+  }
+}

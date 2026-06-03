@@ -2,7 +2,7 @@
   "name": "taskmark",
   "displayName": "TaskMark",
   "description": "Schedule and Task Management with Markdown and Calendar/Timeline Views",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "icon": "media/icon.png",
   "publisher": "Yadecode",
   "repository": {
@@ -17,11 +17,52 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "taskmark",
+          "title": "TaskMark",
+          "icon": "media/activitybar-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "taskmark": [
+        {
+          "id": "taskmarkOverview",
+          "name": "Overview",
+          "icon": "media/activitybar-icon.svg",
+          "contextualTitle": "TaskMark"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "taskmark.openView",
         "title": "TaskMark: Open View",
         "icon": "$(open-preview)"
+      },
+      {
+        "command": "taskmark.addTask",
+        "title": "TaskMark: Add Task"
+      },
+      {
+        "command": "taskmark.addSchedule",
+        "title": "TaskMark: Add Schedule"
+      },
+      {
+        "command": "taskmark.duplicateTask",
+        "title": "TaskMark: Duplicate Task"
+      },
+      {
+        "command": "taskmark.tree.refresh",
+        "title": "TaskMark: Refresh Overview",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "taskmark.tree.toggleItem",
+        "title": "TaskMark: Toggle Task",
+        "icon": "$(check)"
       }
     ],
     "keybindings": [
@@ -38,6 +79,33 @@
           "command": "taskmark.openView",
           "when": "editorLangId == tmd",
           "group": "navigation"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "taskmark.duplicateTask",
+          "when": "editorLangId == tmd",
+          "group": "taskmark@1"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "taskmark.tree.refresh",
+          "when": "view == taskmarkOverview",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "taskmark.tree.toggleItem",
+          "when": "view == taskmarkOverview && viewItem == taskmarkTask",
+          "group": "inline"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "taskmark.tree.toggleItem",
+          "when": "false"
         }
       ]
     },
@@ -59,6 +127,12 @@
         "language": "tmd",
         "scopeName": "source.tmd",
         "path": "./syntaxes/tmd.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "tmd",
+        "path": "./snippets/tmd.code-snippets"
       }
     ],
     "configuration": {
