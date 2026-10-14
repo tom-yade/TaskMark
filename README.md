@@ -3,7 +3,6 @@
 **Markdown-Based Schedule & Task Management VS Code Extension**
 
 ![CI](https://github.com/tom-yade/taskmark/actions/workflows/ci.yml/badge.svg?branch=main)
-![Visual Studio Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/Yadecode.taskmark)
 [![Visual Studio Marketplace](https://img.shields.io/badge/VS%20Marketplace-TaskMark-blue?logo=visual-studio-code)](https://marketplace.visualstudio.com/items?itemName=Yadecode.taskmark)
 ![GitHub License](https://img.shields.io/github/license/tom-yade/taskmark)
 
